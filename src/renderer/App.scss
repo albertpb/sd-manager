@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('../../assets/fonts/montserrat/fonts.scss');
+
+* {
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: auto;
+}
+
+.card__figure {
+  width: 320px;
+  height: 410px;
+
+  img {
+    transition: transform .5s ease;
+  }
+}
+
+.card__figure:hover {
+  img {
+    transform: scale(1.1);
+  }
+}
