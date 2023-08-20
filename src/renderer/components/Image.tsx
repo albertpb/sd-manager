@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import { useEffect, useState } from 'react';
 
 type ImageProps = {
@@ -20,7 +21,7 @@ export default function Image({
 
   useEffect(() => {
     const load = async () => {
-      const base64 = await window.ipcHandler.readFile(src, 'base64');
+      const { base64 } = await window.ipcHandler.readImage(src);
       setImage(base64);
       setLoading(false);
     };
@@ -36,7 +37,11 @@ export default function Image({
       alt={alt}
       width={width}
       height={height}
-      className={className}
+      style={{
+        width: typeof width === 'number' ? `${width}px` : width,
+        height: typeof height === 'number' ? `${height}px` : height,
+      }}
+      className={classNames(className)}
     />
   );
 }

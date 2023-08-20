@@ -24,6 +24,7 @@ module.exports = {
     'no-await-in-loop': 'off',
     'no-async-promise-executor': 'off',
     'no-param-reassign': 'off',
+    'react/no-array-index-key': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

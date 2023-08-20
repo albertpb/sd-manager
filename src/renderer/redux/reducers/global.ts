@@ -26,6 +26,7 @@ interface GlobalState {
   images: {
     filesInfo: Record<string, any>;
   };
+  navbarSearchInput: string;
 }
 
 const initialState: GlobalState = {
@@ -46,6 +47,7 @@ const initialState: GlobalState = {
   images: {
     filesInfo: {},
   },
+  navbarSearchInput: '',
 };
 
 const readDirModelsAsync = async (
@@ -111,6 +113,9 @@ export const globalSlice = createSlice({
       state.settings.imagesPath = action.payload;
       saveSettings(state);
     },
+    setNavbarSearchInputValue: (state, action) => {
+      state.navbarSearchInput = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(readCheckpointsDir.pending, (state) => {
@@ -136,5 +141,10 @@ export const globalSlice = createSlice({
   },
 });
 
-export const { setCheckpointsPath, init, selectModel, setImagesPath } =
-  globalSlice.actions;
+export const {
+  setCheckpointsPath,
+  init,
+  selectModel,
+  setImagesPath,
+  setNavbarSearchInputValue,
+} = globalSlice.actions;

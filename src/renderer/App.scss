@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import url('../../assets/fonts/montserrat/fonts.scss');
+@import url('../../node_modules/react-multi-carousel/lib/styles.css');
 
 * {
   font-family: 'Montserrat', sans-serif;
@@ -10,8 +11,7 @@
 }
 
 .card__figure {
-  width: 320px;
-  height: 410px;
+  overflow: hidden;
 
   img {
     transition: transform .5s ease;

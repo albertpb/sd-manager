@@ -1,4 +1,5 @@
 /* eslint import/prefer-default-export: off */
+import { Worker } from 'worker_threads';
 import { URL } from 'url';
 import axios from 'axios';
 import path from 'path';
@@ -60,6 +61,31 @@ export function calculateHashFile(
   });
 }
 
+export function calculateHashFileOnWorker(
+  filePath: string,
+  algorithm = 'sha256'
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      path.resolve(__dirname, './tasks/calculateHash.js'),
+      {
+        workerData: {
+          filePath,
+          algorithm,
+        },
+      }
+    );
+
+    worker.on('message', resolve);
+    worker.on('error', reject);
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
+}
+
 export async function downloadModelInfoByHash(
   modelName: string,
   hash: string,
@@ -79,25 +105,30 @@ export async function downloadModelInfoByHash(
 }
 
 export async function downloadImage(
-  modelName: string,
+  fileName: string,
   url: string,
   savePath: string,
   resolution = 1024
 ) {
-  const writer = fs.createWriteStream(`${savePath}\\${modelName}.png`);
+  const fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
 
-  const imageUrl = url.replace('/width=d+/', `width=${resolution}`);
+  if (!fileExists) {
+    const writer = fs.createWriteStream(`${savePath}\\${fileName}.png`);
 
-  const response = await axios.get(imageUrl, {
-    responseType: 'stream',
-  });
+    const imageUrl = url.replace('/width=d+/', `width=${resolution}`);
 
-  response.data.pipe(writer);
+    const response = await axios.get(imageUrl, {
+      responseType: 'stream',
+    });
 
-  return new Promise((resolve, reject) => {
-    writer.on('finish', resolve);
-    writer.on('error', reject);
-  });
+    response.data.pipe(writer);
+
+    const p = new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+    await p;
+  }
 }
 
 export async function readModelInfoFile(filePath: string) {

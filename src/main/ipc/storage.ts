@@ -4,11 +4,10 @@ import { checkFileExists } from '../util';
 
 export type StoreAction = 'save' | 'read';
 
-export const storageIpc = async (
-  event: IpcMainInvokeEvent,
+export const getStorage = async (
   action: StoreAction,
   key: string,
-  data: string
+  data?: string
 ) => {
   const userDataPath = `${app.getPath('userData')}`;
   const settingsPathFile = `${userDataPath}\\storage.json`;
@@ -41,4 +40,15 @@ export const storageIpc = async (
   }
 
   return null;
+};
+
+export const storageIpc = async (
+  event: IpcMainInvokeEvent,
+  action: StoreAction,
+  key: string,
+  data: string
+) => {
+  const storage = await getStorage(action, key, data);
+
+  return storage;
 };

@@ -2,9 +2,10 @@ import fs from 'fs';
 import { app, BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import {
   checkFileExists,
-  calculateHashFile,
   downloadImage,
   downloadModelInfoByHash,
+  calculateHashFile,
+  checkFolderExists,
 } from '../util';
 import { ModelInfo } from '../interfaces';
 
@@ -43,15 +44,41 @@ export const readdirModelsIpc = async (
 
   const filesHashMap: Record<string, ReadDirModelInfo> = {};
 
+  /*
+  // MultiThread
+
+  const calculateHashPromises = [];
+  for (let i = 0; i < files.length; i++) {
+    if (!readdirdb[model][folderPath]?.files[files[i]]) {
+      calculateHashPromises.push(
+        calculateHashFileOnWorker(`${folderPath}\\${files[i]}`)
+      );
+    } else {
+      calculateHashPromises.push(
+        new Promise((resolve) => {
+          resolve('');
+        })
+      );
+    }
+  }
+
+  const hashes = await Promise.all(calculateHashPromises);
+  */
+
   for (let i = 0; i < files.length; i++) {
     const fileNameNoExt =
       files[i].substring(0, files[i].lastIndexOf('.')) || files[i];
 
-    if (readdirdb[model][folderPath].files[files[i]]) {
+    if (
+      readdirdb[model][folderPath] &&
+      readdirdb[model][folderPath].files &&
+      readdirdb[model][folderPath].files[fileNameNoExt]
+    ) {
       filesHashMap[fileNameNoExt] =
-        readdirdb[model][folderPath].files[files[i]];
+        readdirdb[model][folderPath].files[fileNameNoExt];
     } else {
       filesHashMap[fileNameNoExt] = {
+        // hash: hashes[i] as string,
         hash: await calculateHashFile(`${folderPath}\\${files[i]}`),
         modelPath: `${folderPath}\\${files[i]}`,
         fileName: `${fileNameNoExt}`,
@@ -65,19 +92,40 @@ export const readdirModelsIpc = async (
       `${folderPath}\\${fileNameNoExt}.civitai.info`
     );
 
+    let modelInfo;
     if (!modelInfoExists) {
-      const modelInfo: ModelInfo = await downloadModelInfoByHash(
-        fileNameNoExt,
-        filesHashMap[fileNameNoExt].hash,
-        folderPath
+      try {
+        modelInfo = await downloadModelInfoByHash(
+          fileNameNoExt,
+          filesHashMap[fileNameNoExt].hash,
+          folderPath
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      const modelInfoStr = await fs.promises.readFile(
+        `${folderPath}\\${fileNameNoExt}.civitai.info`,
+        { encoding: 'utf-8' }
       );
+      modelInfo = JSON.parse(modelInfoStr);
+    }
 
-      if (!imageExists) {
-        if (modelInfo.images[0]) {
+    if (!imageExists) {
+      if (modelInfo && modelInfo.images && modelInfo.images.length > 0) {
+        const imagesModelFolder = `${folderPath}\\${fileNameNoExt}`;
+        const imagesModelFolderExists = await checkFolderExists(
+          imagesModelFolder
+        );
+        if (!imagesModelFolderExists) {
+          fs.mkdirSync(imagesModelFolder);
+        }
+
+        for (let c = 0; c < modelInfo.images.length; c++) {
           await downloadImage(
-            fileNameNoExt,
-            modelInfo.images[0].url,
-            folderPath
+            `${fileNameNoExt}_${c}`,
+            modelInfo.images[c].url,
+            imagesModelFolder
           );
         }
       }

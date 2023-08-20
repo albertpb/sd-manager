@@ -1,17 +1,26 @@
 import { ModelInfo } from 'main/interfaces';
-import Rating from './Rating';
 
 export type ModelTableDetailProps = {
   modelInfo: ModelInfo;
 };
 
 export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
+  const openCivitaiLink = () => {
+    window.ipcHandler.openLink(
+      `https://civitai.com/models/${modelInfo.modelId}`
+    );
+  };
+
   return (
     <table className="table">
       <tbody>
         <tr>
           <td className="">Details</td>
           <td> </td>
+        </tr>
+        <tr>
+          <td>Name</td>
+          <td>{modelInfo.name}</td>
         </tr>
         <tr>
           <td>Type</td>
@@ -28,9 +37,15 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
           <td>{modelInfo.modelId}</td>
         </tr>
         <tr>
-          <td>Model Id</td>
+          <td>Link</td>
           <td>
-            <Rating rating={modelInfo.stats.rating} />
+            <button
+              type="button"
+              onClick={() => openCivitaiLink()}
+              className="link"
+            >
+              Civitai Link
+            </button>
           </td>
         </tr>
       </tbody>

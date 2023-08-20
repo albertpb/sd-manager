@@ -5,7 +5,7 @@ export default function MainLayout() {
   return (
     <main>
       <Navbar />
-      <section className="m-6">
+      <section className="mx-20 mt-32">
         <Outlet />
       </section>
     </main>

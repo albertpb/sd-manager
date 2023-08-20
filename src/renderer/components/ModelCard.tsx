@@ -3,13 +3,26 @@ import Image from './Image';
 type ModelCardProps = {
   imagePath: string;
   name: string;
+  width?: string;
+  height?: string;
 };
 
-export default function ModelCard({ imagePath, name }: ModelCardProps) {
+export default function ModelCard({
+  imagePath,
+  name,
+  width = '480px',
+  height = '320px',
+}: ModelCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-md p-0 m-1 shadow cursor-pointer">
-      <figure className="card__figure">
-        <Image src={imagePath} alt={name} width="100%" />
+    <div className="relative overflow-hidden rounded-md p-0 m-2 cursor-pointer">
+      <figure className="card__figure" style={{ width, height }}>
+        <Image
+          src={imagePath}
+          alt={name}
+          height="100%"
+          width="100%"
+          className="object-cover"
+        />
         <div className="absolute top-0 left-0 w-full">
           <div className="w-full h-full flex flex-row p-3">
             <div className="badge badge-accent">checkpoint</div>

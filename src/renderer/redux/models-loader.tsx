@@ -33,7 +33,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
 
   return (
     <div className="w-full flex flex-col justify-center items-center h-screen">
-      <div className="stats shadow">
+      <div className="stats">
         <div className="stat place-items-center">
           <div className="stat-title">Hashing Files</div>
           <div className="stat-value">{progress.toFixed(2)}%</div>

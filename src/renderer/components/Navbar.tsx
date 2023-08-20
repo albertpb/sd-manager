@@ -1,12 +1,37 @@
 import classNames from 'classnames';
 import useTab, { tabs } from 'hooks/tabs';
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { RootState } from 'renderer/redux';
+import { setNavbarSearchInputValue } from 'renderer/redux/reducers/global';
 
 export default function Navbar() {
+  const dispatch = useDispatch();
   const currentTab = useTab();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchValue = useSelector(
+    (state: RootState) => state.global.navbarSearchInput
+  );
+
+  useEffect(() => {
+    const keyListener = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'f') {
+        if (searchRef.current !== null) {
+          searchRef.current.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', keyListener);
+
+    return () => {
+      document.removeEventListener('keydown', keyListener);
+    };
+  }, []);
 
   return (
-    <nav className="navbar bg-base-200">
+    <nav className="navbar bg-base-200 fixed top-0 z-50">
       <div className="flex-none">
         <button className="btn btn-square btn-ghost" type="button">
           <svg
@@ -43,6 +68,18 @@ export default function Navbar() {
         ))}
       </div>
       <div className="flex-none">
+        <div className="form-control">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search"
+            className="input input-bordered w-96"
+            value={searchValue}
+            onChange={(e) =>
+              dispatch(setNavbarSearchInputValue(e.target.value))
+            }
+          />
+        </div>
         <Link className="btn btn-square btn-ghost" to="/settings">
           <svg
             xmlns="http://www.w3.org/2000/svg"

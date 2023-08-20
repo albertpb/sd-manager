@@ -27,7 +27,9 @@ import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { organizeImagesIpc } from './ipc/organizeImages';
 import { readdirModelsIpc } from './ipc/readdirModels';
-import { readdirIpc } from './ipc/readdir';
+import { openLinkIpc } from './ipc/openLink';
+import { readdirImagesIpc } from './ipc/readdirImages';
+import { readdirModelImagesIpc } from './ipc/readdirModelImages';
 
 class AppUpdater {
   constructor() {
@@ -42,12 +44,14 @@ let mainWindow: BrowserWindow | null = null;
 ipcMain.handle('readdirModels', (event, model, folderPath) =>
   readdirModelsIpc(mainWindow, event, model, folderPath)
 );
-ipcMain.handle('readdir', readdirIpc);
+ipcMain.handle('readdirImages', readdirImagesIpc);
 ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
 ipcMain.handle('storage', storageIpc);
 ipcMain.handle('readModelInfo', readModelInfoIpc);
+ipcMain.handle('readdirModelImages', readdirModelImagesIpc);
 ipcMain.handle('readFile', readFileIpc);
 ipcMain.handle('readImage', readImageIpc);
+ipcMain.handle('openLink', openLinkIpc);
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -96,6 +100,7 @@ const createWindow = async () => {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      sandbox: true,
     },
   });
 
