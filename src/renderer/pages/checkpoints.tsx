@@ -23,7 +23,9 @@ export default function Checkpoints() {
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput
   );
+
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerHeight, setContainerHeight] = useState<number>(0);
 
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
@@ -57,19 +59,19 @@ export default function Checkpoints() {
       : fuse.search(navbarSearchInput);
 
   const calcImagesValues = useCallback(() => {
-    const containerHeight = Math.floor(
-      containerRef.current?.offsetHeight || 1000
-    );
-    const cardHeight = (containerHeight / 3 || 480) - rowMargin;
+    const windowHeight = window.innerHeight;
+    setContainerHeight(windowHeight - 150);
+
+    const cardHeight = containerHeight / 3 - rowMargin;
     const cardWidth = (cardHeight * 2) / 3;
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
 
     setPerChunk(
-      Math.floor((window.innerWidth - window.innerHeight * 0.15) / cardWidth)
+      Math.floor((window.innerWidth - window.innerHeight * 0.2) / cardWidth)
     );
-  }, []);
+  }, [containerHeight]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {

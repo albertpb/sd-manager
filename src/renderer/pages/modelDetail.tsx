@@ -38,7 +38,6 @@ export default function ModelDetail() {
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
   const margin = 20;
-  const rowsToShow = 1;
 
   useEffect(() => {
     if (selectedModelName) {
@@ -79,14 +78,17 @@ export default function ModelDetail() {
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
+    let rowsToShow = 1;
 
     if (showHead) {
+      rowsToShow = 1;
       setContainerHeight(windowHeight - 750);
     } else {
+      rowsToShow = 2;
       setContainerHeight(windowHeight - 350);
     }
 
-    const cardHeight = (containerHeight / rowsToShow || 480) - margin;
+    const cardHeight = containerHeight / rowsToShow - margin;
     const cardWidth = (cardHeight * 2) / 3 + margin;
     setHeight(cardHeight);
     setWidth(cardWidth);
