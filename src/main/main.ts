@@ -17,11 +17,14 @@ import {
   dialog,
   protocol,
   net,
+  IpcMainInvokeEvent,
 } from 'electron';
+import chokidar, { FSWatcher } from 'chokidar';
+import fs from 'fs';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-import { resolveHtmlPath } from './util';
+import { checkFolderExists, resolveHtmlPath } from './util';
 import { storageIpc } from './ipc/storage';
 import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
@@ -30,6 +33,12 @@ import { readdirModelsIpc } from './ipc/readdirModels';
 import { openLinkIpc } from './ipc/openLink';
 import { readdirImagesIpc } from './ipc/readdirImages';
 import { readdirModelImagesIpc } from './ipc/readdirModelImages';
+import {
+  extractMetadata,
+  parseAutomatic1111Meta,
+  parseComfyUiMeta,
+} from './exif';
+import { getPathsIpc } from './ipc/getPaths';
 
 class AppUpdater {
   constructor() {
@@ -52,6 +61,64 @@ ipcMain.handle('readdirModelImages', readdirModelImagesIpc);
 ipcMain.handle('readFile', readFileIpc);
 ipcMain.handle('readImage', readImageIpc);
 ipcMain.handle('openLink', openLinkIpc);
+ipcMain.handle('getPaths', getPathsIpc);
+
+let watcherImagesFolder: FSWatcher | null = null;
+ipcMain.handle(
+  'watchImagesFolder',
+  async (event: IpcMainInvokeEvent, folderToWatch: string) => {
+    const folderExists = await checkFolderExists(folderToWatch);
+
+    if (folderExists) {
+      if (watcherImagesFolder !== null) {
+        watcherImagesFolder.close();
+      } else {
+        watcherImagesFolder = chokidar.watch(folderToWatch, {
+          persistent: true,
+          depth: 1,
+          ignoreInitial: true,
+          awaitWriteFinish: true,
+        });
+
+        watcherImagesFolder.on('add', async (detectedFile: string) => {
+          const fileBaseName = `${path.basename(detectedFile)}`;
+          const ext = fileBaseName.split('.').pop();
+          if (ext !== 'png') return;
+
+          const imagesDestPath = `${app.getPath(
+            'documents'
+          )}\\sd-manager\\images`;
+          const imagesDestPathExists = await checkFolderExists(imagesDestPath);
+
+          if (imagesDestPathExists) {
+            const file = fs.readFileSync(detectedFile);
+            const exif = extractMetadata(file);
+            let metadata = null;
+            if (exif.parameters) {
+              metadata = parseAutomatic1111Meta(exif.parameters);
+            } else if (exif.workflow) {
+              metadata = parseComfyUiMeta(exif.workflow);
+            }
+            if (metadata && metadata.model) {
+              fs.copyFileSync(
+                detectedFile,
+                `${imagesDestPath}\\${metadata.model}\\${fileBaseName}`
+              );
+
+              if (mainWindow !== null) {
+                mainWindow.webContents.send(
+                  'detectedAddImage',
+                  metadata.model,
+                  detectedFile
+                );
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+);
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -110,7 +177,7 @@ const createWindow = async () => {
         properties: ['openDirectory'],
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.filePaths[0] !== '') {
         return result.filePaths[0];
       }
     }
@@ -133,6 +200,10 @@ const createWindow = async () => {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+
+    if (watcherImagesFolder) {
+      watcherImagesFolder.close();
+    }
   });
 
   const menuBuilder = new MenuBuilder(mainWindow);

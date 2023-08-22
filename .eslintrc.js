@@ -25,6 +25,8 @@ module.exports = {
     'no-async-promise-executor': 'off',
     'no-param-reassign': 'off',
     'react/no-array-index-key': 'off',
+    'react/no-unknown-property': 'off',
+    'prefer-destructuring': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

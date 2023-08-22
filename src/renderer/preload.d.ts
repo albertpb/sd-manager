@@ -12,6 +12,9 @@ declare global {
       imagesProgress: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
+      detectedAddImage: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
     };
   }
 }

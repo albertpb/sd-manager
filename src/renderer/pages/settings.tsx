@@ -19,7 +19,10 @@ export default function Settings() {
 
   const onSelectImagesDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    dispatch(setImagesPath(path as string));
+    if (path !== '') {
+      dispatch(setImagesPath(path as string));
+      window.ipcHandler.watchImagesFolder(settings.imagesPath);
+    }
   };
 
   const onOrganizeImagesClick = async () => {

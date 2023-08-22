@@ -14,12 +14,32 @@
   overflow: hidden;
 
   img {
-    transition: transform .5s ease;
+    transition: transform 0.5s ease;
   }
 }
 
 .card__figure:hover {
   img {
     transform: scale(1.1);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  height: 50px;
+  background-color: #666;
+  border-radius: 3px;
+}
+
+.courtain {
+  transition: height 0.5s;
+  overflow: hidden;
+
+  &.courtain-hidden {
+    height: 0;
   }
 }

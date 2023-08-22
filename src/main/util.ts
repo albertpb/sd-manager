@@ -91,17 +91,27 @@ export async function downloadModelInfoByHash(
   hash: string,
   downloadDir: string
 ) {
-  const response = await axios.get(
-    `https://civitai.com/api/v1/model-versions/by-hash/${hash}`
-  );
+  try {
+    const response = await axios.get(
+      `https://civitai.com/api/v1/model-versions/by-hash/${hash}`
+    );
 
-  await fs.promises.writeFile(
-    `${downloadDir}\\${modelName}.civitai.info`,
-    JSON.stringify(response.data, null, 2),
-    { encoding: 'utf-8' }
-  );
+    await fs.promises.writeFile(
+      `${downloadDir}\\${modelName}.civitai.info`,
+      JSON.stringify(response.data, null, 2),
+      { encoding: 'utf-8' }
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    await fs.promises.writeFile(
+      `${downloadDir}\\${modelName}.civitai.info`,
+      '{}',
+      { encoding: 'utf-8' }
+    );
+
+    throw error;
+  }
 }
 
 export async function downloadImage(
@@ -137,7 +147,7 @@ export async function readModelInfoFile(filePath: string) {
 }
 
 export function splitOutsideQuotes(input: string): string[] {
-  const regex = /([ a-zA-Z]+: "[^"]+")/g;
+  const regex = /([ 0-9a-zA-Z]+: "[^"]+")/g;
   const parts = input.match(regex);
   let arr: string[] = [];
   if (parts !== null) {

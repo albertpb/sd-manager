@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import useTab, { tabs } from 'hooks/tabs';
+import useTab, { tabs } from 'renderer/hooks/tabs';
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';

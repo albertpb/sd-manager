@@ -14,7 +14,7 @@ export const readdirImagesIpc = async (
   if (folderExists) {
     const files = fs.readdirSync(imagesPath);
 
-    return files.map((f) => `${imagesPath}\\${f}`);
+    return files.map((f) => `${imagesPath}\\${f}`).reverse();
   }
 
   return [];

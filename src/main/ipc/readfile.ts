@@ -1,6 +1,10 @@
 import fs from 'fs';
 import { IpcMainInvokeEvent } from 'electron';
-import { extractMetadata } from '../exif';
+import {
+  extractMetadata,
+  parseAutomatic1111Meta,
+  parseComfyUiMeta,
+} from '../exif';
 import { checkFileExists } from '../util';
 
 export const readFileIpc = async (
@@ -25,10 +29,18 @@ export const readImageIpc = async (event: IpcMainInvokeEvent, path: string) => {
     const buffer = fs.readFileSync(path);
     const exif = extractMetadata(buffer);
     const base64 = Buffer.from(buffer).toString('base64');
+    let metadata = null;
+
+    if (exif.parameters) {
+      metadata = parseAutomatic1111Meta(exif.parameters);
+    } else if (exif.workflow) {
+      metadata = parseComfyUiMeta(exif.workflow);
+    }
 
     return {
       base64,
       exif,
+      metadata,
     };
   }
 

@@ -14,7 +14,10 @@ export default function ModelCard({
   height = '320px',
 }: ModelCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-md p-0 m-2 cursor-pointer">
+    <div
+      className="relative overflow-hidden rounded-md p-0 m-2 cursor-pointer"
+      style={{ width, height }}
+    >
       <figure className="card__figure" style={{ width, height }}>
         <Image
           src={imagePath}

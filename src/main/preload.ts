@@ -13,6 +13,8 @@ const channels = [
   'readFile',
   'readImage',
   'openLink',
+  'watchImagesFolder',
+  'getPaths',
 ] as const;
 export type Channels = (typeof channels)[number];
 
@@ -29,4 +31,6 @@ contextBridge.exposeInMainWorld('ipcOn', {
     ipcRenderer.once('models-progress', cb),
   imagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
     ipcRenderer.once('images-progress', cb),
+  detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
+    ipcRenderer.once('detectedAddImage', cb),
 });

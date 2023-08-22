@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-type CheckpointItem = {
+export type CheckpointItem = {
   hash: string;
   modelPath: string;
   fileName: string;
@@ -15,10 +15,6 @@ interface GlobalState {
   initialized: boolean;
   checkpointsLoading: boolean;
   settings: SettingsState;
-  selectedModel: {
-    type: string | null;
-    name: string | null;
-  };
   checkpoints: {
     filesInfo: Record<string, CheckpointItem>;
   };
@@ -32,10 +28,6 @@ interface GlobalState {
 const initialState: GlobalState = {
   initialized: false,
   checkpointsLoading: false,
-  selectedModel: {
-    type: null,
-    name: null,
-  },
   settings: {
     checkpointsPath: null,
     imagesPath: null,
@@ -106,9 +98,6 @@ export const globalSlice = createSlice({
     init: (state) => {
       state.initialized = true;
     },
-    selectModel: (state, action) => {
-      state.selectedModel = action.payload;
-    },
     setImagesPath: (state, action) => {
       state.settings.imagesPath = action.payload;
       saveSettings(state);
@@ -144,7 +133,6 @@ export const globalSlice = createSlice({
 export const {
   setCheckpointsPath,
   init,
-  selectModel,
   setImagesPath,
   setNavbarSearchInputValue,
 } = globalSlice.actions;

@@ -12,15 +12,20 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   const initialized = useSelector(
     (state: RootState) => state.global.initialized
   );
+  const settings = useSelector((state: RootState) => state.global.settings);
 
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    if (!initialized) {
-      dispatch(readCheckpointsDir());
-      dispatch(init());
-    }
-  }, [dispatch, initialized]);
+    const load = async () => {
+      if (!initialized) {
+        await dispatch(readCheckpointsDir());
+        window.ipcHandler.watchImagesFolder(settings.imagesPath);
+        dispatch(init());
+      }
+    };
+    load();
+  }, [dispatch, initialized, settings.imagesPath]);
 
   useEffect(() => {
     window.ipcOn.modelsProgress((event, m, p) => {

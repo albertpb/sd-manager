@@ -7,7 +7,6 @@ import {
   calculateHashFile,
   checkFolderExists,
 } from '../util';
-import { ModelInfo } from '../interfaces';
 
 export interface ReadDirModelInfo {
   hash: string;
@@ -69,6 +68,10 @@ export const readdirModelsIpc = async (
     const fileNameNoExt =
       files[i].substring(0, files[i].lastIndexOf('.')) || files[i];
 
+    const modelInfoExists = await checkFileExists(
+      `${folderPath}\\${fileNameNoExt}.civitai.info`
+    );
+
     if (
       readdirdb[model][folderPath] &&
       readdirdb[model][folderPath].files &&
@@ -87,9 +90,6 @@ export const readdirModelsIpc = async (
 
     const imageExists = await checkFileExists(
       `${folderPath}\\${fileNameNoExt}.png`
-    );
-    const modelInfoExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.civitai.info`
     );
 
     let modelInfo;

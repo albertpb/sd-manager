@@ -1,13 +1,20 @@
 import Fuse from 'fuse.js';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
-import { selectModel } from 'renderer/redux/reducers/global';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckpointItem } from 'renderer/redux/reducers/global';
+import VirtualScroll, {
+  VirtualScrollData,
+} from 'renderer/components/VirtualScroll';
+
+interface RowData {
+  row: Fuse.FuseResult<CheckpointItem>[];
+  id: string;
+}
 
 export default function Checkpoints() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const checkpoints = useSelector(
     (state: RootState) => state.global.checkpoints
@@ -16,24 +23,21 @@ export default function Checkpoints() {
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput
   );
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const [width, setWidth] = useState('320px');
-  const [height, setHeight] = useState('480px');
+  const [width, setWidth] = useState(320);
+  const [height, setHeight] = useState(480);
+  const [perChunk, setPerChunk] = useState(4);
+  const [buffer, setBuffer] = useState(3);
+  const rowMargin = 10;
 
   const onClick = (name: string) => {
-    dispatch(
-      selectModel({
-        name,
-        type: 'checkpoint',
-      })
-    );
-
-    navigate('/model-detail');
+    navigate(`/model-detail/checkpoint/${name}`);
   };
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [navbarSearchInput]);
+    containerRef.current?.scrollTo(0, 0);
+  }, [navbarSearchInput, containerRef]);
 
   const modelsList = Object.values(checkpoints.filesInfo);
   const fuse = new Fuse(modelsList, {
@@ -42,32 +46,100 @@ export default function Checkpoints() {
 
   const resultCards =
     navbarSearchInput === ''
-      ? modelsList.map((chkpt) => {
+      ? modelsList.map((chkpt, i) => {
           return {
             item: chkpt,
             matches: [],
             score: 1,
+            refIndex: i,
           };
         })
       : fuse.search(navbarSearchInput);
 
-  const cards = resultCards.map(({ item }) => {
-    const imagePath = `${settings.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`;
+  const calcImagesValues = useCallback(() => {
+    const containerHeight = Math.floor(
+      containerRef.current?.offsetHeight || 1000
+    );
+    const cardHeight = (containerHeight / 3 || 480) - rowMargin;
+    const cardWidth = (cardHeight * 2) / 3;
+    setHeight(cardHeight);
+    setWidth(cardWidth);
+    setBuffer(Math.floor(containerHeight / cardHeight));
+
+    setPerChunk(
+      Math.floor((window.innerWidth - window.innerHeight * 0.15) / cardWidth)
+    );
+  }, []);
+
+  const setRef = useCallback(
+    (node: HTMLDivElement) => {
+      containerRef.current = node;
+      calcImagesValues();
+    },
+    [calcImagesValues]
+  );
+
+  useEffect(() => {
+    calcImagesValues();
+
+    window.addEventListener('resize', calcImagesValues);
+
+    return () => window.removeEventListener('resize', calcImagesValues);
+  }, [containerRef, width, calcImagesValues]);
+
+  const chunks = resultCards.reduce((resultArr: RowData[], item, index) => {
+    const chunkIndex = Math.floor(index / perChunk);
+
+    if (!resultArr[chunkIndex]) {
+      resultArr[chunkIndex] = {
+        row: [],
+        id: '',
+      };
+    }
+    resultArr[chunkIndex].row.push(item);
+    resultArr[chunkIndex].id += `${item.item.hash}_${index}`;
+
+    return resultArr;
+  }, []);
+
+  const rowRenderer = (row: VirtualScrollData) => {
+    const items = row.row.map(({ item }: Fuse.FuseResult<CheckpointItem>) => {
+      const imagePath = `${settings.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`;
+      return (
+        <div
+          onClick={() => onClick(item.fileName)}
+          key={`${item.hash}_${item.fileName}`}
+          aria-hidden="true"
+        >
+          <ModelCard
+            name={item.fileName}
+            imagePath={imagePath}
+            width={`${width}px`}
+            height={`${height}px`}
+          />
+        </div>
+      );
+    });
+
     return (
-      <div
-        onClick={() => onClick(item.fileName)}
-        key={`${item.hash}_${item.fileName}`}
-        aria-hidden="true"
-      >
-        <ModelCard
-          name={item.fileName}
-          imagePath={imagePath}
-          width={width}
-          height={height}
-        />
+      <div key={row.id} className="flex w-full">
+        {items}
       </div>
     );
-  });
+  };
 
-  return <section className="flex flex-row flex-wrap">{cards}</section>;
+  return (
+    <div ref={setRef} className="W-full h-full">
+      <VirtualScroll
+        data={chunks}
+        settings={{
+          buffer,
+          rowHeight: height,
+          tolerance: 3,
+          rowMargin,
+        }}
+        rowRenderer={rowRenderer}
+      />
+    </div>
+  );
 }
