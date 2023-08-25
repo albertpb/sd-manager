@@ -1,13 +1,14 @@
 import { BrowserWindow, app } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { checkFileExists, checkFolderExists } from '../util';
+import sharp from 'sharp';
 import {
-  ImageMetaData,
-  extractMetadata,
-  parseAutomatic1111Meta,
-  parseComfyUiMeta,
-} from '../exif';
+  checkFileExists,
+  checkFolderExists,
+  getFileNameExt,
+  getFilenameNoExt,
+} from '../util';
+import { extractMetadata, parseImageSdMeta } from '../exif';
 
 export const organizeImagesIpc = async (
   browserWindow: BrowserWindow | null
@@ -21,9 +22,8 @@ export const organizeImagesIpc = async (
   const storage = fs.readFileSync(settingsPathFile, { encoding: 'utf-8' });
   const { settings } = JSON.parse(storage);
   const imagesSrcPath = settings.imagesPath;
+  const imagesDestPath = settings.imagesDestPath;
 
-  const documentsAppPath = `${app.getPath('documents')}\\sd-manager`;
-  const imagesDestPath = `${documentsAppPath}\\images`;
   const folderExists = await checkFolderExists(imagesDestPath);
 
   if (!folderExists) {
@@ -36,10 +36,10 @@ export const organizeImagesIpc = async (
     const files = fs.readdirSync(dirPath);
 
     files.forEach((file) => {
-      if (fs.statSync(`${dirPath}/${file}`).isDirectory()) {
-        arrayOfFiles = getAllFiles(`${dirPath}/${file}`, arrayOfFiles);
+      if (fs.statSync(`${dirPath}\\${file}`).isDirectory()) {
+        arrayOfFiles = getAllFiles(`${dirPath}\\${file}`, arrayOfFiles);
       } else {
-        arrayOfFiles.push(`${dirPath}/${file}`);
+        arrayOfFiles.push(`${dirPath}\\${file}`);
       }
     });
 
@@ -47,31 +47,18 @@ export const organizeImagesIpc = async (
   };
 
   const files = getAllFiles(imagesSrcPath);
-  let imagesDB: Record<string, any> = {};
-  const imagesDBPath = `${documentsAppPath}\\images.json`;
+
+  const imagesData: Record<string, any> = {};
 
   for (let i = 0; i < files.length; i++) {
     const fileName = path.basename(files[i]);
-    const ext = fileName.split('.').pop();
+    const fileNameNoExt = getFilenameNoExt(fileName);
+    const ext = getFileNameExt(fileName);
     const file = fs.readFileSync(files[i]);
     const exif = extractMetadata(file);
 
     if (ext === 'png') {
-      const imagesDBFileExists = await checkFileExists(imagesDBPath);
-      if (imagesDBFileExists) {
-        imagesDB = JSON.parse(
-          fs.readFileSync(imagesDBPath, { encoding: 'utf-8' })
-        );
-      } else {
-        imagesDB = {};
-      }
-
-      let metadata: ImageMetaData | null = null;
-      if (exif.parameters) {
-        metadata = parseAutomatic1111Meta(exif.parameters);
-      } else if (exif.workflow) {
-        metadata = parseComfyUiMeta(exif.workflow);
-      }
+      const metadata = parseImageSdMeta(exif);
 
       if (metadata && metadata.model) {
         metadata.generatedBy = 'automatic1111';
@@ -80,15 +67,40 @@ export const organizeImagesIpc = async (
         if (!modelFolderExists) {
           fs.mkdirSync(modelImagesPath);
         }
-        const imageDestPath = `${modelImagesPath}\\${fileName}`;
-        fs.copyFileSync(files[i], imageDestPath);
 
-        if (!imagesDB[metadata.model]) imagesDB[metadata.model] = {};
-        if (!imagesDB[metadata.model][fileName]) {
-          imagesDB[metadata.model][fileName] = {
-            path: imageDestPath,
-            rating: 0,
-            markdown: '',
+        const imageDestPath = `${modelImagesPath}\\${fileName}`;
+        try {
+          fs.copyFileSync(files[i], imageDestPath, fs.constants.COPYFILE_EXCL);
+        } catch (error) {
+          console.log(`${imageDestPath} already exists`);
+        }
+
+        const imageFile = fs.readFileSync(files[i]);
+        const thumbnailDestPath = `${modelImagesPath}\\${fileNameNoExt}.thumbnail.png`;
+        const thumbnailExists = await checkFileExists(thumbnailDestPath);
+        if (!thumbnailExists) {
+          await sharp(imageFile)
+            .resize({ height: 400 })
+            .withMetadata()
+            .toFile(thumbnailDestPath);
+        }
+
+        if (!imagesData[metadata.model]) {
+          const jsonDestPath = `${modelImagesPath}\\data.json`;
+          const jsonFileExits = await checkFileExists(jsonDestPath);
+          if (jsonFileExits) {
+            const jsonFile = JSON.parse(
+              fs.readFileSync(jsonDestPath, { encoding: 'utf-8' })
+            );
+            imagesData[metadata.model] = jsonFile;
+          } else {
+            imagesData[metadata.model] = {};
+          }
+        }
+
+        if (!imagesData[metadata.model][fileNameNoExt]) {
+          imagesData[metadata.model][fileNameNoExt] = {
+            rating: 1,
           };
         }
       }
@@ -101,7 +113,12 @@ export const organizeImagesIpc = async (
     }
   }
 
-  fs.writeFileSync(imagesDBPath, JSON.stringify(imagesDB, null, 2), {
-    encoding: 'utf-8',
-  });
+  const imagesDataEntries = Object.entries(imagesData);
+  for (let i = 0; i < imagesDataEntries.length; i++) {
+    const [model, data] = imagesDataEntries[i];
+    const jsonDestPath = `${imagesDestPath}\\${model}\\data.json`;
+    fs.writeFileSync(jsonDestPath, JSON.stringify(data, null, 2), {
+      encoding: 'utf-8',
+    });
+  }
 };

@@ -1,8 +1,17 @@
+import MDEditor from '@uiw/react-md-editor';
+import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
+import CopyText from 'renderer/components/CopyText';
+import Rating from 'renderer/components/Rating';
 import { RootState } from 'renderer/redux';
+import { getFilenameNoExt, saveMdDebounced } from 'renderer/utils';
+
+type ImageJson = {
+  rating: number;
+};
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -12,19 +21,28 @@ export default function ImageDetail() {
   const settings = useSelector((state: RootState) => state.global.settings);
 
   const [imageData, setImageData] = useState<string>('');
+  const [imagePath, setImagePath] = useState('');
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null
   );
   const [imageMetadata, setImageMetadata] = useState<ImageMetaData | null>(
     null
   );
+  const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [markdownText, setMarkdownText] = useState<string | undefined>('');
+  const [jsonData, setJsonData] = useState<ImageJson>({
+    rating: 0,
+  });
 
   useEffect(() => {
     if (!fileBaseName || !selectedModel) return;
 
     const load = async () => {
-      const { documentsPath } = await window.ipcHandler.getPaths();
-      const filePath = `${documentsPath}\\sd-manager\\images\\${selectedModel}\\${fileBaseName}`;
+      const modelPath = `${settings.imagesDestPath}\\${selectedModel}`;
+      const filePath = `${modelPath}\\${fileBaseName}`;
+      const fileNameNoExt = `${getFilenameNoExt(fileBaseName)}`;
+      const folderPath = `${modelPath}\\${fileNameNoExt}`;
+      setImagePath(filePath);
       const {
         base64,
         exif,
@@ -37,25 +55,71 @@ export default function ImageDetail() {
       setImageData(base64);
       setExifParams(exif);
       setImageMetadata(metadata);
+
+      const fileMdText = await window.ipcHandler.readFile(
+        `${folderPath}\\markdown.md`,
+        'utf-8'
+      );
+      if (fileMdText) {
+        setMarkdownText(fileMdText);
+      }
+
+      const fileJson = await window.ipcHandler.readFile(
+        `${modelPath}\\data.json`,
+        'utf-8'
+      );
+      if (fileJson) {
+        const data = JSON.parse(fileJson);
+        if (data[fileNameNoExt]) {
+          setJsonData(data[fileNameNoExt]);
+        }
+      }
     };
     load();
-  }, [fileBaseName, selectedModel, settings.imagesPath]);
+  }, [
+    fileBaseName,
+    selectedModel,
+    settings.imagesPath,
+    settings.imagesDestPath,
+  ]);
 
   const goBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Backspace') {
-        goBack();
-      }
-    };
+  const onMDChangeText = (value: string | undefined) => {
+    setMarkdownText(value);
+    if (typeof value !== 'undefined') {
+      saveMdDebounced(selectedModel, fileBaseName, value);
+    }
+  };
 
-    window.addEventListener('keydown', onKeyDown);
+  const onImagePasted = async (dataTransfer: DataTransfer) => {
+    for (let i = 0; i < dataTransfer.files.length; i++) {
+      const file = dataTransfer.files[i].path;
+      const copiedFilePath: string = await window.ipcHandler.fileAttach(
+        selectedModel,
+        fileBaseName,
+        file
+      );
+      onMDChangeText(`${markdownText} \n ![](sd:///${copiedFilePath}) \n`);
+    }
+  };
 
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [goBack]);
+  const revealInFolder = () => {
+    window.ipcHandler.openFolderLink(imagePath);
+  };
+
+  const onRatingChange = async (value: number) => {
+    setJsonData({
+      ...jsonData,
+      rating: value,
+    });
+    await window.ipcHandler.saveImageJson(selectedModel, fileBaseName, {
+      ...jsonData,
+      rating: value,
+    });
+  };
 
   if (!fileBaseName || !selectedModel) return null;
 
@@ -65,55 +129,67 @@ export default function ImageDetail() {
     return (
       <tbody>
         <tr>
-          <td>Prompt</td>
           <td>
-            <p className="prose max-w-none">
-              {imageMetadata.positivePrompt || ''}
-            </p>
+            <p className="text-sm">Prompt</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.positivePrompt || ''}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Negative Prompt</td>
           <td>
-            <p className="prose max-w-none">
-              {imageMetadata.negativePrompt || ''}
-            </p>
+            <p className="text-sm">Negative Prompt</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.negativePrompt || ''}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Sampler</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.sampler}</p>
+            <p className="text-sm">Sampler</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.sampler || ''}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Scheduler</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.scheduler}</p>
+            <p className="text-sm">Scheduler</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.scheduler}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Steps</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.steps}</p>
+            <p className="text-sm">Steps</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.steps}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Seed</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.seed}</p>
+            <p className="text-sm">Seed</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.seed}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>CFG</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.cfg}</p>
+            <p className="text-sm">CFG</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.cfg}</CopyText>
           </td>
         </tr>
         <tr>
-          <td>Generated by</td>
           <td>
-            <p className="prose max-w-none">{imageMetadata.generatedBy}</p>
+            <p className="text-sm">Generated by</p>
+          </td>
+          <td>
+            <CopyText>{imageMetadata.generatedBy}</CopyText>
           </td>
         </tr>
       </tbody>
@@ -124,21 +200,99 @@ export default function ImageDetail() {
     <div className="p-4 flex justify-center relative h-full">
       <section className="w-5/6">
         <div>
-          <p className="text-2xl font-bold text-gray-300">{selectedModel}</p>
+          <div className="flex flex-row items-center">
+            <p className="text-2xl font-bold text-gray-300">{selectedModel}</p>
+            <span className="ml-4">
+              <Rating
+                value={jsonData.rating}
+                onClick={(value) => onRatingChange(value)}
+              />
+            </span>
+          </div>
+          <button
+            type="button"
+            className="text-1xl text-gray-300"
+            onClick={() => revealInFolder()}
+          >
+            {fileBaseName}
+          </button>
         </div>
         <div className="flex w-full my-4">
-          <img src={`data:image/png;base64,${imageData}`} alt={fileBaseName} />
+          <img
+            src={`data:image/png;base64,${imageData}`}
+            alt={fileBaseName}
+            onClick={() => revealInFolder()}
+            aria-hidden
+            className="cursor-pointer"
+          />
         </div>
-        <div className="w-full mt-4 pb-20">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Details:</th>
-                <th> </th>
-              </tr>
-            </thead>
-            {imageDetailTable()}
-          </table>
+        <div className="w-full mt-6 pt-5 pb-10 relative">
+          <div className="absolute top-0 right-0 z-40">
+            <button
+              className="btn btn-square btn-sm "
+              type="button"
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              {!showDetails ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 6.75L12 3m0 0l3.75 3.75M12 3v18"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 17.25L12 21m0 0l-3.75-3.75M12 21V3"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+          <div
+            className={classNames('courtain', {
+              'courtain-hidden': showDetails,
+            })}
+          >
+            <table className="table table-xs">
+              <thead>
+                <tr>
+                  <th>
+                    <p className="text-sm">Details:</p>
+                  </th>
+                  <th> </th>
+                </tr>
+              </thead>
+              {imageDetailTable()}
+            </table>
+          </div>
+        </div>
+        <div className="mt-4 pb-10" data-color-mode="dark">
+          <MDEditor
+            height={480}
+            value={markdownText}
+            onChange={(value) => onMDChangeText(value)}
+            onPaste={(event) => onImagePasted(event.clipboardData)}
+            onDrop={(event) => onImagePasted(event.dataTransfer)}
+            onBlur={() => onMDChangeText(markdownText)}
+          />
         </div>
       </section>
       <div className="absolute top-10 right-10">

@@ -51,6 +51,10 @@ const configuration: webpack.Configuration = {
       NODE_ENV: 'production',
     }),
   ],
+
+  externals: {
+    sharp: 'commonjs sharp',
+  },
 };
 
 export default configuration;

@@ -21,16 +21,23 @@ import {
 } from 'electron';
 import chokidar, { FSWatcher } from 'chokidar';
 import fs from 'fs';
+import url from 'url';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-import { checkFolderExists, resolveHtmlPath } from './util';
+import {
+  checkFileExists,
+  checkFolderExists,
+  getFileNameExt,
+  getFilenameNoExt,
+  resolveHtmlPath,
+} from './util';
 import { storageIpc } from './ipc/storage';
 import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { organizeImagesIpc } from './ipc/organizeImages';
 import { readdirModelsIpc } from './ipc/readdirModels';
-import { openLinkIpc } from './ipc/openLink';
+import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
 import { readdirImagesIpc } from './ipc/readdirImages';
 import { readdirModelImagesIpc } from './ipc/readdirModelImages';
 import {
@@ -39,6 +46,9 @@ import {
   parseComfyUiMeta,
 } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
+import { fileAttach } from './ipc/fileAttach';
+import { saveMD } from './ipc/saveMD';
+import { saveImageJson } from './ipc/saveImageJson';
 
 class AppUpdater {
   constructor() {
@@ -61,7 +71,11 @@ ipcMain.handle('readdirModelImages', readdirModelImagesIpc);
 ipcMain.handle('readFile', readFileIpc);
 ipcMain.handle('readImage', readImageIpc);
 ipcMain.handle('openLink', openLinkIpc);
+ipcMain.handle('openFolderLink', openFolderLinkIpc);
 ipcMain.handle('getPaths', getPathsIpc);
+ipcMain.handle('fileAttach', fileAttach);
+ipcMain.handle('saveMD', saveMD);
+ipcMain.handle('saveImageJson', saveImageJson);
 
 let watcherImagesFolder: FSWatcher | null = null;
 ipcMain.handle(
@@ -69,52 +83,89 @@ ipcMain.handle(
   async (event: IpcMainInvokeEvent, folderToWatch: string) => {
     const folderExists = await checkFolderExists(folderToWatch);
 
-    if (folderExists) {
-      if (watcherImagesFolder !== null) {
-        watcherImagesFolder.close();
-      } else {
-        watcherImagesFolder = chokidar.watch(folderToWatch, {
-          persistent: true,
-          depth: 1,
-          ignoreInitial: true,
-          awaitWriteFinish: true,
-        });
+    const settingsFilePath = `${app.getPath('userData')}\\storage.json`;
+    const settingsExists = await checkFileExists(settingsFilePath);
+    if (settingsExists) {
+      const { settings } = JSON.parse(
+        fs.readFileSync(settingsFilePath, { encoding: 'utf-8' })
+      );
+      const { imagesDestPath } = settings;
 
-        watcherImagesFolder.on('add', async (detectedFile: string) => {
-          const fileBaseName = `${path.basename(detectedFile)}`;
-          const ext = fileBaseName.split('.').pop();
-          if (ext !== 'png') return;
+      if (folderExists && imagesDestPath) {
+        if (watcherImagesFolder !== null) {
+          watcherImagesFolder.close();
+        } else {
+          watcherImagesFolder = chokidar.watch(folderToWatch, {
+            persistent: true,
+            depth: 1,
+            ignoreInitial: true,
+            awaitWriteFinish: true,
+          });
 
-          const imagesDestPath = `${app.getPath(
-            'documents'
-          )}\\sd-manager\\images`;
-          const imagesDestPathExists = await checkFolderExists(imagesDestPath);
+          watcherImagesFolder.on('add', async (detectedFile: string) => {
+            const fileBaseName = `${path.basename(detectedFile)}`;
+            const fileNameNoExt = getFilenameNoExt(fileBaseName);
+            const ext = fileBaseName.split('.').pop();
+            if (ext !== 'png') return;
 
-          if (imagesDestPathExists) {
-            const file = fs.readFileSync(detectedFile);
-            const exif = extractMetadata(file);
-            let metadata = null;
-            if (exif.parameters) {
-              metadata = parseAutomatic1111Meta(exif.parameters);
-            } else if (exif.workflow) {
-              metadata = parseComfyUiMeta(exif.workflow);
-            }
-            if (metadata && metadata.model) {
-              fs.copyFileSync(
-                detectedFile,
-                `${imagesDestPath}\\${metadata.model}\\${fileBaseName}`
-              );
+            const imagesDestPathExists = await checkFolderExists(
+              imagesDestPath
+            );
 
-              if (mainWindow !== null) {
-                mainWindow.webContents.send(
-                  'detectedAddImage',
-                  metadata.model,
-                  detectedFile
+            if (imagesDestPathExists) {
+              const file = fs.readFileSync(detectedFile);
+              const exif = extractMetadata(file);
+              let metadata = null;
+              if (exif.parameters) {
+                metadata = parseAutomatic1111Meta(exif.parameters);
+              } else if (exif.workflow) {
+                metadata = parseComfyUiMeta(exif.workflow);
+              }
+
+              if (metadata && metadata.model) {
+                const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
+                const imagesFolderExists = await checkFolderExists(
+                  imagesFolder
                 );
+
+                if (!imagesFolderExists) {
+                  fs.mkdirSync(imagesFolder);
+                }
+
+                fs.copyFileSync(
+                  detectedFile,
+                  `${imagesFolder}\\${fileBaseName}`
+                );
+
+                const jsonFile = `${imagesFolder}\\data.json`;
+                const jsonFileExists = await checkFileExists(jsonFile);
+                let imagesData: Record<string, any> = {};
+                if (jsonFileExists) {
+                  imagesData = JSON.parse(
+                    fs.readFileSync(jsonFile, { encoding: 'utf-8' })
+                  );
+                }
+
+                imagesData[fileNameNoExt] = {
+                  rating: 1,
+                };
+                fs.writeFileSync(
+                  jsonFile,
+                  JSON.stringify(imagesData, null, 2),
+                  { encoding: 'utf-8' }
+                );
+
+                if (mainWindow !== null) {
+                  mainWindow.webContents.send(
+                    'detectedAddImage',
+                    metadata.model,
+                    detectedFile
+                  );
+                }
               }
             }
-          }
-        });
+          });
+        }
       }
     }
   }
@@ -235,9 +286,13 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(async () => {
-    protocol.handle('resource', (request) => {
-      const filePath = request.url.slice('resource://'.length);
-      return net.fetch(`file:///${filePath}`);
+    protocol.handle('sd', (request) => {
+      return net.fetch(
+        `file:///${
+          url.pathToFileURL(decodeURI(request.url.slice('sd:///'.length)))
+            .pathname
+        }`
+      );
     });
 
     createWindow();

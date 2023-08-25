@@ -4,6 +4,7 @@
 
 @import url('../../assets/fonts/montserrat/fonts.scss');
 @import url('../../node_modules/react-multi-carousel/lib/styles.css');
+@import url('../../node_modules/react-toastify/dist/ReactToastify.css');
 
 * {
   font-family: 'Montserrat', sans-serif;
@@ -36,10 +37,35 @@
 }
 
 .courtain {
-  transition: height 0.5s;
+  transition: max-height 0.5s ease;
   overflow: hidden;
+  max-height: 1000px;
 
   &.courtain-hidden {
-    height: 0;
+    transition: max-height 0.5s ease;
+    max-height: 0;
+  }
+}
+
+.w-md-editor {
+  --md-editor-font-family: 'Montserrat', Helvetica, Arial, sans-serif !important;
+}
+
+.copy-hover:hover {
+  .copy-text {
+    opacity: 1 !important;
+  }
+}
+
+.pulse {
+  animation: pulse 0.7s;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0px 0px 0px 0px rgba(35, 130, 220, 1);
+  }
+  100% {
+    box-shadow: 0px 0px 5px 25px rgba(35, 130, 220, 0);
   }
 }

@@ -122,8 +122,8 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 
       if (KSamplerNode) {
         params.seed = KSamplerNode.widgets_values[0];
-        params.cfg = KSamplerNode.widgets_values[2];
-        params.steps = KSamplerNode.widgets_values[3];
+        params.cfg = KSamplerNode.widgets_values[3];
+        params.steps = KSamplerNode.widgets_values[2];
         params.scheduler = `${KSamplerNode.widgets_values[4]}`;
         params.sampler = `${KSamplerNode.widgets_values[5]}`;
       }
@@ -168,3 +168,14 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
   }
   return params;
 }
+
+export const parseImageSdMeta = (exif: Record<string, any>) => {
+  let metadata: ImageMetaData | null = null;
+  if (exif.parameters) {
+    metadata = parseAutomatic1111Meta(exif.parameters);
+  } else if (exif.workflow) {
+    metadata = parseComfyUiMeta(exif.workflow);
+  }
+
+  return metadata;
+};

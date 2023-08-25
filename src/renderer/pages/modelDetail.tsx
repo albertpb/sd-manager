@@ -9,6 +9,7 @@ import Carousel from 'react-multi-carousel';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
+import Rating from 'renderer/components/Rating';
 import Image from '../components/Image';
 
 interface RowData {
@@ -30,6 +31,7 @@ export default function ModelDetail() {
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
   const [userImagesList, setUserImagesList] = useState<Set<string>>(new Set());
   const [modelImagesList, setModelImagesList] = useState<string[]>([]);
+  const [imagesData, setImagesData] = useState<Record<string, any>>({});
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,6 +61,14 @@ export default function ModelDetail() {
           const modelImagesListResponse =
             await window.ipcHandler.readdirModelImages(selectedModelName);
           setModelImagesList(modelImagesListResponse);
+
+          const iData = await window.ipcHandler.readFile(
+            `${settings.imagesDestPath}\\${selectedModelName}\\data.json`,
+            'utf-8'
+          );
+          if (iData) {
+            setImagesData(JSON.parse(iData));
+          }
         }
       };
       load();
@@ -68,7 +78,6 @@ export default function ModelDetail() {
   useEffect(() => {
     window.ipcOn.detectedAddImage(
       (event, modelName: string, detectedFile: string) => {
-        console.log(modelName, detectedFile);
         if (selectedModelName === modelName) {
           setUserImagesList(new Set([detectedFile, ...userImagesList]));
         }
@@ -115,7 +124,7 @@ export default function ModelDetail() {
   );
 
   const onSelectImage = (imgSrc: string) => {
-    const baseName = imgSrc.split(/[\\/]/).pop();
+    const baseName = imgSrc.split(/[\\/]/).pop()?.replace('.thumbnail', '');
     navigate(`/image-detail/${selectedModelName}/${baseName}`);
   };
 
@@ -168,6 +177,12 @@ export default function ModelDetail() {
 
     const rowRenderer = (row: VirtualScrollData) => {
       const items = row.row.map((imgSrc: string, j: number) => {
+        const baseName = imgSrc
+          .split(/[\\/]/)
+          .pop()
+          ?.replace('.thumbnail.png', '');
+        const rating =
+          baseName && imagesData[baseName] ? imagesData[baseName].rating : 1;
         return (
           <div
             id={`${imgSrc}`}
@@ -177,13 +192,16 @@ export default function ModelDetail() {
             aria-hidden="true"
           >
             <figure
-              className="card__figure rounded-md overflow-hidden"
+              className="card__figure rounded-md overflow-hidden relative"
               style={{
                 width: `${width}px`,
                 height: `${height}px`,
                 marginRight: `${margin}px`,
               }}
             >
+              <div className="absolute top-2 right-2 z-20">
+                <Rating value={rating} />
+              </div>
               <Image
                 src={imgSrc}
                 alt={`model_detail_model_image_${j}`}
@@ -275,7 +293,7 @@ export default function ModelDetail() {
           >
             <div>
               <p className="text-2xl font-bold text-gray-300">
-                {modelInfo.model.name}
+                {selectedModelName}
               </p>
               <div className="flex w-full my-4">
                 <div className="w-4/6">

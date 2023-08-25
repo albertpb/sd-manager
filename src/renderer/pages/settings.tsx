@@ -5,6 +5,7 @@ import {
   setCheckpointsPath,
   setImagesPath,
   organizeImages,
+  setImagesDestPath,
 } from 'renderer/redux/reducers/global';
 
 export default function Settings() {
@@ -25,40 +26,80 @@ export default function Settings() {
     }
   };
 
+  const onSelectDestImagesDir = async () => {
+    const path = await window.ipcHandler.selectDir();
+    if (path !== '') {
+      dispatch(setImagesDestPath(path as string));
+      window.ipcHandler.watchImagesFolder(settings.imagesPath);
+    }
+  };
+
   const onOrganizeImagesClick = async () => {
     await dispatch(organizeImages());
   };
 
   return (
-    <section className="m-4">
+    <section className="m-4 w-full">
       <div>
-        Checkpoints folder: {settings.checkpointsPath}{' '}
-        <button
-          type="button"
-          className="btn"
-          onClick={() => onSelectCheckpointsDir()}
-        >
-          Change
-        </button>
+        <p className="text-2xl">Settings</p>
       </div>
-      <div>
-        Images folder: {settings.imagesPath}{' '}
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="mr-4 w-2/3">
+          <p>
+            <span>Checkpoints folder:</span> {settings.checkpointsPath}{' '}
+          </p>
+        </div>
+        <div className="">
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => onSelectCheckpointsDir()}
+          >
+            Change
+          </button>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="mr-4 w-2/3">
+          <p>
+            <span>Source Images folder:</span> {settings.imagesPath}{' '}
+          </p>
+        </div>
         <button
           type="button"
-          className="btn"
+          className="btn btn-sm"
           onClick={() => onSelectImagesDir()}
         >
           Change
         </button>
       </div>
-      <div>
-        Copy Images folder into the Documents folder sorted by models{' '}
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="mr-4 w-2/3">
+          <p>
+            <span>Destination Images folder:</span> {settings.imagesDestPath}{' '}
+          </p>
+        </div>
         <button
           type="button"
-          className="btn"
+          className="btn btn-sm"
+          onClick={() => onSelectDestImagesDir()}
+        >
+          Change
+        </button>
+      </div>
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="mr-4 w-2/3">
+          <p>
+            Copy Images folder into the destination images folder sorted by
+            models{' '}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm"
           onClick={() => onOrganizeImagesClick()}
         >
-          Organize Images
+          Scan Images
         </button>
       </div>
     </section>

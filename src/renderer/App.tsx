@@ -11,32 +11,37 @@ import ModelDetail from './pages/modelDetail';
 import ImagesLoader from './redux/images-loader';
 import Testing from './pages/test';
 import ImageDetail from './pages/imageDetail';
+import AspectRatioHelper from './pages/aspectRatioHelper';
+import Notificator from './redux/notification';
 
 export default function App() {
   return (
     <ReduxProvider>
       <Router>
-        <SettingsLoader>
-          <ModelsLoader>
-            <ImagesLoader>
-              <Routes>
-                <Route path="/" element={<MainLayout />}>
-                  <Route index element={<Checkpoints />} />
-                  <Route
-                    path="/model-detail/:type/:name"
-                    element={<ModelDetail />}
-                  />
-                  <Route
-                    path="/image-detail/:model/:baseName"
-                    element={<ImageDetail />}
-                  />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/testing" element={<Testing />} />
-                </Route>
-              </Routes>
-            </ImagesLoader>
-          </ModelsLoader>
-        </SettingsLoader>
+        <Notificator>
+          <SettingsLoader>
+            <ModelsLoader>
+              <ImagesLoader>
+                <Routes>
+                  <Route path="/" element={<MainLayout />}>
+                    <Route index element={<Checkpoints />} />
+                    <Route
+                      path="/model-detail/:type/:name"
+                      element={<ModelDetail />}
+                    />
+                    <Route
+                      path="/image-detail/:model/:baseName"
+                      element={<ImageDetail />}
+                    />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/ar-helper" element={<AspectRatioHelper />} />
+                    <Route path="/testing" element={<Testing />} />
+                  </Route>
+                </Routes>
+              </ImagesLoader>
+            </ModelsLoader>
+          </SettingsLoader>
+        </Notificator>
       </Router>
     </ReduxProvider>
   );

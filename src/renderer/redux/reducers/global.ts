@@ -9,6 +9,7 @@ export type CheckpointItem = {
 export interface SettingsState {
   checkpointsPath: string | null;
   imagesPath: string | null;
+  imagesDestPath: string | null;
 }
 
 interface GlobalState {
@@ -31,6 +32,7 @@ const initialState: GlobalState = {
   settings: {
     checkpointsPath: null,
     imagesPath: null,
+    imagesDestPath: null,
   },
   checkpoints: {
     filesInfo: {},
@@ -102,6 +104,10 @@ export const globalSlice = createSlice({
       state.settings.imagesPath = action.payload;
       saveSettings(state);
     },
+    setImagesDestPath: (state, action) => {
+      state.settings.imagesDestPath = action.payload;
+      saveSettings(state);
+    },
     setNavbarSearchInputValue: (state, action) => {
       state.navbarSearchInput = action.payload;
     },
@@ -134,5 +140,6 @@ export const {
   setCheckpointsPath,
   init,
   setImagesPath,
+  setImagesDestPath,
   setNavbarSearchInputValue,
 } = globalSlice.actions;

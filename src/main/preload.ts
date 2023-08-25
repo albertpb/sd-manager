@@ -13,8 +13,12 @@ const channels = [
   'readFile',
   'readImage',
   'openLink',
+  'openFolderLink',
   'watchImagesFolder',
   'getPaths',
+  'fileAttach',
+  'saveMD',
+  'saveImageJson',
 ] as const;
 export type Channels = (typeof channels)[number];
 

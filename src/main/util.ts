@@ -163,3 +163,11 @@ export function splitOutsideQuotes(input: string): string[] {
     }, []);
   return arr.concat(cleanTxt);
 }
+
+export const getFilenameNoExt = (fileName: string) => {
+  return fileName.substring(0, fileName.lastIndexOf('.'));
+};
+
+export const getFileNameExt = (fileName: string) => {
+  return fileName.split('.').pop();
+};

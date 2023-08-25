@@ -27,6 +27,7 @@ module.exports = {
     'react/no-array-index-key': 'off',
     'react/no-unknown-property': 'off',
     'prefer-destructuring': 'off',
+    'no-inner-declarations': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

@@ -1,3 +1,4 @@
+import { IpcRendererEvent } from 'electron';
 import { ReactNode, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '.';
@@ -10,10 +11,11 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    window.ipcOn.imagesProgress((event, m, p) => {
+    const listener = (event: IpcRendererEvent, m: string, p: number) => {
       setMsg(m);
       setProgress(p);
-    });
+    };
+    window.ipcOn.imagesProgress(listener);
   }, [msg, progress]);
 
   if (!imagesLoading) return children;

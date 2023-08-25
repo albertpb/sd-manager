@@ -5,8 +5,20 @@ export const tabs = {
   checkpoints: {
     id: 'checkpoints',
     label: 'Checkpoints',
-    path: '/',
+    path: '',
   },
+  arHelper: {
+    id: 'arHelper',
+    label: 'AspectRatio Helper',
+    path: 'ar-helper',
+  },
+  /*
+    testing: {
+    id: 'testing',
+    label: 'testing',
+    path: 'testing',
+  },
+  */
 };
 export type Tabs = keyof typeof tabs | null;
 
@@ -17,8 +29,11 @@ export default function useTab() {
   const pathName = location.pathname;
 
   useEffect(() => {
-    if (pathName === '/') {
-      setTab('checkpoints');
+    const currentTab = Object.values(tabs).find(
+      (t) => `/${t.path}` === pathName
+    );
+    if (currentTab) {
+      setTab(currentTab.id as Tabs);
     } else {
       setTab(null);
     }

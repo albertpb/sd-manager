@@ -20,21 +20,21 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
         </tr>
         <tr>
           <td>Name</td>
-          <td>{modelInfo.name}</td>
+          <td>{modelInfo?.name}</td>
         </tr>
         <tr>
           <td>Type</td>
           <td>
-            <div className="badge badge-accent">{modelInfo.model.type}</div>
+            <div className="badge badge-accent">{modelInfo?.model?.type}</div>
           </td>
         </tr>
         <tr>
           <td>Base Model</td>
-          <td>{modelInfo.baseModel}</td>
+          <td>{modelInfo?.baseModel}</td>
         </tr>
         <tr>
           <td>Model Id</td>
-          <td>{modelInfo.modelId}</td>
+          <td>{modelInfo?.modelId}</td>
         </tr>
         <tr>
           <td>Link</td>

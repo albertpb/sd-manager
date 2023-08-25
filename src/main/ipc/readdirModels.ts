@@ -65,8 +65,7 @@ export const readdirModelsIpc = async (
   */
 
   for (let i = 0; i < files.length; i++) {
-    const fileNameNoExt =
-      files[i].substring(0, files[i].lastIndexOf('.')) || files[i];
+    const fileNameNoExt = files[i].substring(0, files[i].lastIndexOf('.'));
 
     const modelInfoExists = await checkFileExists(
       `${folderPath}\\${fileNameNoExt}.civitai.info`
