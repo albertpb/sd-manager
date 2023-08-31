@@ -84,8 +84,8 @@ export default function ImageDetail() {
   ]);
 
   const goBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+    navigate(`/model-detail/checkpoint/${selectedModel}`);
+  }, [navigate, selectedModel]);
 
   const onMDChangeText = (value: string | undefined) => {
     setMarkdownText(value);

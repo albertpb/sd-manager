@@ -22,13 +22,13 @@ import {
 import chokidar, { FSWatcher } from 'chokidar';
 import fs from 'fs';
 import url from 'url';
+import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import {
   checkFileExists,
   checkFolderExists,
-  getFileNameExt,
   getFilenameNoExt,
   resolveHtmlPath,
 } from './util';
@@ -136,6 +136,12 @@ ipcMain.handle(
                   detectedFile,
                   `${imagesFolder}\\${fileBaseName}`
                 );
+
+                const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
+                await sharp(detectedFile)
+                  .resize({ height: 400 })
+                  .withMetadata()
+                  .toFile(thumbnailDestPath);
 
                 const jsonFile = `${imagesFolder}\\data.json`;
                 const jsonFileExists = await checkFileExists(jsonFile);

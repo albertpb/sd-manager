@@ -10,7 +10,7 @@ export default function Notificator({ children }: { children: ReactNode }) {
   const imageLoading = useSelector<RootState>(
     (state) => state.global.imagesLoading
   );
-  const [lastImage, setLastImage] = useState<string>();
+  const [listenerPending, setListenerPending] = useState<boolean>();
 
   useEffect(() => {
     const listener = (
@@ -25,11 +25,15 @@ export default function Notificator({ children }: { children: ReactNode }) {
           onClick: () => navigate(`/image-detail/${model}/${baseName}`),
           closeOnClick: true,
         });
-        setLastImage(baseName);
       }
+      setListenerPending(false);
     };
-    window.ipcOn.detectedAddImage(listener);
-  }, [imageLoading, lastImage]);
+    if (!listenerPending) {
+      window.ipcOn.detectedAddImage(listener);
+      setListenerPending(true);
+    }
+    /* eslint-disable-next-line */
+  }, [imageLoading, listenerPending]);
 
   if (imageLoading) return children;
 
