@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import placeHolderImage from '../../../assets/images/notfound.jpg';
+import placeHolderImage from '../../../assets/images/notavailable.png';
 
 type ImageProps = {
   src: string;
