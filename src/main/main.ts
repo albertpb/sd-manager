@@ -226,6 +226,7 @@ const createWindow = async () => {
         : path.join(__dirname, '../../.erb/dll/preload.js'),
       sandbox: true,
     },
+    autoHideMenuBar: true,
   });
 
   ipcMain.handle('selectDir', async () => {
