@@ -13,6 +13,7 @@ import Testing from './pages/test';
 import ImageDetail from './pages/imageDetail';
 import AspectRatioHelper from './pages/aspectRatioHelper';
 import Notificator from './redux/notification';
+import Loras from './pages/loras';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
                       path="/image-detail/:model/:baseName"
                       element={<ImageDetail />}
                     />
+                    <Route path="/loras" element={<Loras />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/ar-helper" element={<AspectRatioHelper />} />
                     <Route path="/testing" element={<Testing />} />

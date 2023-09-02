@@ -6,6 +6,8 @@ import {
   setImagesPath,
   organizeImages,
   setImagesDestPath,
+  setLorasPath,
+  readLorasDir,
 } from 'renderer/redux/reducers/global';
 
 export default function Settings() {
@@ -16,6 +18,15 @@ export default function Settings() {
     const path = await window.ipcHandler.selectDir();
     dispatch(setCheckpointsPath(path as string));
     dispatch(readCheckpointsDir());
+  };
+
+  const onSelectLorasDir = async () => {
+    const path = await window.ipcHandler.selectDir();
+    dispatch(setLorasPath(path as string));
+  };
+
+  const onReadLorasDir = async () => {
+    await dispatch(readLorasDir());
   };
 
   const onSelectImagesDir = async () => {
@@ -57,6 +68,33 @@ export default function Settings() {
           >
             Change
           </button>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="mr-4 w-2/3">
+          <p>
+            <span>Loras folder:</span> {settings.lorasPath}{' '}
+          </p>
+        </div>
+        <div className="flex">
+          <div className="mr-2">
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => onSelectLorasDir()}
+            >
+              Change
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => onReadLorasDir()}
+            >
+              Scan
+            </button>
+          </div>
         </div>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">

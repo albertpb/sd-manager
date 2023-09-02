@@ -4,21 +4,19 @@ import { RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckpointItem } from 'renderer/redux/reducers/global';
+import { LoraItem } from 'renderer/redux/reducers/global';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
 
 interface RowData {
-  row: Fuse.FuseResult<CheckpointItem>[];
+  row: Fuse.FuseResult<LoraItem>[];
   id: string;
 }
 
-export default function Checkpoints() {
+export default function Loras() {
   const navigate = useNavigate();
-  const checkpoints = useSelector(
-    (state: RootState) => state.global.checkpoints
-  );
+  const loras = useSelector((state: RootState) => state.global.loras);
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput
@@ -34,14 +32,14 @@ export default function Checkpoints() {
   const rowMargin = 10;
 
   const onClick = (name: string) => {
-    navigate(`/model-detail/checkpoints/${name}`);
+    navigate(`/model-detail/loras/${name}`);
   };
 
   useEffect(() => {
     containerRef.current?.scrollTo(0, 0);
   }, [navbarSearchInput, containerRef]);
 
-  const modelsList = Object.values(checkpoints.filesInfo);
+  const modelsList = Object.values(loras.filesInfo);
   const fuse = new Fuse(modelsList, {
     keys: ['fileName'],
   });
@@ -105,8 +103,8 @@ export default function Checkpoints() {
   }, []);
 
   const rowRenderer = (row: VirtualScrollData) => {
-    const items = row.row.map(({ item }: Fuse.FuseResult<CheckpointItem>) => {
-      const imagePath = `${settings.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`;
+    const items = row.row.map(({ item }: Fuse.FuseResult<LoraItem>) => {
+      const imagePath = `${settings.lorasPath}\\${item.fileName}\\${item.fileName}_0.png`;
       return (
         <div
           onClick={() => onClick(item.fileName)}

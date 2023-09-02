@@ -7,6 +7,11 @@ export const tabs = {
     label: 'Checkpoints',
     path: '',
   },
+  loras: {
+    id: 'loras',
+    label: 'Loras',
+    path: 'loras',
+  },
   arHelper: {
     id: 'arHelper',
     label: 'AspectRatio Helper',

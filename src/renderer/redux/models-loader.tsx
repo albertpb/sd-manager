@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { init, readCheckpointsDir } from './reducers/global';
+import { init, readCheckpointsDir, readLorasDir } from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
 export default function ModelsLoader({ children }: { children: ReactNode }) {
@@ -8,6 +8,9 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<number>(0);
   const checkpointsLoading = useSelector(
     (state: RootState) => state.global.checkpointsLoading
+  );
+  const lorasLoading = useSelector(
+    (state: RootState) => state.global.lorasLoading
   );
   const initialized = useSelector(
     (state: RootState) => state.global.initialized
@@ -20,6 +23,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     const load = async () => {
       if (!initialized) {
         await dispatch(readCheckpointsDir());
+        await dispatch(readLorasDir());
         window.ipcHandler.watchImagesFolder(settings.imagesPath);
         dispatch(init());
       }
@@ -34,18 +38,20 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     });
   }, [msg, progress]);
 
-  if (!checkpointsLoading) return children;
-
-  return (
-    <div className="w-full flex flex-col justify-center items-center h-screen">
-      <div className="stats">
-        <div className="stat place-items-center">
-          <div className="stat-title">Hashing Files</div>
-          <div className="stat-value">{progress.toFixed(2)}%</div>
-          <div className="stat-desc">{msg}</div>
+  if (checkpointsLoading || lorasLoading) {
+    return (
+      <div className="w-full flex flex-col justify-center items-center h-screen">
+        <div className="stats">
+          <div className="stat place-items-center">
+            <div className="stat-title">Hashing Files</div>
+            <div className="stat-value">{progress.toFixed(2)}%</div>
+            <div className="stat-desc">{msg}</div>
+          </div>
         </div>
+        <progress className="progress w-56" value={progress} max="100" />
       </div>
-      <progress className="progress w-56" value={progress} max="100" />
-    </div>
-  );
+    );
+  }
+
+  return children;
 }

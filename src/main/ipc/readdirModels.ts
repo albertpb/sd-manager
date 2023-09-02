@@ -17,7 +17,7 @@ export interface ReadDirModelInfo {
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
   event: IpcMainInvokeEvent,
-  model: string,
+  modelType: string,
   folderPath: string
 ) => {
   const userDataPath = `${app.getPath('userData')}`;
@@ -28,9 +28,16 @@ export const readdirModelsIpc = async (
   if (readdirdbExists) {
     readdirdb = fs.readFileSync(readdirdbPathFile, { encoding: 'utf-8' });
     readdirdb = JSON.parse(readdirdb);
+
+    if (!readdirdb[modelType]) {
+      readdirdb[modelType] = {};
+      if (!readdirdb[modelType][folderPath]) {
+        readdirdb[modelType][folderPath] = { files: {} };
+      }
+    }
   } else {
     readdirdb = {
-      [model]: {
+      [modelType]: {
         [folderPath]: {
           files: {},
         },
@@ -38,8 +45,13 @@ export const readdirModelsIpc = async (
     };
   }
 
-  let files = fs.readdirSync(folderPath);
-  files = files.filter((f) => f.match(/(.safetensors|.ckpt)/));
+  const dirents = fs.readdirSync(folderPath, {
+    withFileTypes: true,
+  });
+  const files = dirents
+    .filter((dirent) => dirent.isFile())
+    .map((dirent) => dirent.name)
+    .filter((f) => f.match(/(.safetensors|.ckpt)/));
 
   const filesHashMap: Record<string, ReadDirModelInfo> = {};
 
@@ -72,12 +84,12 @@ export const readdirModelsIpc = async (
     );
 
     if (
-      readdirdb[model][folderPath] &&
-      readdirdb[model][folderPath].files &&
-      readdirdb[model][folderPath].files[fileNameNoExt]
+      readdirdb[modelType][folderPath] &&
+      readdirdb[modelType][folderPath].files &&
+      readdirdb[modelType][folderPath].files[fileNameNoExt]
     ) {
       filesHashMap[fileNameNoExt] =
-        readdirdb[model][folderPath].files[fileNameNoExt];
+        readdirdb[modelType][folderPath].files[fileNameNoExt];
     } else {
       filesHashMap[fileNameNoExt] = {
         // hash: hashes[i] as string,
@@ -86,10 +98,6 @@ export const readdirModelsIpc = async (
         fileName: `${fileNameNoExt}`,
       };
     }
-
-    const imageExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.png`
-    );
 
     let modelInfo;
     if (!modelInfoExists) {
@@ -110,6 +118,10 @@ export const readdirModelsIpc = async (
       modelInfo = JSON.parse(modelInfoStr);
     }
 
+    const imageExists = await checkFileExists(
+      `${folderPath}\\${fileNameNoExt}.png`
+    );
+
     if (!imageExists) {
       if (modelInfo && modelInfo.images && modelInfo.images.length > 0) {
         const imagesModelFolder = `${folderPath}\\${fileNameNoExt}`;
@@ -121,11 +133,15 @@ export const readdirModelsIpc = async (
         }
 
         for (let c = 0; c < modelInfo.images.length; c++) {
-          await downloadImage(
-            `${fileNameNoExt}_${c}`,
-            modelInfo.images[c].url,
-            imagesModelFolder
-          );
+          try {
+            await downloadImage(
+              `${fileNameNoExt}_${c}`,
+              modelInfo.images[c].url,
+              imagesModelFolder
+            );
+          } catch (error) {
+            console.log(error);
+          }
         }
       }
     }
@@ -138,7 +154,8 @@ export const readdirModelsIpc = async (
   }
 
   readdirdb = {
-    [model]: {
+    ...readdirdb,
+    [modelType]: {
       [folderPath]: {
         files: filesHashMap,
       },

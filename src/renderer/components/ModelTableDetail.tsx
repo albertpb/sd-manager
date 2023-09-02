@@ -29,6 +29,12 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
           </td>
         </tr>
         <tr>
+          <td>Trained words</td>
+          <td>
+            <div>{modelInfo?.trainedWords}</div>
+          </td>
+        </tr>
+        <tr>
           <td>Base Model</td>
           <td>{modelInfo?.baseModel}</td>
         </tr>

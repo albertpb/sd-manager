@@ -6,8 +6,15 @@ export type CheckpointItem = {
   fileName: string;
 };
 
+export type LoraItem = {
+  hash: string;
+  modelPath: string;
+  fileName: string;
+};
+
 export interface SettingsState {
   checkpointsPath: string | null;
+  lorasPath: string | null;
   imagesPath: string | null;
   imagesDestPath: string | null;
 }
@@ -15,9 +22,13 @@ export interface SettingsState {
 interface GlobalState {
   initialized: boolean;
   checkpointsLoading: boolean;
+  lorasLoading: boolean;
   settings: SettingsState;
   checkpoints: {
     filesInfo: Record<string, CheckpointItem>;
+  };
+  loras: {
+    filesInfo: Record<string, LoraItem>;
   };
   imagesLoading: boolean;
   images: {
@@ -29,12 +40,17 @@ interface GlobalState {
 const initialState: GlobalState = {
   initialized: false,
   checkpointsLoading: false,
+  lorasLoading: false,
   settings: {
     checkpointsPath: null,
+    lorasPath: null,
     imagesPath: null,
     imagesDestPath: null,
   },
   checkpoints: {
+    filesInfo: {},
+  },
+  loras: {
     filesInfo: {},
   },
   imagesLoading: false,
@@ -45,23 +61,38 @@ const initialState: GlobalState = {
 };
 
 const readDirModelsAsync = async (
-  path: string
+  path: string,
+  modelType: string
 ): Promise<Record<string, CheckpointItem>> => {
-  const filesHashMap = await window.ipcHandler.readdirModels(
-    'checkpoints',
-    path
-  );
+  const filesHashMap = await window.ipcHandler.readdirModels(modelType, path);
   return filesHashMap;
 };
 
 export const readCheckpointsDir = createAsyncThunk(
-  'readdir',
+  'readdir_checkpoints',
   async (arg, { getState }) => {
     const state = getState() as { global: GlobalState };
 
     if (state.global.settings.checkpointsPath !== null) {
       const files = await readDirModelsAsync(
-        state.global.settings.checkpointsPath
+        state.global.settings.checkpointsPath,
+        'checkpoints'
+      );
+      return files;
+    }
+    return {};
+  }
+);
+
+export const readLorasDir = createAsyncThunk(
+  'readdir_loras',
+  async (arg, { getState }) => {
+    const state = getState() as { global: GlobalState };
+
+    if (state.global.settings.lorasPath !== null) {
+      const files = await readDirModelsAsync(
+        state.global.settings.lorasPath,
+        'loras'
       );
       return files;
     }
@@ -97,6 +128,10 @@ export const globalSlice = createSlice({
       state.settings.checkpointsPath = action.payload;
       saveSettings(state);
     },
+    setLorasPath: (state, action) => {
+      state.settings.lorasPath = action.payload;
+      saveSettings(state);
+    },
     init: (state) => {
       state.initialized = true;
     },
@@ -121,6 +156,14 @@ export const globalSlice = createSlice({
       state.checkpointsLoading = false;
     });
 
+    builder.addCase(readLorasDir.pending, (state) => {
+      state.lorasLoading = true;
+    });
+    builder.addCase(readLorasDir.fulfilled, (state, action) => {
+      state.loras.filesInfo = action.payload;
+      state.lorasLoading = false;
+    });
+
     builder.addCase(loadSettings.fulfilled, (state, action) => {
       if (action.payload) {
         state.settings = action.payload as SettingsState;
@@ -138,6 +181,7 @@ export const globalSlice = createSlice({
 
 export const {
   setCheckpointsPath,
+  setLorasPath,
   init,
   setImagesPath,
   setImagesDestPath,

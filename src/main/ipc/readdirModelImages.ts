@@ -1,25 +1,19 @@
 import fs from 'fs';
 import { IpcMainInvokeEvent } from 'electron';
 import { checkFolderExists } from '../util';
-import { getStorage } from './storage';
 
 export const readdirModelImagesIpc = async (
   event: IpcMainInvokeEvent,
-  model: string
+  model: string,
+  modelsPath: string
 ) => {
-  const settings = await getStorage('read', 'settings');
+  const folderPath = `${modelsPath}\\${model}`;
 
-  if (settings !== null) {
-    const { checkpointsPath } = settings;
+  const folderExists = await checkFolderExists(folderPath);
 
-    const folderPath = `${checkpointsPath}\\${model}`;
-
-    const folderExists = await checkFolderExists(folderPath);
-
-    if (folderExists) {
-      const images = fs.readdirSync(folderPath);
-      return images.map((f) => `${folderPath}\\${f}`);
-    }
+  if (folderExists) {
+    const images = fs.readdirSync(folderPath);
+    return images.map((f) => `${folderPath}\\${f}`);
   }
 
   return [];

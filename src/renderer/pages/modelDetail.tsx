@@ -42,11 +42,20 @@ export default function ModelDetail() {
   const margin = 20;
 
   useEffect(() => {
-    if (selectedModelName) {
+    if (selectedModelName && selectedModelType) {
       const load = async () => {
-        if (selectedModelType === 'checkpoint') {
+        const mapPathsModels: Record<string, string | null> = {
+          checkpoints: settings.checkpointsPath,
+          loras: settings.lorasPath,
+        };
+
+        const modelsPath = mapPathsModels[selectedModelType];
+
+        console.log(modelsPath, selectedModelType);
+
+        if (modelsPath) {
           const modelData = await window.ipcHandler.readFile(
-            `${settings.checkpointsPath}\\${selectedModelName}.civitai.info`,
+            `${modelsPath}\\${selectedModelName}.civitai.info`,
             'utf-8'
           );
           if (modelData) {
@@ -59,7 +68,10 @@ export default function ModelDetail() {
           setUserImagesList(new Set(userImagesListsResponse));
 
           const modelImagesListResponse =
-            await window.ipcHandler.readdirModelImages(selectedModelName);
+            await window.ipcHandler.readdirModelImages(
+              selectedModelName,
+              modelsPath
+            );
           setModelImagesList(modelImagesListResponse);
 
           const iData = await window.ipcHandler.readFile(
@@ -124,8 +136,10 @@ export default function ModelDetail() {
   );
 
   const onSelectImage = (imgSrc: string) => {
-    const baseName = imgSrc.split(/[\\/]/).pop()?.replace('.thumbnail', '');
-    navigate(`/image-detail/${selectedModelName}/${baseName}`);
+    if (selectedModelType === 'checkpoints') {
+      const baseName = imgSrc.split(/[\\/]/).pop()?.replace('.thumbnail', '');
+      navigate(`/image-detail/${selectedModelName}/${baseName}`);
+    }
   };
 
   const toggleHead = () => {
@@ -157,7 +171,9 @@ export default function ModelDetail() {
       );
     });
 
-    const chunks = Array.from(userImagesList).reduce(
+    const imagesList =
+      userImagesList.size > 0 ? userImagesList : modelImagesList;
+    const chunks = Array.from(imagesList).reduce(
       (resultArr: RowData[], item, index) => {
         const chunkIndex = Math.floor(index / perChunk);
 
@@ -308,25 +324,27 @@ export default function ModelDetail() {
             </div>
             <hr className="mt-12 border-base-200" />
           </div>
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-center">Generated Images</h3>
-            <div
-              ref={setRef}
-              className="mt-12 w-full"
-              style={{ height: `${containerHeight}px` }}
-            >
-              <VirtualScroll
-                data={chunks}
-                rowRenderer={rowRenderer}
-                settings={{
-                  buffer,
-                  rowHeight: height,
-                  rowMargin: margin,
-                  tolerance: 2,
-                }}
-              />
+          {chunks.length > 0 ? (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold text-center">Images</h3>
+              <div
+                ref={setRef}
+                className="mt-12 w-full"
+                style={{ height: `${containerHeight}px` }}
+              >
+                <VirtualScroll
+                  data={chunks}
+                  rowRenderer={rowRenderer}
+                  settings={{
+                    buffer,
+                    rowHeight: height,
+                    rowMargin: margin,
+                    tolerance: 2,
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          ) : null}
         </section>
       </main>
     );
