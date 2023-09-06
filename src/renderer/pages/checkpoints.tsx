@@ -4,13 +4,13 @@ import { RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckpointItem } from 'renderer/redux/reducers/global';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
+import { Model } from 'main/ipc/readdirModels';
 
 interface RowData {
-  row: Fuse.FuseResult<CheckpointItem>[];
+  row: Fuse.FuseResult<Model>[];
   id: string;
 }
 
@@ -105,16 +105,16 @@ export default function Checkpoints() {
   }, []);
 
   const rowRenderer = (row: VirtualScrollData) => {
-    const items = row.row.map(({ item }: Fuse.FuseResult<CheckpointItem>) => {
-      const imagePath = `${settings.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`;
+    const items = row.row.map(({ item }: Fuse.FuseResult<Model>) => {
+      const imagePath = `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`;
       return (
         <div
-          onClick={() => onClick(item.fileName)}
-          key={`${item.hash}_${item.fileName}`}
+          onClick={() => onClick(item.name)}
+          key={`${item.hash}_${item.name}`}
           aria-hidden="true"
         >
           <ModelCard
-            name={item.fileName}
+            name={item.name}
             imagePath={imagePath}
             width={`${width}px`}
             height={`${height}px`}

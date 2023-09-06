@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import { ImageRow } from 'main/ipc/organizeImages';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelInfo } from 'main/interfaces';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,9 +30,9 @@ export default function ModelDetail() {
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
-  const [userImagesList, setUserImagesList] = useState<Set<string>>(new Set());
+  const [userImagesList, setUserImagesList] = useState<string[]>([]);
   const [modelImagesList, setModelImagesList] = useState<string[]>([]);
-  const [imagesData, setImagesData] = useState<Record<string, any>>({});
+  const [imagesData, setImagesData] = useState<Record<string, ImageRow>>({});
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -51,8 +52,6 @@ export default function ModelDetail() {
 
         const modelsPath = mapPathsModels[selectedModelType];
 
-        console.log(modelsPath, selectedModelType);
-
         if (modelsPath) {
           const modelData = await window.ipcHandler.readFile(
             `${modelsPath}\\${selectedModelName}.civitai.info`,
@@ -62,10 +61,9 @@ export default function ModelDetail() {
             setModelInfo(JSON.parse(modelData));
           }
 
-          const userImagesListsResponse = await window.ipcHandler.readdirImages(
-            selectedModelName
-          );
-          setUserImagesList(new Set(userImagesListsResponse));
+          const userImagesListsResponse: ImageRow[] =
+            await window.ipcHandler.getImages(selectedModelName);
+          setUserImagesList(userImagesListsResponse.map((image) => image.path));
 
           const modelImagesListResponse =
             await window.ipcHandler.readdirModelImages(
@@ -74,13 +72,14 @@ export default function ModelDetail() {
             );
           setModelImagesList(modelImagesListResponse);
 
-          const iData = await window.ipcHandler.readFile(
-            `${settings.imagesDestPath}\\${selectedModelName}\\data.json`,
-            'utf-8'
+          const iData = userImagesListsResponse.reduce(
+            (acc: Record<string, ImageRow>, row) => {
+              acc[row.path] = row;
+              return acc;
+            },
+            {}
           );
-          if (iData) {
-            setImagesData(JSON.parse(iData));
-          }
+          setImagesData(iData);
         }
       };
       load();
@@ -91,7 +90,7 @@ export default function ModelDetail() {
     window.ipcOn.detectedAddImage(
       (event, modelName: string, detectedFile: string) => {
         if (selectedModelName === modelName) {
-          setUserImagesList(new Set([detectedFile, ...userImagesList]));
+          setUserImagesList([...userImagesList, detectedFile]);
         }
       }
     );
@@ -137,8 +136,8 @@ export default function ModelDetail() {
 
   const onSelectImage = (imgSrc: string) => {
     if (selectedModelType === 'checkpoints') {
-      const baseName = imgSrc.split(/[\\/]/).pop()?.replace('.thumbnail', '');
-      navigate(`/image-detail/${selectedModelName}/${baseName}`);
+      const hash = imagesData[imgSrc].hash;
+      navigate(`/image-detail/${hash}`);
     }
   };
 
@@ -172,33 +171,25 @@ export default function ModelDetail() {
     });
 
     const imagesList =
-      userImagesList.size > 0 ? userImagesList : modelImagesList;
-    const chunks = Array.from(imagesList).reduce(
-      (resultArr: RowData[], item, index) => {
-        const chunkIndex = Math.floor(index / perChunk);
+      userImagesList.length > 0 ? userImagesList : modelImagesList;
+    const chunks = imagesList.reduce((resultArr: RowData[], item, index) => {
+      const chunkIndex = Math.floor(index / perChunk);
 
-        if (!resultArr[chunkIndex]) {
-          resultArr[chunkIndex] = {
-            row: [],
-            id: '',
-          };
-        }
+      if (!resultArr[chunkIndex]) {
+        resultArr[chunkIndex] = {
+          row: [],
+          id: '',
+        };
+      }
 
-        resultArr[chunkIndex].row.push(item);
-        resultArr[chunkIndex].id = `${item}_${index}`;
-        return resultArr;
-      },
-      []
-    );
+      resultArr[chunkIndex].row.push(item);
+      resultArr[chunkIndex].id = `${item}_${index}`;
+      return resultArr;
+    }, []);
 
     const rowRenderer = (row: VirtualScrollData) => {
       const items = row.row.map((imgSrc: string, j: number) => {
-        const baseName = imgSrc
-          .split(/[\\/]/)
-          .pop()
-          ?.replace('.thumbnail.png', '');
-        const rating =
-          baseName && imagesData[baseName] ? imagesData[baseName].rating : 1;
+        const rating = imagesData[imgSrc]?.rating || 1;
         return (
           <div
             id={`${imgSrc}`}

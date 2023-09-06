@@ -3,11 +3,13 @@
 import { IpcRendererEvent, contextBridge, ipcRenderer } from 'electron';
 
 const channels = [
-  'readdirImages',
+  'getImage',
+  'getImages',
+  'updateImage',
   'readdirModels',
   'organizeImages',
   'selectDir',
-  'storage',
+  'settings',
   'readdirModelImages',
   'readModelInfo',
   'readFile',
@@ -18,7 +20,6 @@ const channels = [
   'getPaths',
   'fileAttach',
   'saveMD',
-  'saveImageJson',
 ] as const;
 export type Channels = (typeof channels)[number];
 

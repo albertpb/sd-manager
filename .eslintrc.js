@@ -28,6 +28,7 @@ module.exports = {
     'react/no-unknown-property': 'off',
     'prefer-destructuring': 'off',
     'no-inner-declarations': 'off',
+    'class-methods-use-this': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

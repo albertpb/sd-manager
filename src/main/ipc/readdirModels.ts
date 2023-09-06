@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { app, BrowserWindow, IpcMainInvokeEvent } from 'electron';
+import { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import {
   checkFileExists,
   downloadImage,
@@ -7,12 +7,14 @@ import {
   calculateHashFile,
   checkFolderExists,
 } from '../util';
+import SqliteDB from '../db';
 
-export interface ReadDirModelInfo {
+export type Model = {
   hash: string;
-  modelPath: string;
-  fileName: string;
-}
+  name: string;
+  path: string;
+  type: string;
+};
 
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
@@ -20,30 +22,14 @@ export const readdirModelsIpc = async (
   modelType: string,
   folderPath: string
 ) => {
-  const userDataPath = `${app.getPath('userData')}`;
-  const readdirdbPathFile = `${userDataPath}\\readdir.json`;
-  const readdirdbExists = await checkFileExists(readdirdbPathFile);
-  let readdirdb;
-
-  if (readdirdbExists) {
-    readdirdb = fs.readFileSync(readdirdbPathFile, { encoding: 'utf-8' });
-    readdirdb = JSON.parse(readdirdb);
-
-    if (!readdirdb[modelType]) {
-      readdirdb[modelType] = {};
-      if (!readdirdb[modelType][folderPath]) {
-        readdirdb[modelType][folderPath] = { files: {} };
-      }
+  const db = await SqliteDB.getInstance().getdb();
+  const models: Model[] = await db.all(`SELECT * FROM models`);
+  const modelsHashMap = models.reduce((acc: Record<string, Model>, row) => {
+    if (row.type === modelType) {
+      acc[row.name] = row;
     }
-  } else {
-    readdirdb = {
-      [modelType]: {
-        [folderPath]: {
-          files: {},
-        },
-      },
-    };
-  }
+    return acc;
+  }, {});
 
   const dirents = fs.readdirSync(folderPath, {
     withFileTypes: true,
@@ -53,29 +39,6 @@ export const readdirModelsIpc = async (
     .map((dirent) => dirent.name)
     .filter((f) => f.match(/(.safetensors|.ckpt)/));
 
-  const filesHashMap: Record<string, ReadDirModelInfo> = {};
-
-  /*
-  // MultiThread
-
-  const calculateHashPromises = [];
-  for (let i = 0; i < files.length; i++) {
-    if (!readdirdb[model][folderPath]?.files[files[i]]) {
-      calculateHashPromises.push(
-        calculateHashFileOnWorker(`${folderPath}\\${files[i]}`)
-      );
-    } else {
-      calculateHashPromises.push(
-        new Promise((resolve) => {
-          resolve('');
-        })
-      );
-    }
-  }
-
-  const hashes = await Promise.all(calculateHashPromises);
-  */
-
   for (let i = 0; i < files.length; i++) {
     const fileNameNoExt = files[i].substring(0, files[i].lastIndexOf('.'));
 
@@ -83,19 +46,29 @@ export const readdirModelsIpc = async (
       `${folderPath}\\${fileNameNoExt}.civitai.info`
     );
 
-    if (
-      readdirdb[modelType][folderPath] &&
-      readdirdb[modelType][folderPath].files &&
-      readdirdb[modelType][folderPath].files[fileNameNoExt]
-    ) {
-      filesHashMap[fileNameNoExt] =
-        readdirdb[modelType][folderPath].files[fileNameNoExt];
-    } else {
-      filesHashMap[fileNameNoExt] = {
-        // hash: hashes[i] as string,
-        hash: await calculateHashFile(`${folderPath}\\${files[i]}`),
-        modelPath: `${folderPath}\\${files[i]}`,
-        fileName: `${fileNameNoExt}`,
+    if (!modelsHashMap[fileNameNoExt]) {
+      const hash = await calculateHashFile(`${folderPath}\\${files[i]}`);
+      const path = `${folderPath}\\${files[i]}`;
+      try {
+        await db.run(
+          `INSERT INTO models(hash, name, path, type) VALUES (?, ?, ?, ?)`,
+          {
+            1: hash,
+            2: fileNameNoExt,
+            3: path,
+            4: modelType,
+          }
+        );
+      } catch (error) {
+        console.log(fileNameNoExt, modelType, hash);
+        console.log(error);
+      }
+
+      modelsHashMap[fileNameNoExt] = {
+        hash,
+        name: fileNameNoExt,
+        path,
+        type: modelType,
       };
     }
 
@@ -104,7 +77,7 @@ export const readdirModelsIpc = async (
       try {
         modelInfo = await downloadModelInfoByHash(
           fileNameNoExt,
-          filesHashMap[fileNameNoExt].hash,
+          modelsHashMap[fileNameNoExt].hash,
           folderPath
         );
       } catch (error) {
@@ -153,18 +126,5 @@ export const readdirModelsIpc = async (
     }
   }
 
-  readdirdb = {
-    ...readdirdb,
-    [modelType]: {
-      [folderPath]: {
-        files: filesHashMap,
-      },
-    },
-  };
-
-  fs.writeFileSync(readdirdbPathFile, JSON.stringify(readdirdb, null, 2), {
-    encoding: 'utf-8',
-  });
-
-  return filesHashMap;
+  return modelsHashMap;
 };

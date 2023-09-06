@@ -12,6 +12,11 @@ export const tabs = {
     label: 'Loras',
     path: 'loras',
   },
+  images: {
+    id: 'images',
+    label: 'Images',
+    path: 'images',
+  },
   arHelper: {
     id: 'arHelper',
     label: 'AspectRatio Helper',

@@ -17,8 +17,8 @@ export default function SettingsLoader({ children }: { children: ReactNode }) {
         setLoaded(true);
 
         if (
-          response.payload === undefined ||
-          response.payload.checkpointsPath === null
+          response.payload === null ||
+          response.payload?.checkpointsPath === null
         ) {
           navigate('/settings');
         }

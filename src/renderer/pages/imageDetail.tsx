@@ -1,49 +1,45 @@
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
+import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
+import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
 import { RootState } from 'renderer/redux';
 import { getFilenameNoExt, saveMdDebounced } from 'renderer/utils';
 
-type ImageJson = {
-  rating: number;
-};
-
 export default function ImageDetail() {
   const navigate = useNavigate();
   const navigatorParams = useParams();
-  const selectedModel = navigatorParams.model;
-  const fileBaseName = navigatorParams.baseName;
+  const hash = navigatorParams.hash;
   const settings = useSelector((state: RootState) => state.global.settings);
 
-  const [imageData, setImageData] = useState<string>('');
-  const [imagePath, setImagePath] = useState('');
+  const [imageBase64, setImageBase64] = useState<string>('');
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null
   );
+  const [imageData, setImageData] = useState<ImageRow | undefined>();
+  const [showExif, setShowExif] = useState<boolean>(false);
   const [imageMetadata, setImageMetadata] = useState<ImageMetaData | null>(
     null
   );
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [markdownText, setMarkdownText] = useState<string | undefined>('');
-  const [jsonData, setJsonData] = useState<ImageJson>({
-    rating: 0,
-  });
 
   useEffect(() => {
-    if (!fileBaseName || !selectedModel) return;
+    if (!hash) return;
 
     const load = async () => {
-      const modelPath = `${settings.imagesDestPath}\\${selectedModel}`;
-      const filePath = `${modelPath}\\${fileBaseName}`;
-      const fileNameNoExt = `${getFilenameNoExt(fileBaseName)}`;
+      const iData: ImageRow = await window.ipcHandler.getImage(hash);
+      setImageData(iData);
+
+      const modelPath = `${settings.imagesDestPath}\\${iData.model}`;
+      const fileNameNoExt = `${getFilenameNoExt(iData.name)}`;
       const folderPath = `${modelPath}\\${fileNameNoExt}`;
-      setImagePath(filePath);
       const {
         base64,
         exif,
@@ -52,8 +48,8 @@ export default function ImageDetail() {
         base64: string;
         exif: Record<string, any>;
         metadata: ImageMetaData | null;
-      } = await window.ipcHandler.readImage(filePath);
-      setImageData(base64);
+      } = await window.ipcHandler.readImage(iData.path);
+      setImageBase64(base64);
       setExifParams(exif);
       setImageMetadata(metadata);
 
@@ -64,91 +60,117 @@ export default function ImageDetail() {
       if (fileMdText) {
         setMarkdownText(fileMdText);
       }
-
-      const fileJson = await window.ipcHandler.readFile(
-        `${modelPath}\\data.json`,
-        'utf-8'
-      );
-      if (fileJson) {
-        const data = JSON.parse(fileJson);
-        if (data[fileNameNoExt]) {
-          setJsonData(data[fileNameNoExt]);
-        }
-      }
     };
     load();
-  }, [
-    fileBaseName,
-    selectedModel,
-    settings.imagesPath,
-    settings.imagesDestPath,
-  ]);
+  }, [settings.imagesDestPath, hash]);
 
   const goBack = useCallback(() => {
-    navigate(`/model-detail/checkpoint/${selectedModel}`);
-  }, [navigate, selectedModel]);
+    if (imageData) {
+      navigate(`/model-detail/checkpoint/${imageData.model}`);
+    }
+  }, [navigate, imageData]);
 
   const onMDChangeText = (value: string | undefined) => {
     setMarkdownText(value);
-    if (typeof value !== 'undefined') {
-      saveMdDebounced(selectedModel, fileBaseName, value);
+    if (typeof value !== 'undefined' && imageData) {
+      saveMdDebounced(imageData?.model, imageData.name, value);
     }
   };
 
   const onImagePasted = async (dataTransfer: DataTransfer) => {
-    for (let i = 0; i < dataTransfer.files.length; i++) {
-      const file = dataTransfer.files[i].path;
-      const copiedFilePath: string = await window.ipcHandler.fileAttach(
-        selectedModel,
-        fileBaseName,
-        file
-      );
-      onMDChangeText(`${markdownText} \n ![](sd:///${copiedFilePath}) \n`);
+    if (imageData) {
+      for (let i = 0; i < dataTransfer.files.length; i++) {
+        const file = dataTransfer.files[i].path;
+        const copiedFilePath: string = await window.ipcHandler.fileAttach(
+          imageData.model,
+          imageData.name,
+          file
+        );
+        onMDChangeText(`${markdownText} \n ![](sd:///${copiedFilePath}) \n`);
+      }
     }
   };
 
   const revealInFolder = () => {
-    window.ipcHandler.openFolderLink(imagePath);
+    if (imageData) {
+      window.ipcHandler.openFolderLink(imageData.path);
+    }
   };
 
   const onRatingChange = async (value: number) => {
-    setJsonData({
-      ...jsonData,
+    await window.ipcHandler.updateImage(hash, 'rating', value);
+    setImageData({
+      ...imageData,
       rating: value,
-    });
-    await window.ipcHandler.saveImageJson(selectedModel, fileBaseName, {
-      ...jsonData,
-      rating: value,
-    });
+    } as ImageRow);
   };
 
-  if (!fileBaseName || !selectedModel) return null;
+  if (!imageData) return null;
+
+  if (showExif) {
+    return (
+      <div>
+        <div className="absolute top-30 right-10">
+          <button
+            className="btn btn-circle"
+            type="button"
+            onClick={() => setShowExif(false)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"
+              />
+            </svg>
+          </button>
+        </div>
+        <ExifJson exifParams={exifParams} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 flex justify-center relative h-full">
       <section className="w-5/6">
         <div>
           <div className="flex flex-row items-center">
-            <p className="text-2xl font-bold text-gray-300">{selectedModel}</p>
+            <p className="text-2xl font-bold text-gray-300">
+              {imageData.model}
+            </p>
             <span className="ml-4">
               <Rating
-                value={jsonData.rating}
+                value={imageData.rating}
                 onClick={(value) => onRatingChange(value)}
               />
             </span>
           </div>
           <button
             type="button"
-            className="text-1xl text-gray-300"
+            className="text-1xl text-gray-300 mr-2"
             onClick={() => revealInFolder()}
           >
-            {fileBaseName}
+            {imageData.name}
+          </button>
+          <button
+            className="badge badge-accent"
+            type="button"
+            onClick={() => setShowExif(true)}
+          >
+            Exif Metadata
           </button>
         </div>
         <div className="flex w-full my-4">
           <img
-            src={`data:image/png;base64,${imageData}`}
-            alt={fileBaseName}
+            src={`data:image/png;base64,${imageBase64}`}
+            alt={imageData.name}
             onClick={() => revealInFolder()}
             aria-hidden
             className="cursor-pointer"

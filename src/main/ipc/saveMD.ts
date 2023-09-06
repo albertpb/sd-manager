@@ -1,6 +1,7 @@
 import fs from 'fs';
-import { IpcMainInvokeEvent, app } from 'electron';
-import { checkFileExists, checkFolderExists, getFilenameNoExt } from '../util';
+import { IpcMainInvokeEvent } from 'electron';
+import { checkFolderExists, getFilenameNoExt } from '../util';
+import { settingsDB } from './settings';
 
 export const saveMD = async (
   event: IpcMainInvokeEvent,
@@ -10,24 +11,16 @@ export const saveMD = async (
 ) => {
   console.log('saving markdown', model, imageFileName);
 
-  const settingsFilePath = `${app.getPath('userData')}\\storage.json`;
-  const settingsExists = await checkFileExists(settingsFilePath);
-  if (settingsExists) {
-    const { settings } = JSON.parse(
-      fs.readFileSync(settingsFilePath, { encoding: 'utf-8' })
-    );
-    const { imagesDestPath } = settings;
+  const imagesDestPath = await settingsDB('read', 'imagesDestPath');
+  const imageFileNameNoExt = getFilenameNoExt(imageFileName);
+  const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
 
-    const imageFileNameNoExt = getFilenameNoExt(imageFileName);
-    const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
-
-    const destPathExists = await checkFolderExists(destFolderPath);
-    if (!destPathExists) {
-      fs.mkdirSync(destFolderPath);
-    }
-
-    fs.writeFileSync(`${destFolderPath}\\markdown.md`, textMD, {
-      encoding: 'utf-8',
-    });
+  const destPathExists = await checkFolderExists(destFolderPath);
+  if (!destPathExists) {
+    fs.mkdirSync(destFolderPath);
   }
+
+  fs.writeFileSync(`${destFolderPath}\\markdown.md`, textMD, {
+    encoding: 'utf-8',
+  });
 };

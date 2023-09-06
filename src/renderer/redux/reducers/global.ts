@@ -1,16 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-
-export type CheckpointItem = {
-  hash: string;
-  modelPath: string;
-  fileName: string;
-};
-
-export type LoraItem = {
-  hash: string;
-  modelPath: string;
-  fileName: string;
-};
+import { Model } from '../../../main/ipc/readdirModels';
 
 export interface SettingsState {
   checkpointsPath: string | null;
@@ -25,10 +14,10 @@ interface GlobalState {
   lorasLoading: boolean;
   settings: SettingsState;
   checkpoints: {
-    filesInfo: Record<string, CheckpointItem>;
+    filesInfo: Record<string, Model>;
   };
   loras: {
-    filesInfo: Record<string, LoraItem>;
+    filesInfo: Record<string, Model>;
   };
   imagesLoading: boolean;
   images: {
@@ -63,7 +52,7 @@ const initialState: GlobalState = {
 const readDirModelsAsync = async (
   path: string,
   modelType: string
-): Promise<Record<string, CheckpointItem>> => {
+): Promise<Record<string, Model>> => {
   const filesHashMap = await window.ipcHandler.readdirModels(modelType, path);
   return filesHashMap;
 };
@@ -76,7 +65,7 @@ export const readCheckpointsDir = createAsyncThunk(
     if (state.global.settings.checkpointsPath !== null) {
       const files = await readDirModelsAsync(
         state.global.settings.checkpointsPath,
-        'checkpoints'
+        'checkpoint'
       );
       return files;
     }
@@ -92,7 +81,7 @@ export const readLorasDir = createAsyncThunk(
     if (state.global.settings.lorasPath !== null) {
       const files = await readDirModelsAsync(
         state.global.settings.lorasPath,
-        'loras'
+        'lora'
       );
       return files;
     }
@@ -101,7 +90,7 @@ export const readLorasDir = createAsyncThunk(
 );
 
 const loadSettingsAsync = async () => {
-  const settings = await window.ipcHandler.storage('read', 'settings');
+  const settings = await window.ipcHandler.settings('readAll');
   return settings;
 };
 
@@ -110,10 +99,8 @@ export const loadSettings = createAsyncThunk('loadSettings', async () => {
   return response;
 });
 
-const saveSettings = async (state: GlobalState) => {
-  await window.ipcHandler.storage('save', 'settings', {
-    ...state.settings,
-  });
+const saveSettings = async (key: string, value: any) => {
+  await window.ipcHandler.settings('save', key, value);
 };
 
 export const organizeImages = createAsyncThunk('organizeImages', async () => {
@@ -126,22 +113,22 @@ export const globalSlice = createSlice({
   reducers: {
     setCheckpointsPath: (state, action) => {
       state.settings.checkpointsPath = action.payload;
-      saveSettings(state);
+      saveSettings('checkpointsPath', action.payload);
     },
     setLorasPath: (state, action) => {
       state.settings.lorasPath = action.payload;
-      saveSettings(state);
+      saveSettings('lorasPath', action.payload);
     },
     init: (state) => {
       state.initialized = true;
     },
     setImagesPath: (state, action) => {
       state.settings.imagesPath = action.payload;
-      saveSettings(state);
+      saveSettings('imagesPath', action.payload);
     },
     setImagesDestPath: (state, action) => {
       state.settings.imagesDestPath = action.payload;
-      saveSettings(state);
+      saveSettings('imagesDestPath', action.payload);
     },
     setNavbarSearchInputValue: (state, action) => {
       state.navbarSearchInput = action.payload;
@@ -165,8 +152,9 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(loadSettings.fulfilled, (state, action) => {
-      if (action.payload) {
-        state.settings = action.payload as SettingsState;
+      const payload: { key: string; value: string }[] | null = action.payload;
+      if (payload) {
+        state.settings = action.payload;
       }
     });
 

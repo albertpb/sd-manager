@@ -1,7 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { IpcMainInvokeEvent, app } from 'electron';
-import { checkFileExists, checkFolderExists, getFilenameNoExt } from '../util';
+import { IpcMainInvokeEvent } from 'electron';
+import { checkFolderExists, getFilenameNoExt } from '../util';
+import { settingsDB } from './settings';
 
 export const fileAttach = async (
   event: IpcMainInvokeEvent,
@@ -9,28 +10,22 @@ export const fileAttach = async (
   imageFileName: string,
   filePath: string
 ) => {
-  const settingsFilePath = `${app.getPath('userData')}\\storage.json`;
-  const settingsExists = await checkFileExists(settingsFilePath);
-  if (settingsExists) {
-    const { settings } = JSON.parse(
-      fs.readFileSync(settingsFilePath, { encoding: 'utf-8' })
-    );
-    const { imagesDestPath } = settings;
-    if (imagesDestPath) {
-      const imageFileNameNoExt = getFilenameNoExt(imageFileName);
-      const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
+  const imagesDestPath = await settingsDB('read', 'imagesDestPath');
 
-      const destPathExists = await checkFolderExists(destFolderPath);
-      if (!destPathExists) {
-        fs.mkdirSync(destFolderPath);
-      }
+  if (imagesDestPath) {
+    const imageFileNameNoExt = getFilenameNoExt(imageFileName);
+    const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
 
-      const fileName = path.basename(filePath);
-      const destFilePath = `${destFolderPath}\\${fileName}`;
-
-      fs.copyFileSync(filePath, destFilePath);
-      return destFilePath;
+    const destPathExists = await checkFolderExists(destFolderPath);
+    if (!destPathExists) {
+      fs.mkdirSync(destFolderPath);
     }
+
+    const fileName = path.basename(filePath);
+    const destFilePath = `${destFolderPath}\\${fileName}`;
+
+    fs.copyFileSync(filePath, destFilePath);
+    return destFilePath;
   }
 
   return null;

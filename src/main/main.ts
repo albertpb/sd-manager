@@ -32,13 +32,14 @@ import {
   getFilenameNoExt,
   resolveHtmlPath,
 } from './util';
-import { storageIpc } from './ipc/storage';
+import SqliteDB from './db';
+import { settingsDB, settingsIpc } from './ipc/settings';
 import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { organizeImagesIpc } from './ipc/organizeImages';
 import { readdirModelsIpc } from './ipc/readdirModels';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
-import { readdirImagesIpc } from './ipc/readdirImages';
+import { getImageIpc, getImagesIpc, updateImageIpc } from './ipc/image';
 import { readdirModelImagesIpc } from './ipc/readdirModelImages';
 import {
   extractMetadata,
@@ -48,7 +49,6 @@ import {
 import { getPathsIpc } from './ipc/getPaths';
 import { fileAttach } from './ipc/fileAttach';
 import { saveMD } from './ipc/saveMD';
-import { saveImageJson } from './ipc/saveImageJson';
 
 class AppUpdater {
   constructor() {
@@ -63,9 +63,11 @@ let mainWindow: BrowserWindow | null = null;
 ipcMain.handle('readdirModels', (event, model, folderPath) =>
   readdirModelsIpc(mainWindow, event, model, folderPath)
 );
-ipcMain.handle('readdirImages', readdirImagesIpc);
+ipcMain.handle('getImage', getImageIpc);
+ipcMain.handle('getImages', getImagesIpc);
+ipcMain.handle('updateImage', updateImageIpc);
 ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
-ipcMain.handle('storage', storageIpc);
+ipcMain.handle('settings', settingsIpc);
 ipcMain.handle('readModelInfo', readModelInfoIpc);
 ipcMain.handle('readdirModelImages', readdirModelImagesIpc);
 ipcMain.handle('readFile', readFileIpc);
@@ -75,7 +77,6 @@ ipcMain.handle('openFolderLink', openFolderLinkIpc);
 ipcMain.handle('getPaths', getPathsIpc);
 ipcMain.handle('fileAttach', fileAttach);
 ipcMain.handle('saveMD', saveMD);
-ipcMain.handle('saveImageJson', saveImageJson);
 
 let watcherImagesFolder: FSWatcher | null = null;
 ipcMain.handle(
@@ -83,95 +84,79 @@ ipcMain.handle(
   async (event: IpcMainInvokeEvent, folderToWatch: string) => {
     const folderExists = await checkFolderExists(folderToWatch);
 
-    const settingsFilePath = `${app.getPath('userData')}\\storage.json`;
-    const settingsExists = await checkFileExists(settingsFilePath);
-    if (settingsExists) {
-      const { settings } = JSON.parse(
-        fs.readFileSync(settingsFilePath, { encoding: 'utf-8' })
-      );
-      const { imagesDestPath } = settings;
+    const imagesDestPath = await settingsDB('read', 'imagesDestPath');
 
-      if (folderExists && imagesDestPath) {
-        if (watcherImagesFolder !== null) {
-          watcherImagesFolder.close();
-        } else {
-          watcherImagesFolder = chokidar.watch(folderToWatch, {
-            persistent: true,
-            depth: 1,
-            ignoreInitial: true,
-            awaitWriteFinish: true,
-          });
+    if (folderExists && imagesDestPath) {
+      if (watcherImagesFolder !== null) {
+        watcherImagesFolder.close();
+      } else {
+        watcherImagesFolder = chokidar.watch(folderToWatch, {
+          persistent: true,
+          depth: 1,
+          ignoreInitial: true,
+          awaitWriteFinish: true,
+        });
 
-          watcherImagesFolder.on('add', async (detectedFile: string) => {
-            const fileBaseName = `${path.basename(detectedFile)}`;
-            const fileNameNoExt = getFilenameNoExt(fileBaseName);
-            const ext = fileBaseName.split('.').pop();
-            if (ext !== 'png') return;
+        watcherImagesFolder.on('add', async (detectedFile: string) => {
+          const fileBaseName = `${path.basename(detectedFile)}`;
+          const fileNameNoExt = getFilenameNoExt(fileBaseName);
+          const ext = fileBaseName.split('.').pop();
+          if (ext !== 'png') return;
 
-            const imagesDestPathExists = await checkFolderExists(
-              imagesDestPath
-            );
+          const imagesDestPathExists = await checkFolderExists(imagesDestPath);
 
-            if (imagesDestPathExists) {
-              const file = fs.readFileSync(detectedFile);
-              const exif = extractMetadata(file);
-              let metadata = null;
-              if (exif.parameters) {
-                metadata = parseAutomatic1111Meta(exif.parameters);
-              } else if (exif.workflow) {
-                metadata = parseComfyUiMeta(exif.workflow);
+          if (imagesDestPathExists) {
+            const file = fs.readFileSync(detectedFile);
+            const exif = extractMetadata(file);
+            let metadata = null;
+            if (exif.parameters) {
+              metadata = parseAutomatic1111Meta(exif.parameters);
+            } else if (exif.workflow) {
+              metadata = parseComfyUiMeta(exif.workflow);
+            }
+
+            if (metadata && metadata.model) {
+              const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
+              const imagesFolderExists = await checkFolderExists(imagesFolder);
+
+              if (!imagesFolderExists) {
+                fs.mkdirSync(imagesFolder);
               }
 
-              if (metadata && metadata.model) {
-                const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
-                const imagesFolderExists = await checkFolderExists(
-                  imagesFolder
+              fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
+
+              const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
+              await sharp(detectedFile)
+                .resize({ height: 400 })
+                .withMetadata()
+                .toFile(thumbnailDestPath);
+
+              const jsonFile = `${imagesFolder}\\data.json`;
+              const jsonFileExists = await checkFileExists(jsonFile);
+              let imagesData: Record<string, any> = {};
+              if (jsonFileExists) {
+                imagesData = JSON.parse(
+                  fs.readFileSync(jsonFile, { encoding: 'utf-8' })
                 );
+              }
 
-                if (!imagesFolderExists) {
-                  fs.mkdirSync(imagesFolder);
-                }
+              imagesData[fileNameNoExt] = {
+                rating: 1,
+              };
+              fs.writeFileSync(jsonFile, JSON.stringify(imagesData, null, 2), {
+                encoding: 'utf-8',
+              });
 
-                fs.copyFileSync(
-                  detectedFile,
-                  `${imagesFolder}\\${fileBaseName}`
+              if (mainWindow !== null) {
+                mainWindow.webContents.send(
+                  'detectedAddImage',
+                  metadata.model,
+                  detectedFile
                 );
-
-                const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
-                await sharp(detectedFile)
-                  .resize({ height: 400 })
-                  .withMetadata()
-                  .toFile(thumbnailDestPath);
-
-                const jsonFile = `${imagesFolder}\\data.json`;
-                const jsonFileExists = await checkFileExists(jsonFile);
-                let imagesData: Record<string, any> = {};
-                if (jsonFileExists) {
-                  imagesData = JSON.parse(
-                    fs.readFileSync(jsonFile, { encoding: 'utf-8' })
-                  );
-                }
-
-                imagesData[fileNameNoExt] = {
-                  rating: 1,
-                };
-                fs.writeFileSync(
-                  jsonFile,
-                  JSON.stringify(imagesData, null, 2),
-                  { encoding: 'utf-8' }
-                );
-
-                if (mainWindow !== null) {
-                  mainWindow.webContents.send(
-                    'detectedAddImage',
-                    metadata.model,
-                    detectedFile
-                  );
-                }
               }
             }
-          });
-        }
+          }
+        });
       }
     }
   }
@@ -256,8 +241,12 @@ const createWindow = async () => {
     }
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', async () => {
     mainWindow = null;
+
+    await SqliteDB.getInstance()
+      .getdb()
+      .then((db) => db.close());
 
     if (watcherImagesFolder) {
       watcherImagesFolder.close();
@@ -301,6 +290,8 @@ app
         }`
       );
     });
+
+    await SqliteDB.getInstance().initdb();
 
     createWindow();
     app.on('activate', () => {
