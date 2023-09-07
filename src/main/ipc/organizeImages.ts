@@ -21,6 +21,7 @@ export type ImageRow = {
   generatedBy: string;
   sourcePath: string;
   name: string;
+  fileName: string;
 };
 
 export const organizeImagesIpc = async (
@@ -76,7 +77,6 @@ export const organizeImagesIpc = async (
       const metadata = parseImageSdMeta(exif);
 
       if (metadata && metadata.model) {
-        metadata.generatedBy = 'automatic1111';
         const modelImagesPath = `${imagesDestPath}\\${metadata.model}`;
         const modelFolderExists = await checkFolderExists(modelImagesPath);
         if (!modelFolderExists) {
@@ -107,18 +107,23 @@ export const organizeImagesIpc = async (
               .toFile(thumbnailDestPath);
           }
 
-          await db.run(
-            `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name)`,
-            {
-              $hash: imageHash,
-              $path: imageDestPath,
-              $rating: 1,
-              $model: metadata.model,
-              $generatedBy: metadata.generatedBy,
-              $sourcePath: files[i],
-              $name: fileNameNoExt,
-            }
-          );
+          try {
+            await db.run(
+              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+              {
+                $hash: imageHash,
+                $path: modelImagesPath,
+                $rating: 1,
+                $model: metadata.model,
+                $generatedBy: metadata.generatedBy,
+                $sourcePath: files[i],
+                $name: fileNameNoExt,
+                $fileName: fileName,
+              }
+            );
+          } catch (error) {
+            console.log(error);
+          }
         }
       }
 

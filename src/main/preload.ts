@@ -38,4 +38,6 @@ contextBridge.exposeInMainWorld('ipcOn', {
     ipcRenderer.once('images-progress', cb),
   detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
     ipcRenderer.once('detectedAddImage', cb),
+  rmDetectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
+    ipcRenderer.removeListener('detectedAddImage', cb),
 });

@@ -3,20 +3,17 @@ import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
-import { RootState } from 'renderer/redux';
-import { getFilenameNoExt, saveMdDebounced } from 'renderer/utils';
+import { saveMdDebounced } from 'renderer/utils';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
-  const settings = useSelector((state: RootState) => state.global.settings);
 
   const [imageBase64, setImageBase64] = useState<string>('');
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
@@ -37,9 +34,7 @@ export default function ImageDetail() {
       const iData: ImageRow = await window.ipcHandler.getImage(hash);
       setImageData(iData);
 
-      const modelPath = `${settings.imagesDestPath}\\${iData.model}`;
-      const fileNameNoExt = `${getFilenameNoExt(iData.name)}`;
-      const folderPath = `${modelPath}\\${fileNameNoExt}`;
+      const folderPath = `${iData.path}\\${iData.name}`;
       const {
         base64,
         exif,
@@ -48,7 +43,7 @@ export default function ImageDetail() {
         base64: string;
         exif: Record<string, any>;
         metadata: ImageMetaData | null;
-      } = await window.ipcHandler.readImage(iData.path);
+      } = await window.ipcHandler.readImage(`${iData.path}\\${iData.fileName}`);
       setImageBase64(base64);
       setExifParams(exif);
       setImageMetadata(metadata);
@@ -62,18 +57,16 @@ export default function ImageDetail() {
       }
     };
     load();
-  }, [settings.imagesDestPath, hash]);
+  }, [hash]);
 
   const goBack = useCallback(() => {
-    if (imageData) {
-      navigate(`/model-detail/checkpoint/${imageData.model}`);
-    }
-  }, [navigate, imageData]);
+    navigate(-1);
+  }, [navigate]);
 
   const onMDChangeText = (value: string | undefined) => {
     setMarkdownText(value);
     if (typeof value !== 'undefined' && imageData) {
-      saveMdDebounced(imageData?.model, imageData.name, value);
+      saveMdDebounced(`${imageData.path}\\${imageData.name}`, value);
     }
   };
 
@@ -82,9 +75,8 @@ export default function ImageDetail() {
       for (let i = 0; i < dataTransfer.files.length; i++) {
         const file = dataTransfer.files[i].path;
         const copiedFilePath: string = await window.ipcHandler.fileAttach(
-          imageData.model,
-          imageData.name,
-          file
+          file,
+          `${imageData.path}\\${imageData.name}`
         );
         onMDChangeText(`${markdownText} \n ![](sd:///${copiedFilePath}) \n`);
       }
@@ -93,7 +85,9 @@ export default function ImageDetail() {
 
   const revealInFolder = () => {
     if (imageData) {
-      window.ipcHandler.openFolderLink(imageData.path);
+      window.ipcHandler.openFolderLink(
+        `${imageData.path}\\${imageData.fileName}`
+      );
     }
   };
 

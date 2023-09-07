@@ -1,32 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 import { IpcMainInvokeEvent } from 'electron';
-import { checkFolderExists, getFilenameNoExt } from '../util';
-import { settingsDB } from './settings';
 
 export const fileAttach = async (
   event: IpcMainInvokeEvent,
-  model: string,
-  imageFileName: string,
-  filePath: string
+  filePath: string,
+  imageFolder: string
 ) => {
-  const imagesDestPath = await settingsDB('read', 'imagesDestPath');
+  console.log(filePath, imageFolder);
 
-  if (imagesDestPath) {
-    const imageFileNameNoExt = getFilenameNoExt(imageFileName);
-    const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
+  const fileBaseName = path.basename(filePath);
+  fs.copyFileSync(filePath, `${imageFolder}\\${fileBaseName}`);
 
-    const destPathExists = await checkFolderExists(destFolderPath);
-    if (!destPathExists) {
-      fs.mkdirSync(destFolderPath);
-    }
-
-    const fileName = path.basename(filePath);
-    const destFilePath = `${destFolderPath}\\${fileName}`;
-
-    fs.copyFileSync(filePath, destFilePath);
-    return destFilePath;
-  }
-
-  return null;
+  return `${imageFolder}\\${fileBaseName}`;
 };

@@ -3,7 +3,7 @@
   "description": "stable difussion models manager",
   "license": "MIT",
   "main": "./src/main/main.ts",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
@@ -24,7 +24,9 @@
     "not dead"
   ],
   "dependencies": {
+    "@codemirror/lang-json": "^6.0.1",
     "@reduxjs/toolkit": "^1.9.5",
+    "@uiw/react-codemirror": "^4.21.13",
     "@uiw/react-md-editor": "^3.23.5",
     "axios": "^1.4.0",
     "chokidar": "^3.5.3",
@@ -39,8 +41,7 @@
     "react-redux": "^8.1.2",
     "react-router-dom": "^6.11.2",
     "react-toastify": "^9.1.3",
-    "sqlite": "^5.0.1",
-    "sqlite3": "^5.1.6"
+    "sqlite": "^5.0.1"
   },
   "devDependencies": {
     "@electron/notarize": "^1.2.3",

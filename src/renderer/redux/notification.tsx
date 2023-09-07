@@ -1,4 +1,5 @@
 import { IpcRendererEvent } from 'electron';
+import { ImageRow } from 'main/ipc/organizeImages';
 import { ReactNode, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -13,18 +14,15 @@ export default function Notificator({ children }: { children: ReactNode }) {
   const [listenerPending, setListenerPending] = useState<boolean>();
 
   useEffect(() => {
-    const listener = (
-      event: IpcRendererEvent,
-      model: string,
-      filePath: string
-    ) => {
+    const listener = (event: IpcRendererEvent, imageData: ImageRow) => {
       if (!imageLoading) {
-        console.log('notify');
-        const baseName = filePath.split('\\').pop()?.split('/').pop();
-        toast(`File detected ${model} - ${filePath}`, {
-          onClick: () => navigate(`/image-detail/${model}/${baseName}`),
-          closeOnClick: true,
-        });
+        toast(
+          `File detected ${imageData.model} - ${imageData.path}\\${imageData.fileName}`,
+          {
+            onClick: () => navigate(`/image-detail/${imageData.hash}`),
+            closeOnClick: true,
+          }
+        );
       }
       setListenerPending(false);
     };

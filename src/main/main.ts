@@ -27,7 +27,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import {
-  checkFileExists,
+  calculateHashFile,
   checkFolderExists,
   getFilenameNoExt,
   resolveHtmlPath,
@@ -36,7 +36,7 @@ import SqliteDB from './db';
 import { settingsDB, settingsIpc } from './ipc/settings';
 import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
-import { organizeImagesIpc } from './ipc/organizeImages';
+import { ImageRow, organizeImagesIpc } from './ipc/organizeImages';
 import { readdirModelsIpc } from './ipc/readdirModels';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
 import { getImageIpc, getImagesIpc, updateImageIpc } from './ipc/image';
@@ -84,80 +84,97 @@ ipcMain.handle(
   async (event: IpcMainInvokeEvent, folderToWatch: string) => {
     const folderExists = await checkFolderExists(folderToWatch);
 
-    const imagesDestPath = await settingsDB('read', 'imagesDestPath');
+    const response = await settingsDB('read', 'imagesDestPath');
+    const imagesDestPath = response?.value;
 
     if (folderExists && imagesDestPath) {
       if (watcherImagesFolder !== null) {
         watcherImagesFolder.close();
-      } else {
-        watcherImagesFolder = chokidar.watch(folderToWatch, {
-          persistent: true,
-          depth: 1,
-          ignoreInitial: true,
-          awaitWriteFinish: true,
-        });
+      }
 
-        watcherImagesFolder.on('add', async (detectedFile: string) => {
-          const fileBaseName = `${path.basename(detectedFile)}`;
-          const fileNameNoExt = getFilenameNoExt(fileBaseName);
-          const ext = fileBaseName.split('.').pop();
-          if (ext !== 'png') return;
+      watcherImagesFolder = chokidar.watch(folderToWatch, {
+        persistent: true,
+        depth: 1,
+        ignoreInitial: true,
+        awaitWriteFinish: true,
+      });
 
-          const imagesDestPathExists = await checkFolderExists(imagesDestPath);
+      watcherImagesFolder.on('add', async (detectedFile: string) => {
+        console.log('detedted file ', detectedFile);
 
-          if (imagesDestPathExists) {
-            const file = fs.readFileSync(detectedFile);
-            const exif = extractMetadata(file);
-            let metadata = null;
-            if (exif.parameters) {
-              metadata = parseAutomatic1111Meta(exif.parameters);
-            } else if (exif.workflow) {
-              metadata = parseComfyUiMeta(exif.workflow);
+        const fileBaseName = `${path.basename(detectedFile)}`;
+        const fileNameNoExt = getFilenameNoExt(fileBaseName);
+        const ext = fileBaseName.split('.').pop();
+        if (ext !== 'png') return;
+
+        const imagesDestPathExists = await checkFolderExists(imagesDestPath);
+
+        console.log(
+          'imagesDestPathExists',
+          imagesDestPath,
+          imagesDestPathExists
+        );
+
+        if (imagesDestPathExists) {
+          const file = fs.readFileSync(detectedFile);
+          const exif = extractMetadata(file);
+          let metadata = null;
+          if (exif.parameters) {
+            metadata = parseAutomatic1111Meta(exif.parameters);
+          } else if (exif.workflow) {
+            metadata = parseComfyUiMeta(exif.workflow);
+          }
+
+          if (metadata && metadata.model) {
+            const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
+            const imagesFolderExists = await checkFolderExists(imagesFolder);
+
+            if (!imagesFolderExists) {
+              fs.mkdirSync(imagesFolder);
             }
 
-            if (metadata && metadata.model) {
-              const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
-              const imagesFolderExists = await checkFolderExists(imagesFolder);
+            fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
 
-              if (!imagesFolderExists) {
-                fs.mkdirSync(imagesFolder);
+            const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
+            await sharp(detectedFile)
+              .resize({ height: 400 })
+              .withMetadata()
+              .toFile(thumbnailDestPath);
+
+            const hash = await calculateHashFile(detectedFile);
+
+            const imagesData: ImageRow = {
+              hash,
+              path: imagesFolder,
+              rating: 1,
+              model: metadata.model,
+              generatedBy: metadata.generatedBy,
+              sourcePath: detectedFile,
+              name: fileNameNoExt,
+              fileName: fileBaseName,
+            };
+
+            const db = await SqliteDB.getInstance().getdb();
+            await db.run(
+              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+              {
+                $hash: imagesData.hash,
+                $path: imagesData.path,
+                $rating: imagesData.rating,
+                $model: imagesData.model,
+                $generatedBy: imagesData.generatedBy,
+                $sourcePath: imagesData.sourcePath,
+                $name: imagesData.name,
+                $fileName: imagesData.fileName,
               }
+            );
 
-              fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
-
-              const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
-              await sharp(detectedFile)
-                .resize({ height: 400 })
-                .withMetadata()
-                .toFile(thumbnailDestPath);
-
-              const jsonFile = `${imagesFolder}\\data.json`;
-              const jsonFileExists = await checkFileExists(jsonFile);
-              let imagesData: Record<string, any> = {};
-              if (jsonFileExists) {
-                imagesData = JSON.parse(
-                  fs.readFileSync(jsonFile, { encoding: 'utf-8' })
-                );
-              }
-
-              imagesData[fileNameNoExt] = {
-                rating: 1,
-              };
-              fs.writeFileSync(jsonFile, JSON.stringify(imagesData, null, 2), {
-                encoding: 'utf-8',
-              });
-
-              if (mainWindow !== null) {
-                mainWindow.webContents.send(
-                  'detectedAddImage',
-                  metadata.model,
-                  detectedFile
-                );
-              }
+            if (mainWindow !== null) {
+              mainWindow.webContents.send('detectedAddImage', imagesData);
             }
           }
-        });
-      }
+        }
+      });
     }
   }
 );

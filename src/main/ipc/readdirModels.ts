@@ -22,6 +22,9 @@ export const readdirModelsIpc = async (
   modelType: string,
   folderPath: string
 ) => {
+  const folderExists = await checkFolderExists(folderPath);
+  if (!folderExists) return {};
+
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(`SELECT * FROM models`);
   const modelsHashMap = models.reduce((acc: Record<string, Model>, row) => {

@@ -67,6 +67,7 @@ export const readCheckpointsDir = createAsyncThunk(
         state.global.settings.checkpointsPath,
         'checkpoint'
       );
+
       return files;
     }
     return {};

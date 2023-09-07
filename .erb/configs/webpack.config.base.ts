@@ -54,6 +54,7 @@ const configuration: webpack.Configuration = {
 
   externals: {
     sharp: 'commonjs sharp',
+    sqlite3: 'sqlite3',
   },
 };
 

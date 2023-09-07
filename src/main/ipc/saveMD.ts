@@ -1,26 +1,18 @@
 import fs from 'fs';
 import { IpcMainInvokeEvent } from 'electron';
-import { checkFolderExists, getFilenameNoExt } from '../util';
-import { settingsDB } from './settings';
+import { checkFolderExists } from '../util';
 
 export const saveMD = async (
   event: IpcMainInvokeEvent,
-  model: string,
-  imageFileName: string,
+  path: string,
   textMD: string
 ) => {
-  console.log('saving markdown', model, imageFileName);
-
-  const imagesDestPath = await settingsDB('read', 'imagesDestPath');
-  const imageFileNameNoExt = getFilenameNoExt(imageFileName);
-  const destFolderPath = `${imagesDestPath}\\${model}\\${imageFileNameNoExt}`;
-
-  const destPathExists = await checkFolderExists(destFolderPath);
+  const destPathExists = await checkFolderExists(path);
   if (!destPathExists) {
-    fs.mkdirSync(destFolderPath);
+    fs.mkdirSync(path);
   }
 
-  fs.writeFileSync(`${destFolderPath}\\markdown.md`, textMD, {
+  fs.writeFileSync(`${path}\\markdown.md`, textMD, {
     encoding: 'utf-8',
   });
 };

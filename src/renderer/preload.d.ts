@@ -15,6 +15,9 @@ declare global {
       detectedAddImage: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
+      rmDetectedAddImage: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
     };
   }
 }

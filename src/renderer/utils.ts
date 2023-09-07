@@ -13,15 +13,8 @@ export function debounce<T extends any[]>(
   };
 }
 
-const saveMd = async (
-  selectedModel: string | undefined,
-  fileBaseName: string | undefined,
-  value: string
-) => {
-  if (selectedModel && fileBaseName) {
-    console.log('saving markdown', selectedModel, fileBaseName);
-    await window.ipcHandler.saveMD(selectedModel, fileBaseName, value);
-  }
+const saveMd = async (path: string, value: string) => {
+  await window.ipcHandler.saveMD(path, value);
 };
 
 export const saveMdDebounced = debounce(saveMd, 1000);

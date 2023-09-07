@@ -37,13 +37,9 @@ export default function Checkpoints() {
     navigate(`/model-detail/checkpoints/${name}`);
   };
 
-  useEffect(() => {
-    containerRef.current?.scrollTo(0, 0);
-  }, [navbarSearchInput, containerRef]);
-
   const modelsList = Object.values(checkpoints.filesInfo);
   const fuse = new Fuse(modelsList, {
-    keys: ['fileName'],
+    keys: ['name'],
   });
 
   const resultCards =

@@ -13,6 +13,7 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
-    "sharp": "^0.32.5"
+    "sharp": "^0.32.5",
+    "sqlite3": "^5.1.6"
   }
 }

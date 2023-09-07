@@ -42,6 +42,10 @@ export default class SqliteDB {
       "path" TEXT NOT NULL,
       "rating" INTEGER NOT NULL DEFAULT 1,
       "model" TEXT NOT NULL,
+      "generatedBy" TEXT NOT NULL,
+      "sourcePath" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "fileName" TEXT NOT NULL,
       PRIMARY KEY ("hash"),
       CONSTRAINT "model_fk" FOREIGN KEY ("model") REFERENCES "models" ("hash") ON DELETE CASCADE ON UPDATE CASCADE
       )`);

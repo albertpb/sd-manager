@@ -13,8 +13,14 @@ import VirtualScroll, {
 import Rating from 'renderer/components/Rating';
 import Image from '../components/Image';
 
+type Row = {
+  id: string;
+  path: string;
+  hash: string | null;
+  rating: number;
+};
 interface RowData {
-  row: string[];
+  row: Row[];
   id: string;
 }
 
@@ -30,9 +36,8 @@ export default function ModelDetail() {
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
-  const [userImagesList, setUserImagesList] = useState<string[]>([]);
+  const [userImagesList, setUserImagesList] = useState<ImageRow[]>([]);
   const [modelImagesList, setModelImagesList] = useState<string[]>([]);
-  const [imagesData, setImagesData] = useState<Record<string, ImageRow>>({});
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -63,7 +68,7 @@ export default function ModelDetail() {
 
           const userImagesListsResponse: ImageRow[] =
             await window.ipcHandler.getImages(selectedModelName);
-          setUserImagesList(userImagesListsResponse.map((image) => image.path));
+          setUserImagesList(userImagesListsResponse);
 
           const modelImagesListResponse =
             await window.ipcHandler.readdirModelImages(
@@ -71,15 +76,6 @@ export default function ModelDetail() {
               modelsPath
             );
           setModelImagesList(modelImagesListResponse);
-
-          const iData = userImagesListsResponse.reduce(
-            (acc: Record<string, ImageRow>, row) => {
-              acc[row.path] = row;
-              return acc;
-            },
-            {}
-          );
-          setImagesData(iData);
         }
       };
       load();
@@ -87,13 +83,11 @@ export default function ModelDetail() {
   }, [settings, selectedModelName, selectedModelType]);
 
   useEffect(() => {
-    window.ipcOn.detectedAddImage(
-      (event, modelName: string, detectedFile: string) => {
-        if (selectedModelName === modelName) {
-          setUserImagesList([...userImagesList, detectedFile]);
-        }
+    window.ipcOn.detectedAddImage((event, imagesData: ImageRow) => {
+      if (selectedModelName === imagesData.model) {
+        setUserImagesList([imagesData, ...userImagesList]);
       }
-    );
+    });
   }, [selectedModelName, userImagesList]);
 
   const calcImagesValues = useCallback(() => {
@@ -134,9 +128,8 @@ export default function ModelDetail() {
     [calcImagesValues]
   );
 
-  const onSelectImage = (imgSrc: string) => {
-    if (selectedModelType === 'checkpoints') {
-      const hash = imagesData[imgSrc].hash;
+  const onSelectImage = (hash: string | null) => {
+    if (selectedModelType === 'checkpoints' && hash !== null) {
       navigate(`/image-detail/${hash}`);
     }
   };
@@ -170,32 +163,55 @@ export default function ModelDetail() {
       );
     });
 
-    const imagesList =
-      userImagesList.length > 0 ? userImagesList : modelImagesList;
-    const chunks = imagesList.reduce((resultArr: RowData[], item, index) => {
-      const chunkIndex = Math.floor(index / perChunk);
+    const chunks =
+      userImagesList.length > 0
+        ? userImagesList.reduce((resultArr: RowData[], item, index) => {
+            const chunkIndex = Math.floor(index / perChunk);
 
-      if (!resultArr[chunkIndex]) {
-        resultArr[chunkIndex] = {
-          row: [],
-          id: '',
-        };
-      }
+            if (!resultArr[chunkIndex]) {
+              resultArr[chunkIndex] = {
+                row: [],
+                id: '',
+              };
+            }
 
-      resultArr[chunkIndex].row.push(item);
-      resultArr[chunkIndex].id = `${item}_${index}`;
-      return resultArr;
-    }, []);
+            resultArr[chunkIndex].row.push({
+              path: `${item.path}\\${item.name}.thumbnail.png`,
+              hash: item.hash,
+              rating: item.rating,
+              id: item.hash,
+            });
+            resultArr[chunkIndex].id = item.hash;
+            return resultArr;
+          }, [])
+        : modelImagesList.reduce((resultArr: RowData[], item, index) => {
+            const chunkIndex = Math.floor(index / perChunk);
+
+            if (!resultArr[chunkIndex]) {
+              resultArr[chunkIndex] = {
+                row: [],
+                id: '',
+              };
+            }
+
+            resultArr[chunkIndex].row.push({
+              path: item,
+              rating: 1,
+              hash: `${item}_${index}`,
+              id: item,
+            });
+            resultArr[chunkIndex].id = `${item}_${index}`;
+            return resultArr;
+          }, []);
 
     const rowRenderer = (row: VirtualScrollData) => {
-      const items = row.row.map((imgSrc: string, j: number) => {
-        const rating = imagesData[imgSrc]?.rating || 1;
+      const items = row.row.map((item: Row, j: number) => {
         return (
           <div
-            id={`${imgSrc}`}
-            key={`${imgSrc}`}
+            id={`${item.hash}`}
+            key={`${item.hash}`}
             className="cursor-pointer"
-            onClick={() => onSelectImage(imgSrc)}
+            onClick={() => onSelectImage(item.hash)}
             aria-hidden="true"
           >
             <figure
@@ -207,10 +223,10 @@ export default function ModelDetail() {
               }}
             >
               <div className="absolute top-2 right-2 z-20">
-                <Rating value={rating} />
+                <Rating value={item.rating} />
               </div>
               <Image
-                src={imgSrc}
+                src={item.path}
                 alt={`model_detail_model_image_${j}`}
                 height="100%"
                 width="100%"
