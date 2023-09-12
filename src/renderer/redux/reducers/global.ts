@@ -104,9 +104,19 @@ const saveSettings = async (key: string, value: any) => {
   await window.ipcHandler.settings('save', key, value);
 };
 
-export const organizeImages = createAsyncThunk('organizeImages', async () => {
-  await window.ipcHandler.organizeImages();
-});
+export const organizeImages = createAsyncThunk(
+  'organizeImages',
+  async (arg, { getState }) => {
+    const state = getState() as { global: GlobalState };
+
+    if (
+      state.global.settings.imagesPath &&
+      state.global.settings.imagesDestPath
+    ) {
+      await window.ipcHandler.organizeImages();
+    }
+  }
+);
 
 export const globalSlice = createSlice({
   name: 'Global',
