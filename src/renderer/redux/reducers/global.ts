@@ -123,23 +123,31 @@ export const globalSlice = createSlice({
   initialState,
   reducers: {
     setCheckpointsPath: (state, action) => {
-      state.settings.checkpointsPath = action.payload;
-      saveSettings('checkpointsPath', action.payload);
+      if (action.payload) {
+        state.settings.checkpointsPath = action.payload;
+        saveSettings('checkpointsPath', action.payload);
+      }
     },
     setLorasPath: (state, action) => {
-      state.settings.lorasPath = action.payload;
-      saveSettings('lorasPath', action.payload);
+      if (action.payload) {
+        state.settings.lorasPath = action.payload;
+        saveSettings('lorasPath', action.payload);
+      }
     },
     init: (state) => {
       state.initialized = true;
     },
     setImagesPath: (state, action) => {
-      state.settings.imagesPath = action.payload;
-      saveSettings('imagesPath', action.payload);
+      if (action.payload) {
+        state.settings.imagesPath = action.payload;
+        saveSettings('imagesPath', action.payload);
+      }
     },
     setImagesDestPath: (state, action) => {
-      state.settings.imagesDestPath = action.payload;
-      saveSettings('imagesDestPath', action.payload);
+      if (action.payload) {
+        state.settings.imagesDestPath = action.payload;
+        saveSettings('imagesDestPath', action.payload);
+      }
     },
     setNavbarSearchInputValue: (state, action) => {
       state.navbarSearchInput = action.payload;

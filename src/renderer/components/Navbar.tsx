@@ -32,23 +32,6 @@ export default function Navbar() {
 
   return (
     <nav className="navbar bg-base-200 fixed top-0 z-50">
-      <div className="flex-none">
-        <button className="btn btn-square btn-ghost" type="button">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="inline-block w-5 h-5 stroke-current"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      </div>
       <div className="mx-2">
         <button className="normal-case text-xl" type="button">
           SD Manager
