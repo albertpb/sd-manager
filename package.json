@@ -3,6 +3,7 @@
   "description": "stable difussion models manager",
   "license": "MIT",
   "main": "./src/main/main.ts",
+  "author": "Alberto Palumbo",
   "version": "1.0.0",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",

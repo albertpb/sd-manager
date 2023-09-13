@@ -1,10 +1,10 @@
 {
   "name": "sd-manager",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
   "license": "MIT",
   "author": {
-    "name": "Albertp"
+    "name": "Alberto Palumbo"
   },
   "main": "./dist/main/main.js",
   "scripts": {
