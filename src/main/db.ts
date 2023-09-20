@@ -29,6 +29,8 @@ export default class SqliteDB {
   async initdb() {
     const db = await this.getdb();
 
+    await db.run('PRAGMA user_version = 1');
+
     await db.run(`CREATE TABLE IF NOT EXISTS "models" (
       "hash" TEXT NOT NULL,
       "name" TEXT NOT NULL,

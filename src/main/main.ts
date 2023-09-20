@@ -49,6 +49,7 @@ import {
 import { getPathsIpc } from './ipc/getPaths';
 import { fileAttach } from './ipc/fileAttach';
 import { saveMD } from './ipc/saveMD';
+import { saveImageFromClipboard } from './ipc/clipboard';
 
 class AppUpdater {
   constructor() {
@@ -77,6 +78,7 @@ ipcMain.handle('openFolderLink', openFolderLinkIpc);
 ipcMain.handle('getPaths', getPathsIpc);
 ipcMain.handle('fileAttach', fileAttach);
 ipcMain.handle('saveMD', saveMD);
+ipcMain.handle('saveImageFromClipboard', saveImageFromClipboard);
 
 let watcherImagesFolder: FSWatcher | null = null;
 ipcMain.handle(

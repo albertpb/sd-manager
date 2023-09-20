@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
@@ -73,12 +74,18 @@ export default function ImageDetail() {
   const onImagePasted = async (dataTransfer: DataTransfer) => {
     if (imageData) {
       for (let i = 0; i < dataTransfer.files.length; i++) {
-        const file = dataTransfer.files[i].path;
-        const copiedFilePath: string = await window.ipcHandler.fileAttach(
-          file,
-          `${imageData.path}\\${imageData.name}`
-        );
-        onMDChangeText(`${markdownText} \n ![](sd:///${copiedFilePath}) \n`);
+        const file = dataTransfer.files[i];
+        const fileType = file.type;
+
+        if (fileType === 'image/png') {
+          const path = `${imageData.path}\\${
+            imageData.name
+          }\\${createId()}.png`;
+
+          await window.ipcHandler.saveImageFromClipboard(path);
+
+          onMDChangeText(`${markdownText} \n ![](sd:///${path}) \n`);
+        }
       }
     }
   };

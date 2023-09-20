@@ -20,6 +20,7 @@ const channels = [
   'getPaths',
   'fileAttach',
   'saveMD',
+  'saveImageFromClipboard',
 ] as const;
 export type Channels = (typeof channels)[number];
 
