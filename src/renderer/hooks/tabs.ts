@@ -22,6 +22,11 @@ export const tabs = {
     label: 'AspectRatio Helper',
     path: 'ar-helper',
   },
+  imageMetadata: {
+    id: 'imageMetadata',
+    label: 'Image Metadata',
+    path: 'image-metadata',
+  },
   /*
     testing: {
     id: 'testing',

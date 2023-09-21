@@ -1,6 +1,6 @@
 import CodeMirror from '@uiw/react-codemirror';
-import classNames from 'classnames';
 import { json as jsonLang } from '@codemirror/lang-json';
+import classNames from 'classnames';
 import { useEffect, useState } from 'react';
 
 export default function ExifJson({

@@ -15,6 +15,7 @@ import AspectRatioHelper from './pages/aspectRatioHelper';
 import Notificator from './redux/notification';
 import Loras from './pages/loras';
 import Images from './pages/images';
+import ImageMetadata from './pages/imageMetadata';
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
                     <Route path="/images" element={<Images />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/ar-helper" element={<AspectRatioHelper />} />
+                    <Route path="/image-metadata" element={<ImageMetadata />} />
                     <Route path="/testing" element={<Testing />} />
                   </Route>
                 </Routes>

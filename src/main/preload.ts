@@ -21,6 +21,7 @@ const channels = [
   'fileAttach',
   'saveMD',
   'saveImageFromClipboard',
+  'readImageMetadata',
 ] as const;
 export type Channels = (typeof channels)[number];
 
