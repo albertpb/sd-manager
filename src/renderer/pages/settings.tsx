@@ -8,6 +8,7 @@ import {
   setImagesDestPath,
   setLorasPath,
   readLorasDir,
+  setScanModelsOnStart,
 } from 'renderer/redux/reducers/global';
 
 export default function Settings() {
@@ -43,6 +44,10 @@ export default function Settings() {
       dispatch(setImagesDestPath(path as string));
       window.ipcHandler.watchImagesFolder(settings.imagesPath);
     }
+  };
+
+  const onScanModelsOnStart = async (value: boolean) => {
+    dispatch(setScanModelsOnStart(value ? '1' : '0'));
   };
 
   const onOrganizeImagesClick = async () => {
@@ -96,6 +101,23 @@ export default function Settings() {
             </button>
           </div>
         </div>
+      </div>
+      <div className="mt-3 flex flex-row items-center w-1/2 form-control">
+        <label
+          className="label cursor-pointer ml-0 pl-0 w-full justify-start"
+          htmlFor="scanModelsOnStart"
+        >
+          <span className="label-text text-base mr-4 w-2/3">
+            Scan models on start
+          </span>
+          <input
+            id="scanModelsOnStart"
+            type="checkbox"
+            checked={settings.scanModelsOnStart === '1'}
+            onChange={(e) => onScanModelsOnStart(e.target.checked)}
+            className="checkbox checkbox-primary"
+          />
+        </label>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
         <div className="mr-4 w-2/3">

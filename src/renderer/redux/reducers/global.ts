@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Model } from '../../../main/ipc/readdirModels';
 
 export interface SettingsState {
+  scanModelsOnStart: string | null;
   checkpointsPath: string | null;
   lorasPath: string | null;
   imagesPath: string | null;
@@ -31,6 +32,7 @@ const initialState: GlobalState = {
   checkpointsLoading: false,
   lorasLoading: false,
   settings: {
+    scanModelsOnStart: '0',
     checkpointsPath: null,
     lorasPath: null,
     imagesPath: null,
@@ -149,6 +151,10 @@ export const globalSlice = createSlice({
         saveSettings('imagesDestPath', action.payload);
       }
     },
+    setScanModelsOnStart: (state, action) => {
+      state.settings.scanModelsOnStart = action.payload;
+      saveSettings('scanModelsOnStart', action.payload);
+    },
     setNavbarSearchInputValue: (state, action) => {
       state.navbarSearchInput = action.payload;
     },
@@ -193,4 +199,5 @@ export const {
   setImagesPath,
   setImagesDestPath,
   setNavbarSearchInputValue,
+  setScanModelsOnStart,
 } = globalSlice.actions;

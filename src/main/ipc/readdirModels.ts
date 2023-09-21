@@ -8,6 +8,7 @@ import {
   checkFolderExists,
 } from '../util';
 import SqliteDB from '../db';
+import { settingsDB } from './settings';
 
 export type Model = {
   hash: string;
@@ -33,6 +34,11 @@ export const readdirModelsIpc = async (
     }
     return acc;
   }, {});
+
+  const scanModelsOnStart = await settingsDB('read', 'scanModelsOnStart');
+  if (scanModelsOnStart.value === '0') {
+    return modelsHashMap;
+  }
 
   const dirents = fs.readdirSync(folderPath, {
     withFileTypes: true,

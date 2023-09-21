@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
@@ -143,9 +143,12 @@ export default function ImageDetail() {
       <section className="w-5/6">
         <div>
           <div className="flex flex-row items-center">
-            <p className="text-2xl font-bold text-gray-300">
+            <Link
+              to={`/model-detail/checkpoints/${imageData.model}`}
+              className="text-2xl font-bold text-gray-300"
+            >
               {imageData.model}
-            </p>
+            </Link>
             <span className="ml-4">
               <Rating
                 value={imageData.rating}

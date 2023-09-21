@@ -29,33 +29,37 @@ export default class SqliteDB {
   async initdb() {
     const db = await this.getdb();
 
-    await db.run('PRAGMA user_version = 1');
+    const version = await db.get('PRAGMA user_version');
 
-    await db.run(`CREATE TABLE IF NOT EXISTS "models" (
-      "hash" TEXT NOT NULL,
-      "name" TEXT NOT NULL,
-      "path" TEXT NOT NULL,
-      "type" TEXT NOT NULL,
-      PRIMARY KEY ("hash")
+    if (!version.user_version) {
+      await db.run('PRAGMA user_version = 1');
+
+      await db.run(`CREATE TABLE IF NOT EXISTS "models" (
+        "hash" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "path" TEXT NOT NULL,
+        "type" TEXT NOT NULL,
+        PRIMARY KEY ("hash")
       )`);
 
-    await db.run(`CREATE TABLE IF NOT EXISTS "images" (
-      "hash" TEXT NOT NULL,
-      "path" TEXT NOT NULL,
-      "rating" INTEGER NOT NULL DEFAULT 1,
-      "model" TEXT NOT NULL,
-      "generatedBy" TEXT NOT NULL,
-      "sourcePath" TEXT NOT NULL,
-      "name" TEXT NOT NULL,
-      "fileName" TEXT NOT NULL,
-      PRIMARY KEY ("hash"),
-      CONSTRAINT "model_fk" FOREIGN KEY ("model") REFERENCES "models" ("hash") ON DELETE CASCADE ON UPDATE CASCADE
+      await db.run(`CREATE TABLE IF NOT EXISTS "images" (
+        "hash" TEXT NOT NULL,
+        "path" TEXT NOT NULL,
+        "rating" INTEGER NOT NULL DEFAULT 1,
+        "model" TEXT NOT NULL,
+        "generatedBy" TEXT NOT NULL,
+        "sourcePath" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "fileName" TEXT NOT NULL,
+        PRIMARY KEY ("hash"),
+        CONSTRAINT "model_fk" FOREIGN KEY ("model") REFERENCES "models" ("hash") ON DELETE CASCADE ON UPDATE CASCADE
       )`);
 
-    await db.run(`CREATE TABLE IF NOT EXISTS "settings" (
-      "key" TEXT NOT NULL,
-      "value" TEXT NOT NULL,
-      PRIMARY KEY ("key")
-    )`);
+      await db.run(`CREATE TABLE IF NOT EXISTS "settings" (
+        "key" TEXT NOT NULL,
+        "value" TEXT NOT NULL,
+        PRIMARY KEY ("key")
+      )`);
+    }
   }
 }
