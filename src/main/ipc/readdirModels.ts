@@ -55,9 +55,23 @@ export const readdirModelsIpc = async (
       `${folderPath}\\${fileNameNoExt}.civitai.info`
     );
 
+    let modelInfo;
+
     if (!modelsHashMap[fileNameNoExt]) {
       const hash = await calculateHashFile(`${folderPath}\\${files[i]}`);
       const path = `${folderPath}\\${files[i]}`;
+
+      // verify if is a valid hash by downloading info from civitai
+      try {
+        modelInfo = await downloadModelInfoByHash(
+          fileNameNoExt,
+          hash,
+          folderPath
+        );
+      } catch (error) {
+        continue;
+      }
+
       try {
         await db.run(
           `INSERT INTO models(hash, name, path, type) VALUES (?, ?, ?, ?)`,
@@ -81,18 +95,7 @@ export const readdirModelsIpc = async (
       };
     }
 
-    let modelInfo;
-    if (!modelInfoExists) {
-      try {
-        modelInfo = await downloadModelInfoByHash(
-          fileNameNoExt,
-          modelsHashMap[fileNameNoExt].hash,
-          folderPath
-        );
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
+    if (modelInfoExists && !modelInfo) {
       const modelInfoStr = await fs.promises.readFile(
         `${folderPath}\\${fileNameNoExt}.civitai.info`,
         { encoding: 'utf-8' }

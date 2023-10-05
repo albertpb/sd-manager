@@ -29,6 +29,7 @@ module.exports = {
     'prefer-destructuring': 'off',
     'no-inner-declarations': 'off',
     'class-methods-use-this': 'off',
+    'no-continue': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

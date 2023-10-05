@@ -21,6 +21,7 @@ export default function Notificator({ children }: { children: ReactNode }) {
           {
             onClick: () => navigate(`/image-detail/${imageData.hash}`),
             closeOnClick: true,
+            autoClose: 5000,
           }
         );
       }
@@ -42,7 +43,6 @@ export default function Notificator({ children }: { children: ReactNode }) {
         pauseOnFocusLoss
         pauseOnHover
         theme="dark"
-        autoClose={false}
       />
       {children}
     </>

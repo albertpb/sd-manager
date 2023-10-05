@@ -197,7 +197,7 @@ export default function ModelDetail() {
             resultArr[chunkIndex].row.push({
               path: item,
               rating: 1,
-              hash: `${item}_${index}`,
+              hash: null,
               id: item,
             });
             resultArr[chunkIndex].id = `${item}_${index}`;
@@ -209,7 +209,7 @@ export default function ModelDetail() {
         return (
           <div
             id={`${item.hash}`}
-            key={`${item.hash}`}
+            key={`${item.hash || `${item.path}_row_${j}`}`}
             className="cursor-pointer"
             onClick={() => onSelectImage(item.hash)}
             aria-hidden="true"
