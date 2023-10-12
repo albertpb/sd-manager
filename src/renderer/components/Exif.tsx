@@ -8,12 +8,12 @@ export default function ExifJson({
 }: {
   exifParams: Record<string, any> | null;
 }) {
-  const [height, setHeight] = useState(window.innerHeight - 300);
+  const [height, setHeight] = useState(window.innerHeight - 250);
   const [tab, setTab] = useState('prompt');
 
   useEffect(() => {
     const onResize = () => {
-      setHeight(window.innerHeight - 300);
+      setHeight(window.innerHeight - 250);
     };
 
     window.addEventListener('resize', onResize);
@@ -24,8 +24,8 @@ export default function ExifJson({
   if (exifParams === null) return null;
 
   return (
-    <div className="max-w-full">
-      <div className="tabs tabs-boxed mr-6 mb-6">
+    <div className="h-full max-w-full mx-10">
+      <div className="tabs tabs-boxed mb-6 w-fit">
         <button
           type="button"
           className={classNames('tab', { 'tab-active': tab === 'prompt' })}
@@ -42,7 +42,9 @@ export default function ExifJson({
         </button>
         <button
           type="button"
-          className={classNames('tab', { 'tab-active': tab === 'parameters' })}
+          className={classNames('tab', {
+            'tab-active': tab === 'parameters',
+          })}
           onClick={() => setTab('parameters')}
         >
           Parameters

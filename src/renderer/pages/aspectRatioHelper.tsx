@@ -46,7 +46,7 @@ export default function AspectRatioHelper() {
   }, [height, ratioHeight, ratioWidth]);
 
   return (
-    <section>
+    <section className="pt-10 px-10">
       <div className="w-full">
         <p className="text-2xl font-bold text-gray-300">Aspect Ratio Helper</p>
       </div>

@@ -47,7 +47,7 @@ export default function Navbar() {
     imagesToDeleteCount > 0 ? (
       <button
         type="button"
-        className="mx-1 btn"
+        className="mx-1 btn btn-outline btn-info"
         onClick={() => setConfirmDialogIsOpen(true)}
       >
         <svg

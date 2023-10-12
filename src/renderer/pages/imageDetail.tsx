@@ -119,7 +119,7 @@ export default function ImageDetail() {
 
   if (showExif) {
     return (
-      <div>
+      <div className="relative px-4 pb-4 pt-10">
         <div className="absolute top-30 right-10">
           <button
             className="btn btn-circle"
