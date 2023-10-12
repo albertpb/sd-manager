@@ -22,6 +22,7 @@ export type ImageRow = {
   sourcePath: string;
   name: string;
   fileName: string;
+  deleted: number;
 };
 
 export const organizeImagesIpc = async (

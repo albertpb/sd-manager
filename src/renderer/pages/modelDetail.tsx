@@ -1,9 +1,10 @@
 import classNames from 'classnames';
+import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelInfo } from 'main/interfaces';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
 import { RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
@@ -11,6 +12,7 @@ import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
+import { setImagesToDelete } from 'renderer/redux/reducers/global';
 import Image from '../components/Image';
 
 type Row = {
@@ -26,11 +28,15 @@ interface RowData {
 
 export default function ModelDetail() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const navigatorParams = useParams();
   const selectedModelName = navigatorParams.name;
   const selectedModelType = navigatorParams.type;
 
   const settings = useSelector((state: RootState) => state.global.settings);
+  const imagesToDelete = useSelector(
+    (state: RootState) => state.global.imagesToDelete
+  );
 
   const [showHead, setShowHead] = useState<boolean>(true);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -46,6 +52,8 @@ export default function ModelDetail() {
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
   const margin = 20;
+
+  const [deleteActive, setDeleteActive] = useState<boolean>(false);
 
   useEffect(() => {
     if (selectedModelName && selectedModelType) {
@@ -83,11 +91,14 @@ export default function ModelDetail() {
   }, [settings, selectedModelName, selectedModelType]);
 
   useEffect(() => {
-    window.ipcOn.detectedAddImage((event, imagesData: ImageRow) => {
+    const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
       if (selectedModelName === imagesData.model) {
         setUserImagesList([imagesData, ...userImagesList]);
       }
-    });
+    };
+    window.ipcOn.detectedAddImage(cb);
+
+    return () => window.ipcOn.rmDetectedAddImage(cb);
   }, [selectedModelName, userImagesList]);
 
   const calcImagesValues = useCallback(() => {
@@ -108,7 +119,7 @@ export default function ModelDetail() {
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
     setPerChunk(
-      Math.floor((window.innerWidth - window.innerWidth * 0.25) / cardWidth)
+      Math.floor((window.innerWidth - window.innerWidth * 0.15) / cardWidth)
     );
   }, [showHead, containerHeight]);
 
@@ -120,6 +131,12 @@ export default function ModelDetail() {
     return () => window.removeEventListener('resize', calcImagesValues);
   }, [containerRef, width, calcImagesValues]);
 
+  useEffect(() => {
+    return () => {
+      dispatch(setImagesToDelete({}));
+    };
+  }, [dispatch]);
+
   const setRef = useCallback(
     (node: HTMLDivElement) => {
       containerRef.current = node;
@@ -129,14 +146,33 @@ export default function ModelDetail() {
   );
 
   const onSelectImage = (hash: string | null) => {
-    if (selectedModelType === 'checkpoints' && hash !== null) {
-      navigate(`/image-detail/${hash}`);
+    if (selectedModelType === 'checkpoints') {
+      if (hash !== null) {
+        if (deleteActive) {
+          if (imagesToDelete[hash]) {
+            const imgs = { ...imagesToDelete };
+            delete imgs[hash];
+            dispatch(setImagesToDelete(imgs));
+          } else {
+            dispatch(setImagesToDelete({ ...imagesToDelete, [hash]: true }));
+          }
+        } else {
+          navigate(`/image-detail/${hash}`);
+        }
+      }
     }
   };
 
   const toggleHead = () => {
     setShowHead(!showHead);
     calcImagesValues();
+  };
+
+  const toggleImagesDeleteState = () => {
+    setDeleteActive(!deleteActive);
+    if (deleteActive) {
+      dispatch(setImagesToDelete({}));
+    }
   };
 
   if (selectedModelName && modelInfo) {
@@ -210,7 +246,13 @@ export default function ModelDetail() {
           <div
             id={`${item.hash}`}
             key={`${item.hash || `${item.path}_row_${j}`}`}
-            className="cursor-pointer"
+            className={classNames([
+              'cursor-pointer',
+              {
+                'opacity-50':
+                  item.hash !== null ? imagesToDelete[item.hash] : false,
+              },
+            ])}
             onClick={() => onSelectImage(item.hash)}
             aria-hidden="true"
           >
@@ -248,11 +290,11 @@ export default function ModelDetail() {
       superLargeDesktop: {
         // the naming can be any, depends on you.
         breakpoint: { max: 4000, min: 3000 },
-        items: 4,
+        items: 5,
       },
       desktop: {
         breakpoint: { max: 3000, min: 1024 },
-        items: 4,
+        items: 5,
       },
       tablet: {
         breakpoint: { max: 1024, min: 464 },
@@ -265,7 +307,7 @@ export default function ModelDetail() {
     };
 
     return (
-      <main className="p-4 flex justify-center relative">
+      <main className="px-4 pb-4 pt-10 flex justify-center relative h-full">
         <div className="absolute top-10 right-10">
           <button
             className="btn btn-circle"
@@ -305,7 +347,7 @@ export default function ModelDetail() {
             )}
           </button>
         </div>
-        <section className="w-5/6">
+        <section className="w-11/12">
           <div
             className={classNames('courtain', {
               'courtain-hidden': !showHead,
@@ -333,7 +375,40 @@ export default function ModelDetail() {
           </div>
           {chunks.length > 0 ? (
             <div className="mt-8">
-              <h3 className="text-xl font-bold text-center">Images</h3>
+              <div className="flex items-center">
+                <div className="w-1/3"> </div>
+                <h3 className="text-xl font-bold text-center w-1/3">Images</h3>
+                <div className="w-1/3 flex items-center justify-end pr-10">
+                  {userImagesList.length > 0 ? (
+                    <ul className="menu menu-horizontal bg-base-200 rounded-box">
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => toggleImagesDeleteState()}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth="1.5"
+                            stroke="currentColor"
+                            className={classNames([
+                              'w-5 h-5',
+                              { 'stroke-red-500': deleteActive },
+                            ])}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                            />
+                          </svg>
+                        </button>
+                      </li>
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
               <div
                 ref={setRef}
                 className="mt-12 w-full"

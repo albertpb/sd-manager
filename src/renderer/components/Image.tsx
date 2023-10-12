@@ -7,6 +7,7 @@ type ImageProps = {
   width?: number | string;
   height?: number | string;
   className?: string;
+  draggable?: boolean;
 };
 
 export default function Image({
@@ -15,6 +16,7 @@ export default function Image({
   width,
   height,
   className,
+  draggable,
 }: ImageProps) {
   return (
     <img
@@ -26,6 +28,7 @@ export default function Image({
       }}
       width={width}
       height={height}
+      draggable={draggable}
       style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height,

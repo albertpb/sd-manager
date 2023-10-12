@@ -21,10 +21,8 @@ interface GlobalState {
     filesInfo: Record<string, Model>;
   };
   imagesLoading: boolean;
-  images: {
-    filesInfo: Record<string, any>;
-  };
   navbarSearchInput: string;
+  imagesToDelete: Record<string, boolean>;
 }
 
 const initialState: GlobalState = {
@@ -45,9 +43,7 @@ const initialState: GlobalState = {
     filesInfo: {},
   },
   imagesLoading: false,
-  images: {
-    filesInfo: {},
-  },
+  imagesToDelete: {},
   navbarSearchInput: '',
 };
 
@@ -120,6 +116,15 @@ export const organizeImages = createAsyncThunk(
   }
 );
 
+export const deleteImages = createAsyncThunk(
+  'deleteImages',
+  async (arg, { getState }) => {
+    const state = getState() as { global: GlobalState };
+
+    await window.ipcHandler.deleteImages(state.global.imagesToDelete);
+  }
+);
+
 export const globalSlice = createSlice({
   name: 'Global',
   initialState,
@@ -158,6 +163,9 @@ export const globalSlice = createSlice({
     setNavbarSearchInputValue: (state, action) => {
       state.navbarSearchInput = action.payload;
     },
+    setImagesToDelete: (state, action) => {
+      state.imagesToDelete = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(readCheckpointsDir.pending, (state) => {
@@ -189,6 +197,14 @@ export const globalSlice = createSlice({
     builder.addCase(organizeImages.fulfilled, (state) => {
       state.imagesLoading = false;
     });
+
+    builder.addCase(deleteImages.pending, (state) => {
+      state.imagesLoading = true;
+    });
+    builder.addCase(deleteImages.fulfilled, (state) => {
+      state.imagesLoading = false;
+      state.imagesToDelete = {};
+    });
   },
 });
 
@@ -200,4 +216,5 @@ export const {
   setImagesDestPath,
   setNavbarSearchInputValue,
   setScanModelsOnStart,
+  setImagesToDelete,
 } = globalSlice.actions;

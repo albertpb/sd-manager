@@ -6,6 +6,7 @@ const channels = [
   'getImage',
   'getImages',
   'updateImage',
+  'deleteImages',
   'readdirModels',
   'organizeImages',
   'selectDir',

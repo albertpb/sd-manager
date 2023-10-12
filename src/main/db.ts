@@ -61,5 +61,13 @@ export default class SqliteDB {
         PRIMARY KEY ("key")
       )`);
     }
+
+    if (version.user_version === 1) {
+      await db.run(
+        `ALTER TABLE images ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0`
+      );
+
+      await db.run(`PRAGMA user_version = 2`);
+    }
   }
 }

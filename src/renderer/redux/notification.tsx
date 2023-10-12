@@ -31,6 +31,9 @@ export default function Notificator({ children }: { children: ReactNode }) {
       window.ipcOn.detectedAddImage(listener);
       setListenerPending(true);
     }
+
+    return () => window.ipcOn.rmDetectedAddImage(listener);
+
     /* eslint-disable-next-line */
   }, [imageLoading, listenerPending]);
 

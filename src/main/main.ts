@@ -39,7 +39,12 @@ import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { ImageRow, organizeImagesIpc } from './ipc/organizeImages';
 import { readdirModelsIpc } from './ipc/readdirModels';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
-import { getImageIpc, getImagesIpc, updateImageIpc } from './ipc/image';
+import {
+  deleteImages,
+  getImageIpc,
+  getImagesIpc,
+  updateImageIpc,
+} from './ipc/image';
 import { readdirModelImagesIpc } from './ipc/readdirModelImages';
 import {
   extractMetadata,
@@ -68,6 +73,7 @@ ipcMain.handle('readdirModels', (event, model, folderPath) =>
 ipcMain.handle('getImage', getImageIpc);
 ipcMain.handle('getImages', getImagesIpc);
 ipcMain.handle('updateImage', updateImageIpc);
+ipcMain.handle('deleteImages', deleteImages);
 ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
 ipcMain.handle('settings', settingsIpc);
 ipcMain.handle('readModelInfo', readModelInfoIpc);
@@ -156,6 +162,7 @@ ipcMain.handle(
               sourcePath: detectedFile,
               name: fileNameNoExt,
               fileName: fileBaseName,
+              deleted: 0,
             };
 
             const db = await SqliteDB.getInstance().getdb();
