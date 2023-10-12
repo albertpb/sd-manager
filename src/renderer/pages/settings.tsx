@@ -55,7 +55,7 @@ export default function Settings() {
   };
 
   return (
-    <section className="m-4 w-full">
+    <section className="pt-10 px-10 w-full">
       <div>
         <p className="text-2xl">Settings</p>
       </div>
