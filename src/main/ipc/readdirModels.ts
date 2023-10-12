@@ -85,6 +85,14 @@ export const readdirModelsIpc = async (
       } catch (error) {
         console.log(fileNameNoExt, modelType, hash);
         console.log(error);
+
+        if (browserWindow !== null) {
+          browserWindow.webContents.send(
+            'duplicates-detected',
+            'Detected model duplicated',
+            fileNameNoExt
+          );
+        }
       }
 
       modelsHashMap[fileNameNoExt] = {

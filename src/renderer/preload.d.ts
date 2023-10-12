@@ -18,6 +18,9 @@ declare global {
       rmDetectedAddImage: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
+      duplicatesDetected: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
     };
   }
 }

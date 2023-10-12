@@ -37,6 +37,17 @@ export default function Notificator({ children }: { children: ReactNode }) {
     /* eslint-disable-next-line */
   }, [imageLoading, listenerPending]);
 
+  useEffect(() => {
+    const listener = (event: IpcRendererEvent, msg: string, model: string) => {
+      toast(`${msg} ${model}`, {
+        closeOnClick: false,
+        autoClose: false,
+      });
+    };
+
+    window.ipcOn.duplicatesDetected(listener);
+  }, []);
+
   if (imageLoading) return children;
 
   return (
