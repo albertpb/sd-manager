@@ -30,6 +30,7 @@ module.exports = {
     'no-inner-declarations': 'off',
     'class-methods-use-this': 'off',
     'no-continue': 'off',
+    'compat/compat': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

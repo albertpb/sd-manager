@@ -5,7 +5,7 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { ModelInfo } from './interfaces';
+import { ModelCivitaiInfo } from './interfaces';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -143,7 +143,7 @@ export async function downloadImage(
 
 export async function readModelInfoFile(filePath: string) {
   const file = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
-  return JSON.parse(file) as ModelInfo;
+  return JSON.parse(file) as ModelCivitaiInfo;
 }
 
 export function splitOutsideQuotes(input: string): string[] {

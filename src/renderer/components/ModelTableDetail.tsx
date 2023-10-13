@@ -1,7 +1,8 @@
-import { ModelInfo } from 'main/interfaces';
+import { ModelCivitaiInfo } from 'main/interfaces';
+import CopyText from './CopyText';
 
 export type ModelTableDetailProps = {
-  modelInfo: ModelInfo;
+  modelInfo: ModelCivitaiInfo;
 };
 
 export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
@@ -20,27 +21,37 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
         </tr>
         <tr>
           <td>Name</td>
-          <td>{modelInfo?.name}</td>
+          <td>
+            <div className="px-5">{modelInfo?.name}</div>
+          </td>
         </tr>
         <tr>
           <td>Type</td>
           <td>
-            <div className="badge badge-accent">{modelInfo?.model?.type}</div>
+            <div className="badge badge-accent mx-5">
+              {modelInfo?.model?.type}
+            </div>
           </td>
         </tr>
         <tr>
           <td>Trained words</td>
           <td>
-            <div>{modelInfo?.trainedWords}</div>
+            <div>
+              <CopyText>{modelInfo?.trainedWords?.join(' ') || ''}</CopyText>
+            </div>
           </td>
         </tr>
         <tr>
           <td>Base Model</td>
-          <td>{modelInfo?.baseModel}</td>
+          <td>
+            <div className="px-5">{modelInfo?.baseModel}</div>
+          </td>
         </tr>
         <tr>
           <td>Model Id</td>
-          <td>{modelInfo?.modelId}</td>
+          <td>
+            <div className="px-5">{modelInfo?.modelId}</div>
+          </td>
         </tr>
         <tr>
           <td>Link</td>

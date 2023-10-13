@@ -1,14 +1,13 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import {
-  readCheckpointsDir,
   setCheckpointsPath,
   setImagesPath,
   organizeImages,
   setImagesDestPath,
   setLorasPath,
-  readLorasDir,
   setScanModelsOnStart,
+  unInit,
 } from 'renderer/redux/reducers/global';
 
 export default function Settings() {
@@ -18,16 +17,13 @@ export default function Settings() {
   const onSelectCheckpointsDir = async () => {
     const path = await window.ipcHandler.selectDir();
     dispatch(setCheckpointsPath(path as string));
-    dispatch(readCheckpointsDir());
+    dispatch(unInit());
   };
 
   const onSelectLorasDir = async () => {
     const path = await window.ipcHandler.selectDir();
     dispatch(setLorasPath(path as string));
-  };
-
-  const onReadLorasDir = async () => {
-    await dispatch(readLorasDir());
+    dispatch(unInit());
   };
 
   const onSelectImagesDir = async () => {
@@ -89,15 +85,6 @@ export default function Settings() {
               onClick={() => onSelectLorasDir()}
             >
               Change
-            </button>
-          </div>
-          <div>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => onReadLorasDir()}
-            >
-              Scan
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import {
   downloadModelInfoByHash,
   calculateHashFile,
   checkFolderExists,
+  readModelInfoFile,
 } from '../util';
 import SqliteDB from '../db';
 import { settingsDB } from './settings';
@@ -15,6 +16,7 @@ export type Model = {
   name: string;
   path: string;
   type: string;
+  rating: number;
 };
 
 export const readdirModelsIpc = async (
@@ -74,12 +76,13 @@ export const readdirModelsIpc = async (
 
       try {
         await db.run(
-          `INSERT INTO models(hash, name, path, type) VALUES (?, ?, ?, ?)`,
+          `INSERT INTO models(hash, name, path, type, rating) VALUES ($hash, $name, $path, $type, $rating)`,
           {
-            1: hash,
-            2: fileNameNoExt,
-            3: path,
-            4: modelType,
+            $hash: hash,
+            $name: fileNameNoExt,
+            $path: path,
+            $type: modelType,
+            $rating: 1,
           }
         );
       } catch (error) {
@@ -100,6 +103,7 @@ export const readdirModelsIpc = async (
         name: fileNameNoExt,
         path,
         type: modelType,
+        rating: 1,
       };
     }
 
@@ -148,3 +152,79 @@ export const readdirModelsIpc = async (
 
   return modelsHashMap;
 };
+
+export const readdirModelImagesIpc = async (
+  event: IpcMainInvokeEvent,
+  model: string,
+  modelsPath: string
+) => {
+  const folderPath = `${modelsPath}\\${model}`;
+
+  const folderExists = await checkFolderExists(folderPath);
+
+  if (folderExists) {
+    const images = fs.readdirSync(folderPath);
+    return images.map((f) => `${folderPath}\\${f}`);
+  }
+
+  return [];
+};
+
+export async function readModelsIpc(event: IpcMainInvokeEvent, type: string) {
+  const db = await SqliteDB.getInstance().getdb();
+  const models: Model[] = await db.all(
+    `SELECT * FROM models WHERE type = $type`,
+    {
+      $type: type,
+    }
+  );
+
+  return models.reduce((acc: Record<string, Model>, model: Model) => {
+    acc[model.hash] = model;
+    return acc;
+  }, {});
+}
+
+export async function updateModelIpc(
+  event: IpcMainInvokeEvent,
+  hash: string,
+  field: string,
+  value: string
+) {
+  const db = await SqliteDB.getInstance().getdb();
+  return db.run(`UPDATE models SET ${field} = $value WHERE hash = $hash`, {
+    $value: value,
+    $hash: hash,
+  });
+}
+
+export const readModelInfoIpc = async (
+  event: IpcMainInvokeEvent,
+  model: string,
+  folderPath: string
+) => {
+  const modelInfo = await readModelInfoFile(
+    `${folderPath}\\${model}.civitai.info`
+  );
+
+  return modelInfo;
+};
+
+export async function readModelIpc(event: IpcMainInvokeEvent, hash: string) {
+  const db = await SqliteDB.getInstance().getdb();
+  return db.get(`SELECT * FROM models WHERE hash = $hash`, {
+    $hash: hash,
+  });
+}
+
+export async function readModelByNameIpc(
+  event: IpcMainInvokeEvent,
+  name: string,
+  type: string
+) {
+  const db = await SqliteDB.getInstance().getdb();
+  return db.get(`SELECT * FROM models WHERE name = $name AND type = $type`, {
+    $name: name,
+    $type: type,
+  });
+}

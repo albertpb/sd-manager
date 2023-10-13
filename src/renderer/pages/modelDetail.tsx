@@ -2,17 +2,18 @@ import classNames from 'classnames';
 import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ModelInfo } from 'main/interfaces';
+import { ModelCivitaiInfo } from 'main/interfaces';
+import { Model } from 'main/ipc/model';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
-import { RootState } from 'renderer/redux';
+import { AppDispatch, RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
-import { setImagesToDelete } from 'renderer/redux/reducers/global';
+import { setImagesToDelete, updateModel } from 'renderer/redux/reducers/global';
 import Image from '../components/Image';
 
 type Row = {
@@ -28,20 +29,31 @@ interface RowData {
 
 export default function ModelDetail() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigatorParams = useParams();
-  const selectedModelName = navigatorParams.name;
-  const selectedModelType = navigatorParams.type;
+  const selectedModelHash = navigatorParams.hash;
 
   const settings = useSelector((state: RootState) => state.global.settings);
   const imagesToDelete = useSelector(
     (state: RootState) => state.global.imagesToDelete
   );
+  const modelData: Model | null = useSelector((state: RootState) => {
+    if (selectedModelHash) {
+      if (state.global.checkpoints.models[selectedModelHash]) {
+        return state.global.checkpoints.models[selectedModelHash];
+      }
+      if (state.global.loras.models[selectedModelHash]) {
+        return state.global.loras.models[selectedModelHash];
+      }
+    }
+    return null;
+  });
 
   const [showHead, setShowHead] = useState<boolean>(true);
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+  const [modelCivitaiInfo, setModelCivitaiInfo] =
+    useState<ModelCivitaiInfo | null>(null);
   const [userImagesList, setUserImagesList] = useState<ImageRow[]>([]);
   const [modelImagesList, setModelImagesList] = useState<string[]>([]);
 
@@ -56,31 +68,31 @@ export default function ModelDetail() {
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (selectedModelName && selectedModelType) {
+    if (modelData) {
       const load = async () => {
         const mapPathsModels: Record<string, string | null> = {
-          checkpoints: settings.checkpointsPath,
-          loras: settings.lorasPath,
+          checkpoint: settings.checkpointsPath,
+          lora: settings.lorasPath,
         };
 
-        const modelsPath = mapPathsModels[selectedModelType];
+        const modelsPath = mapPathsModels[modelData.type];
 
         if (modelsPath) {
-          const modelData = await window.ipcHandler.readFile(
-            `${modelsPath}\\${selectedModelName}.civitai.info`,
+          const modelCiviInfo = await window.ipcHandler.readFile(
+            `${modelsPath}\\${modelData.name}.civitai.info`,
             'utf-8'
           );
-          if (modelData) {
-            setModelInfo(JSON.parse(modelData));
+          if (modelCiviInfo) {
+            setModelCivitaiInfo(JSON.parse(modelCiviInfo));
           }
 
           const userImagesListsResponse: ImageRow[] =
-            await window.ipcHandler.getImages(selectedModelName);
+            await window.ipcHandler.getImages(modelData.name);
           setUserImagesList(userImagesListsResponse);
 
           const modelImagesListResponse =
             await window.ipcHandler.readdirModelImages(
-              selectedModelName,
+              modelData.name,
               modelsPath
             );
           setModelImagesList(modelImagesListResponse);
@@ -88,18 +100,18 @@ export default function ModelDetail() {
       };
       load();
     }
-  }, [settings, selectedModelName, selectedModelType]);
+  }, [settings, modelData]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
-      if (selectedModelName === imagesData.model) {
+      if (modelData?.name === imagesData.model) {
         setUserImagesList([imagesData, ...userImagesList]);
       }
     };
     window.ipcOn.detectedAddImage(cb);
 
     return () => window.ipcOn.rmDetectedAddImage(cb);
-  }, [selectedModelName, userImagesList]);
+  }, [modelData, userImagesList]);
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
@@ -146,7 +158,7 @@ export default function ModelDetail() {
   );
 
   const onSelectImage = (hash: string | null) => {
-    if (selectedModelType === 'checkpoints') {
+    if (modelData?.type === 'checkpoint') {
       if (hash !== null) {
         if (deleteActive) {
           if (imagesToDelete[hash]) {
@@ -175,7 +187,21 @@ export default function ModelDetail() {
     }
   };
 
-  if (selectedModelName && modelInfo) {
+  const onRatingChange = async (rating: number) => {
+    if (modelData) {
+      await window.ipcHandler.updateModel(modelData.hash, 'rating', rating);
+
+      await dispatch(
+        updateModel({
+          hash: modelData.hash,
+          field: 'rating',
+          value: rating,
+        })
+      );
+    }
+  };
+
+  if (modelData && modelCivitaiInfo) {
     const modelImages = modelImagesList.map((imgSrc, i) => {
       return (
         <div key={`md_${imgSrc}_i`}>
@@ -294,7 +320,7 @@ export default function ModelDetail() {
       },
       desktop: {
         breakpoint: { max: 3000, min: 1024 },
-        items: 6,
+        items: 5,
       },
       tablet: {
         breakpoint: { max: 1024, min: 464 },
@@ -357,16 +383,24 @@ export default function ModelDetail() {
             }}
           >
             <div>
-              <p className="text-2xl font-bold text-gray-300">
-                {selectedModelName}
-              </p>
+              <div className="flex flex-row items-center">
+                <p className="text-2xl font-bold text-gray-300">
+                  {modelData.name}
+                </p>
+                <div className="ml-4 flex">
+                  <Rating
+                    value={modelData.rating}
+                    onClick={(value) => onRatingChange(value)}
+                  />
+                </div>
+              </div>
               <div className="flex w-full my-4">
                 <div className="w-4/6">
                   <Carousel responsive={responsive}>{modelImages}</Carousel>
                 </div>
                 <div className="w-2/6 pl-4">
                   <div className="overflow-x-auto">
-                    <ModelTableDetail modelInfo={modelInfo} />
+                    <ModelTableDetail modelInfo={modelCivitaiInfo} />
                   </div>
                 </div>
               </div>

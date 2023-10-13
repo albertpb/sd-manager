@@ -40,7 +40,7 @@ type ModelInfoImage = {
   meta: Record<string, any>;
 };
 
-export type ModelInfo = {
+export type ModelCivitaiInfo = {
   id: string;
   modelId: string;
   name: string;

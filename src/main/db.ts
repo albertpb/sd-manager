@@ -39,6 +39,7 @@ export default class SqliteDB {
         "name" TEXT NOT NULL,
         "path" TEXT NOT NULL,
         "type" TEXT NOT NULL,
+        "rating" INTEGER NOT NULL DEFAULT 1,
         PRIMARY KEY ("hash")
       )`);
 
@@ -73,6 +74,18 @@ export default class SqliteDB {
       }
 
       await db.run(`PRAGMA user_version = 2`);
+    }
+
+    if (version.user_version === 2) {
+      try {
+        await db.run(
+          `ALTER TABLE models ADD COLUMN "rating" INTEGER NOT NULL DEFAULT 1`
+        );
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 3`);
     }
   }
 }

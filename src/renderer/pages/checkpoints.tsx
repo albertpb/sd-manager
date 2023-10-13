@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
-import { Model } from 'main/ipc/readdirModels';
+import { Model } from 'main/ipc/model';
 
 interface RowData {
   row: Fuse.FuseResult<Model>[];
@@ -33,11 +33,13 @@ export default function Checkpoints() {
   const [buffer, setBuffer] = useState(3);
   const rowMargin = 10;
 
-  const onClick = (name: string) => {
-    navigate(`/model-detail/checkpoints/${name}`);
+  const onClick = (hash: string) => {
+    navigate(`/model-detail/${hash}`);
   };
 
-  const modelsList = Object.values(checkpoints.filesInfo);
+  const modelsList = Object.values(checkpoints.models).sort(
+    (a, b) => b.rating - a.rating
+  );
   const fuse = new Fuse(modelsList, {
     keys: ['name'],
   });
@@ -105,12 +107,13 @@ export default function Checkpoints() {
       const imagePath = `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`;
       return (
         <div
-          onClick={() => onClick(item.name)}
+          onClick={() => onClick(item.hash)}
           key={`${item.hash}_${item.name}`}
           aria-hidden="true"
         >
           <ModelCard
             name={item.name}
+            rating={item.rating}
             imagePath={imagePath}
             width={`${width}px`}
             height={`${height}px`}

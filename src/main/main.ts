@@ -34,10 +34,17 @@ import {
 } from './util';
 import SqliteDB from './db';
 import { settingsDB, settingsIpc } from './ipc/settings';
-import { readModelInfoIpc } from './ipc/readModelInfo';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { ImageRow, organizeImagesIpc } from './ipc/organizeImages';
-import { readdirModelsIpc } from './ipc/readdirModels';
+import {
+  readModelByNameIpc,
+  readModelInfoIpc,
+  readModelIpc,
+  readModelsIpc,
+  readdirModelImagesIpc,
+  readdirModelsIpc,
+  updateModelIpc,
+} from './ipc/model';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
 import {
   deleteImages,
@@ -45,7 +52,6 @@ import {
   getImagesIpc,
   updateImageIpc,
 } from './ipc/image';
-import { readdirModelImagesIpc } from './ipc/readdirModelImages';
 import {
   extractMetadata,
   parseAutomatic1111Meta,
@@ -53,8 +59,7 @@ import {
 } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
 import { fileAttach } from './ipc/fileAttach';
-import { saveMD } from './ipc/saveMD';
-import { saveImageFromClipboard } from './ipc/clipboard';
+import { saveMDIpc, saveImageMDIpc } from './ipc/saveMD';
 import { readImageMetadata } from './ipc/metadata';
 
 class AppUpdater {
@@ -75,6 +80,10 @@ ipcMain.handle('getImages', getImagesIpc);
 ipcMain.handle('updateImage', updateImageIpc);
 ipcMain.handle('deleteImages', deleteImages);
 ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
+ipcMain.handle('readModels', readModelsIpc);
+ipcMain.handle('updateModel', updateModelIpc);
+ipcMain.handle('readModel', readModelIpc);
+ipcMain.handle('readModelByName', readModelByNameIpc);
 ipcMain.handle('settings', settingsIpc);
 ipcMain.handle('readModelInfo', readModelInfoIpc);
 ipcMain.handle('readdirModelImages', readdirModelImagesIpc);
@@ -84,8 +93,8 @@ ipcMain.handle('openLink', openLinkIpc);
 ipcMain.handle('openFolderLink', openFolderLinkIpc);
 ipcMain.handle('getPaths', getPathsIpc);
 ipcMain.handle('fileAttach', fileAttach);
-ipcMain.handle('saveMD', saveMD);
-ipcMain.handle('saveImageFromClipboard', saveImageFromClipboard);
+ipcMain.handle('saveMD', saveMDIpc);
+ipcMain.handle('saveImageMD', saveImageMDIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
 
 let watcherImagesFolder: FSWatcher | null = null;

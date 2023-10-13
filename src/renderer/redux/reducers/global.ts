@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { Model } from '../../../main/ipc/readdirModels';
+import { Model } from 'main/ipc/model';
 
 export interface SettingsState {
   scanModelsOnStart: string | null;
@@ -15,10 +15,10 @@ interface GlobalState {
   lorasLoading: boolean;
   settings: SettingsState;
   checkpoints: {
-    filesInfo: Record<string, Model>;
+    models: Record<string, Model>;
   };
   loras: {
-    filesInfo: Record<string, Model>;
+    models: Record<string, Model>;
   };
   imagesLoading: boolean;
   navbarSearchInput: string;
@@ -37,52 +37,44 @@ const initialState: GlobalState = {
     imagesDestPath: null,
   },
   checkpoints: {
-    filesInfo: {},
+    models: {},
   },
   loras: {
-    filesInfo: {},
+    models: {},
   },
   imagesLoading: false,
   imagesToDelete: {},
   navbarSearchInput: '',
 };
 
-const readDirModelsAsync = async (
-  path: string,
+const readModelsAsync = async (
   modelType: string
 ): Promise<Record<string, Model>> => {
-  const filesHashMap = await window.ipcHandler.readdirModels(modelType, path);
+  const filesHashMap = await window.ipcHandler.readModels(modelType);
   return filesHashMap;
 };
 
-export const readCheckpointsDir = createAsyncThunk(
-  'readdir_checkpoints',
+export const readCheckpoints = createAsyncThunk(
+  'read_checkpoints',
   async (arg, { getState }) => {
     const state = getState() as { global: GlobalState };
 
     if (state.global.settings.checkpointsPath !== null) {
-      const files = await readDirModelsAsync(
-        state.global.settings.checkpointsPath,
-        'checkpoint'
-      );
-
-      return files;
+      const models = await readModelsAsync('checkpoint');
+      return models;
     }
     return {};
   }
 );
 
-export const readLorasDir = createAsyncThunk(
-  'readdir_loras',
+export const readLoras = createAsyncThunk(
+  'read_loras',
   async (arg, { getState }) => {
     const state = getState() as { global: GlobalState };
 
     if (state.global.settings.lorasPath !== null) {
-      const files = await readDirModelsAsync(
-        state.global.settings.lorasPath,
-        'lora'
-      );
-      return files;
+      const models = await readModelsAsync('lora');
+      return models;
     }
     return {};
   }
@@ -125,6 +117,14 @@ export const deleteImages = createAsyncThunk(
   }
 );
 
+export const updateModel = createAsyncThunk(
+  'updateModel',
+  async (arg: { hash: string; field: keyof Model; value: any }) => {
+    await window.ipcHandler.updateModel(arg.hash, arg.field, arg.value);
+    return arg;
+  }
+);
+
 export const globalSlice = createSlice({
   name: 'Global',
   initialState,
@@ -143,6 +143,9 @@ export const globalSlice = createSlice({
     },
     init: (state) => {
       state.initialized = true;
+    },
+    unInit: (state) => {
+      state.initialized = false;
     },
     setImagesPath: (state, action) => {
       if (action.payload) {
@@ -168,19 +171,19 @@ export const globalSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(readCheckpointsDir.pending, (state) => {
+    builder.addCase(readCheckpoints.pending, (state) => {
       state.checkpointsLoading = true;
     });
-    builder.addCase(readCheckpointsDir.fulfilled, (state, action) => {
-      state.checkpoints.filesInfo = action.payload;
+    builder.addCase(readCheckpoints.fulfilled, (state, action) => {
+      state.checkpoints.models = action.payload;
       state.checkpointsLoading = false;
     });
 
-    builder.addCase(readLorasDir.pending, (state) => {
+    builder.addCase(readLoras.pending, (state) => {
       state.lorasLoading = true;
     });
-    builder.addCase(readLorasDir.fulfilled, (state, action) => {
-      state.loras.filesInfo = action.payload;
+    builder.addCase(readLoras.fulfilled, (state, action) => {
+      state.loras.models = action.payload;
       state.lorasLoading = false;
     });
 
@@ -205,6 +208,24 @@ export const globalSlice = createSlice({
       state.imagesLoading = false;
       state.imagesToDelete = {};
     });
+
+    builder.addCase(updateModel.fulfilled, (state, action) => {
+      const checkpoint = state.checkpoints.models[action.payload.hash];
+      if (checkpoint) {
+        state.checkpoints.models[action.payload.hash] = {
+          ...state.checkpoints.models[action.payload.hash],
+          [action.payload.field]: action.payload.value,
+        };
+      }
+
+      const lora = state.loras.models[action.payload.hash];
+      if (lora) {
+        state.loras.models[action.payload.hash] = {
+          ...state.loras.models[action.payload.hash],
+          [action.payload.field]: action.payload.value,
+        };
+      }
+    });
   },
 });
 
@@ -212,6 +233,7 @@ export const {
   setCheckpointsPath,
   setLorasPath,
   init,
+  unInit,
   setImagesPath,
   setImagesDestPath,
   setNavbarSearchInputValue,

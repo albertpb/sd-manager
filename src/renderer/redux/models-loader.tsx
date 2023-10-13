@@ -1,17 +1,11 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { init, readCheckpointsDir, readLorasDir } from './reducers/global';
+import { init, readCheckpoints, readLoras } from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
 export default function ModelsLoader({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
-  const checkpointsLoading = useSelector(
-    (state: RootState) => state.global.checkpointsLoading
-  );
-  const lorasLoading = useSelector(
-    (state: RootState) => state.global.lorasLoading
-  );
   const initialized = useSelector(
     (state: RootState) => state.global.initialized
   );
@@ -22,14 +16,25 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   useEffect(() => {
     const load = async () => {
       if (!initialized) {
-        await dispatch(readCheckpointsDir());
-        await dispatch(readLorasDir());
+        await window.ipcHandler.readdirModels(
+          'checkpoint',
+          settings.checkpointsPath
+        );
+        await window.ipcHandler.readdirModels('lora', settings.lorasPath);
+        await dispatch(readCheckpoints());
+        await dispatch(readLoras());
         window.ipcHandler.watchImagesFolder(settings.imagesPath);
         dispatch(init());
       }
     };
     load();
-  }, [dispatch, initialized, settings.imagesPath]);
+  }, [
+    dispatch,
+    initialized,
+    settings.imagesPath,
+    settings.checkpointsPath,
+    settings.lorasPath,
+  ]);
 
   useEffect(() => {
     window.ipcOn.modelsProgress((event, m, p) => {
@@ -38,7 +43,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     });
   }, [msg, progress]);
 
-  if (checkpointsLoading || lorasLoading) {
+  if (!initialized) {
     return (
       <div className="w-full flex flex-col justify-center items-center h-screen">
         <div className="stats">

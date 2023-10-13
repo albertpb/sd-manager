@@ -29,7 +29,7 @@ export default function App() {
                   <Route path="/" element={<MainLayout />}>
                     <Route index element={<Checkpoints />} />
                     <Route
-                      path="/model-detail/:type/:name"
+                      path="/model-detail/:hash"
                       element={<ModelDetail />}
                     />
                     <Route

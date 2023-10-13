@@ -1,15 +1,18 @@
 import Image from './Image';
+import Rating from './Rating';
 
 type ModelCardProps = {
   imagePath: string;
   name: string;
   width?: string;
   height?: string;
+  rating?: number;
 };
 
 export default function ModelCard({
   imagePath,
   name,
+  rating,
   width = '480px',
   height = '320px',
 }: ModelCardProps) {
@@ -18,7 +21,13 @@ export default function ModelCard({
       className="relative overflow-hidden rounded-md p-0 m-2 cursor-pointer"
       style={{ width, height }}
     >
-      <figure className="card__figure" style={{ width, height }}>
+      <figure
+        className="card__figure rounded-md overflow-hidden relative"
+        style={{ width, height }}
+      >
+        <div className="absolute top-2 right-2 z-20">
+          <Rating value={rating || 1} />
+        </div>
         <Image
           src={imagePath}
           alt={name}

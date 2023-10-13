@@ -9,6 +9,10 @@ const channels = [
   'deleteImages',
   'readdirModels',
   'organizeImages',
+  'readModels',
+  'updateModel',
+  'readModel',
+  'readModelByName',
   'selectDir',
   'settings',
   'readdirModelImages',
@@ -21,6 +25,7 @@ const channels = [
   'getPaths',
   'fileAttach',
   'saveMD',
+  'saveImageMD',
   'saveImageFromClipboard',
   'readImageMetadata',
 ] as const;

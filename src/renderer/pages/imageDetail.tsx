@@ -2,6 +2,7 @@ import { createId } from '@paralleldrive/cuid2';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
+import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
@@ -29,6 +30,7 @@ export default function ImageDetail() {
     null
   );
   const [imageData, setImageData] = useState<ImageRow | undefined>();
+  const [modelData, setModelData] = useState<Model | undefined>();
   const [showExif, setShowExif] = useState<boolean>(false);
   const [imageMetadata, setImageMetadata] = useState<ImageMetaData | null>(
     null
@@ -65,6 +67,12 @@ export default function ImageDetail() {
       if (fileMdText) {
         setMarkdownText(fileMdText);
       }
+
+      const model = await window.ipcHandler.readModelByName(
+        iData.model,
+        'checkpoint'
+      );
+      setModelData(model);
     };
     load();
   }, [hash]);
@@ -86,14 +94,16 @@ export default function ImageDetail() {
         const file = dataTransfer.files[i];
         const fileType = file.type;
 
+        console.log(file);
+
         if (fileType === 'image/png') {
-          const path = `${imageData.path}\\${
+          const dest = `${imageData.path}\\${
             imageData.name
           }\\${createId()}.png`;
 
-          await window.ipcHandler.saveImageFromClipboard(path);
+          await window.ipcHandler.saveImageMD(file.path, dest);
 
-          onMDChangeText(`${markdownText} \n ![](sd:///${path}) \n`);
+          onMDChangeText(`${markdownText} \n ![](sd:///${dest}) \n`);
         }
       }
     }
@@ -157,10 +167,12 @@ export default function ImageDetail() {
     setConfirmDialogIsOpen(true);
   };
 
-  const onDeleteImages = () => {
-    dispatch(deleteImages());
+  const onDeleteImages = async () => {
+    await dispatch(deleteImages());
 
-    navigate(`/model-detail/checkpoints/${imageData.model}`);
+    if (modelData) {
+      navigate(`/model-detail/${modelData.hash}`);
+    }
   };
 
   const onCancelDelete = () => {
@@ -220,7 +232,7 @@ export default function ImageDetail() {
             <div>
               <div className="flex flex-row items-center">
                 <Link
-                  to={`/model-detail/checkpoints/${imageData.model}`}
+                  to={`/model-detail/${imageData.hash}`}
                   className="text-2xl font-bold text-gray-300"
                 >
                   {imageData.model}
