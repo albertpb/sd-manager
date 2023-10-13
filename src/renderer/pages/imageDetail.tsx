@@ -163,6 +163,12 @@ export default function ImageDetail() {
     navigate(`/model-detail/checkpoints/${imageData.model}`);
   };
 
+  const onCancelDelete = () => {
+    dispatch(setImagesToDelete({}));
+
+    setConfirmDialogIsOpen(false);
+  };
+
   return (
     <>
       <div className="flex">
@@ -303,7 +309,7 @@ export default function ImageDetail() {
       <ConfirmDialog
         msg="Are you sure to delete selected images ?, only images from destination folder will be deleted"
         isOpen={cofirmDialogIsOpen}
-        onClose={() => setConfirmDialogIsOpen(false)}
+        onClose={() => onCancelDelete()}
         onConfirm={() => onDeleteImages()}
       />
     </>
