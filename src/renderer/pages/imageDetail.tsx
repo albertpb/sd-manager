@@ -18,6 +18,7 @@ import {
   setImagesToDelete,
 } from 'renderer/redux/reducers/global';
 import { saveMdDebounced } from 'renderer/utils';
+import ImageZoom from 'renderer/components/ImageZoom';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -25,7 +26,6 @@ export default function ImageDetail() {
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
 
-  const [imageBase64, setImageBase64] = useState<string>('');
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null
   );
@@ -48,7 +48,6 @@ export default function ImageDetail() {
 
       const folderPath = `${iData.path}\\${iData.name}`;
       const {
-        base64,
         exif,
         metadata,
       }: {
@@ -56,7 +55,6 @@ export default function ImageDetail() {
         exif: Record<string, any>;
         metadata: ImageMetaData | null;
       } = await window.ipcHandler.readImage(`${iData.path}\\${iData.fileName}`);
-      setImageBase64(base64);
       setExifParams(exif);
       setImageMetadata(metadata);
 
@@ -260,12 +258,9 @@ export default function ImageDetail() {
               </button>
             </div>
             <div className="flex w-full my-4">
-              <img
-                src={`data:image/png;base64,${imageBase64}`}
+              <ImageZoom
+                src={`sd:///${imageData.path}\\${imageData.fileName}`}
                 alt={imageData.name}
-                onClick={() => revealInFolder()}
-                aria-hidden
-                className="cursor-pointer"
               />
             </div>
             <div className="w-full mt-6 pt-5 pb-10 relative">

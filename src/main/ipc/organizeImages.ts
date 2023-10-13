@@ -2,13 +2,13 @@ import { BrowserWindow } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { createId } from '@paralleldrive/cuid2';
 import SqliteDB from '../db';
 import {
   calculateHashFile,
   checkFileExists,
   checkFolderExists,
   getFileNameExt,
-  getFilenameNoExt,
 } from '../util';
 import { extractMetadata, parseImageSdMeta } from '../exif';
 import { settingsDB } from './settings';
@@ -68,9 +68,9 @@ export const organizeImagesIpc = async (
   const files = getAllFiles(imagesSrcPath);
 
   for (let i = 0; i < files.length; i++) {
-    const fileName = path.basename(files[i]);
-    const fileNameNoExt = getFilenameNoExt(fileName);
-    const ext = getFileNameExt(fileName);
+    const fileNameNoExt = createId();
+    const ext = getFileNameExt(path.basename(files[i]));
+    const fileName = `${fileNameNoExt}.${ext}`;
     const file = fs.readFileSync(files[i]);
     const exif = extractMetadata(file);
 
