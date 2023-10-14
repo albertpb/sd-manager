@@ -157,21 +157,29 @@ export default function ModelDetail() {
     [calcImagesValues]
   );
 
-  const onSelectImage = (hash: string | null) => {
+  const revealInFolder = (imgPath: string) => {
+    window.ipcHandler.openFolderLink(`${imgPath}`);
+  };
+
+  const onSelectImage = (item: ImageRow) => {
     if (modelData?.type === 'checkpoint') {
-      if (hash !== null) {
+      if (item.hash !== null) {
         if (deleteActive) {
-          if (imagesToDelete[hash]) {
+          if (imagesToDelete[item.hash]) {
             const imgs = { ...imagesToDelete };
-            delete imgs[hash];
+            delete imgs[item.hash];
             dispatch(setImagesToDelete(imgs));
           } else {
-            dispatch(setImagesToDelete({ ...imagesToDelete, [hash]: true }));
+            dispatch(
+              setImagesToDelete({ ...imagesToDelete, [item.hash]: true })
+            );
           }
         } else {
-          navigate(`/image-detail/${hash}`);
+          navigate(`/image-detail/${item.hash}`);
         }
       }
+    } else {
+      revealInFolder(item.path);
     }
   };
 
@@ -204,7 +212,11 @@ export default function ModelDetail() {
   if (modelData && modelCivitaiInfo) {
     const modelImages = modelImagesList.map((imgSrc, i) => {
       return (
-        <div key={`md_${imgSrc}_i`}>
+        <div
+          key={`md_${imgSrc}_i`}
+          onClick={() => revealInFolder(imgSrc)}
+          aria-hidden="true"
+        >
           <figure
             key={`model_detail_model_image_${i}`}
             className="card__figure animated rounded-md overflow-hidden"
@@ -279,7 +291,7 @@ export default function ModelDetail() {
                   item.hash !== null ? imagesToDelete[item.hash] : false,
               },
             ])}
-            onClick={() => onSelectImage(item.hash)}
+            onClick={() => onSelectImage(item)}
             aria-hidden="true"
           >
             <figure
