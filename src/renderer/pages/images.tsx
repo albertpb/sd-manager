@@ -56,6 +56,7 @@ export default function Images() {
   }, []);
 
   const sortImages = (sortByArg: string) => {
+    setSortBy(sortByArg);
     switch (sortByArg) {
       case 'rowNumAsc': {
         const sortedImages = images.sort((a, b) => a.rowNum - b.rowNum);
@@ -102,7 +103,6 @@ export default function Images() {
         break;
       }
     }
-    setSortBy(sortBy);
   };
 
   const calcImagesValues = useCallback(() => {
