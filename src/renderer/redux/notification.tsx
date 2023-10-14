@@ -25,10 +25,10 @@ export default function Notificator({ children }: { children: ReactNode }) {
         );
       }
     };
-    window.ipcOn.detectedAddImage(cb);
+    const remove = window.ipcOn.detectedAddImage(cb);
 
-    return () => window.ipcOn.rmDetectedAddImage(cb);
-  }, []);
+    return () => remove();
+  }, [imageLoading, navigate]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, msg: string, model: string) => {
@@ -38,9 +38,9 @@ export default function Notificator({ children }: { children: ReactNode }) {
       });
     };
 
-    window.ipcOn.duplicatesDetected(cb);
+    const remove = window.ipcOn.duplicatesDetected(cb);
 
-    return () => window.ipcOn.rmDuplicatesDetected(cb);
+    return () => remove();
   }, []);
 
   if (imageLoading) return children;

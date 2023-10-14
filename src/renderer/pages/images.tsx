@@ -146,7 +146,7 @@ export default function Images() {
     const remove = window.ipcOn.detectedAddImage(cb);
 
     return () => remove();
-  }, []);
+  }, [images]);
 
   const fuse = new Fuse(images, {
     keys: ['model'],

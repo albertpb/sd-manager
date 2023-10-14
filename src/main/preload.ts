@@ -40,21 +40,22 @@ const ipcHandler: Record<string, (...args: any[]) => Promise<any>> =
 contextBridge.exposeInMainWorld('ipcHandler', ipcHandler);
 
 contextBridge.exposeInMainWorld('ipcOn', {
-  modelsProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.on('models-progress', cb),
-  rmModelsProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.removeListener('models-progress', cb),
-  imagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.on('images-progress', cb),
-  rmImagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.removeListener('images-progress', cb),
-  detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.on('detectedAddImage', cb),
-  rmDetectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.removeListener('detectedAddImage', cb),
-  duplicatesDetected: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.on('duplicates-detected', cb),
-  rmDuplicatesDetected: (
+  modelsProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) => {
+    ipcRenderer.on('models-progress', cb);
+    return () => ipcRenderer.removeListener('models-progress', cb);
+  },
+  imagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) => {
+    ipcRenderer.on('images-progress', cb);
+    return () => ipcRenderer.removeListener('images-progress', cb);
+  },
+  detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) => {
+    ipcRenderer.on('detectedAddImage', cb);
+    return () => ipcRenderer.removeListener('detectedAddImage', cb);
+  },
+  duplicatesDetected: (
     cb: (event: IpcRendererEvent, ...args: any[]) => any
-  ) => ipcRenderer.removeListener('duplicates-detected', cb),
+  ) => {
+    ipcRenderer.on('duplicates-detected', cb);
+    return () => ipcRenderer.removeListener('duplicates-detected', cb);
+  },
 });

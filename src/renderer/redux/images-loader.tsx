@@ -15,9 +15,9 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
       setMsg(m);
       setProgress(p);
     };
-    window.ipcOn.imagesProgress(cb);
+    const remove = window.ipcOn.imagesProgress(cb);
 
-    return () => window.ipcOn.rmImagesProgress(cb);
+    return () => remove();
   }, []);
 
   if (!imagesLoading) return children;

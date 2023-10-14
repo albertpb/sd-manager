@@ -111,7 +111,7 @@ export default function ModelDetail() {
     const remove = window.ipcOn.detectedAddImage(cb);
 
     return () => remove();
-  }, []);
+  }, [userImagesList, modelData]);
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;

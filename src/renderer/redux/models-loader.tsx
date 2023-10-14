@@ -43,9 +43,9 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
       setProgress(p);
     };
 
-    window.ipcOn.modelsProgress(cb);
+    const remove = window.ipcOn.modelsProgress(cb);
 
-    return () => window.ipcOn.rmModelsProgress(cb);
+    return () => remove();
   }, []);
 
   if (!initialized) {
