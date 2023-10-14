@@ -14,6 +14,7 @@ import { extractMetadata, parseImageSdMeta } from '../exif';
 import { settingsDB } from './settings';
 
 export type ImageRow = {
+  rowNum: number;
   hash: string;
   path: string;
   rating: number;

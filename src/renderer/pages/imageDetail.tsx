@@ -185,7 +185,7 @@ export default function ImageDetail() {
         <div className="w-fit h-auto">
           <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
             <li>
-              <button type="button">
+              <button type="button" onClick={() => navigate('/images')}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -230,7 +230,7 @@ export default function ImageDetail() {
             <div>
               <div className="flex flex-row items-center">
                 <Link
-                  to={`/model-detail/${imageData.hash}`}
+                  to={`/model-detail/${modelData?.hash}`}
                   className="text-2xl font-bold text-gray-300"
                 >
                   {imageData.model}

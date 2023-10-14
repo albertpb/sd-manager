@@ -46,7 +46,6 @@ export default function ModelDetail() {
         return state.global.loras.models[selectedModelHash];
       }
     }
-    navigate('/');
     return null;
   });
 
@@ -109,9 +108,9 @@ export default function ModelDetail() {
         setUserImagesList([imagesData, ...userImagesList]);
       }
     };
-    window.ipcOn.detectedAddImage(cb);
+    const remove = window.ipcOn.detectedAddImage(cb);
 
-    return () => window.ipcOn.rmDetectedAddImage(cb);
+    return () => remove();
   }, []);
 
   const calcImagesValues = useCallback(() => {
@@ -208,7 +207,7 @@ export default function ModelDetail() {
         <div key={`md_${imgSrc}_i`}>
           <figure
             key={`model_detail_model_image_${i}`}
-            className="card__figure rounded-md overflow-hidden"
+            className="card__figure animated rounded-md overflow-hidden"
             style={{
               width: '220px',
               height: '330px',
@@ -284,7 +283,7 @@ export default function ModelDetail() {
             aria-hidden="true"
           >
             <figure
-              className="card__figure rounded-md overflow-hidden relative"
+              className="card__figure animated rounded-md overflow-hidden relative"
               style={{
                 width: `${width}px`,
                 height: `${height}px`,
@@ -450,6 +449,7 @@ export default function ModelDetail() {
                 style={{ height: `${containerHeight}px` }}
               >
                 <VirtualScroll
+                  id="model_detail_virtualscroll"
                   data={chunks}
                   rowRenderer={rowRenderer}
                   settings={{

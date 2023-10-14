@@ -22,7 +22,7 @@ export default function ModelCard({
       style={{ width, height }}
     >
       <figure
-        className="card__figure rounded-md overflow-hidden relative"
+        className="card__figure animated rounded-md overflow-hidden relative"
         style={{ width, height }}
       >
         <div className="absolute top-2 right-2 z-20">

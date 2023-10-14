@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import useOnUnmount from 'renderer/hooks/useOnUnmount';
 
 interface Settings {
   rowHeight: number;
@@ -13,12 +20,20 @@ export type VirtualScrollData = {
 };
 
 type VirtualScrollProps = {
+  id: string;
+  saveState?: boolean;
   settings: Settings;
   data: VirtualScrollData[];
   rowRenderer: (row: VirtualScrollData, index: number) => React.JSX.Element;
 };
 
+export const clearLocalStorage = (id: string) => {
+  window.localStorage.removeItem(`virtualScroll_${id}`);
+};
+
 export default function VirtualScroll({
+  id,
+  saveState = false,
   settings,
   data,
   rowRenderer,
@@ -36,35 +51,56 @@ export default function VirtualScroll({
     start: 0,
     end: Math.ceil(containerHeight / rowHeight),
   });
+  const [scroll, setScroll] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (container) {
+      const { scrollTop } = container;
+      setScroll(scrollTop);
+
+      const start = Math.floor(scrollTop / rowHeight);
+      const end = Math.min(
+        start + Math.ceil(containerHeight / rowHeight),
+        data.length
+      );
+
+      setVisibleRange({
+        start: start - settings.tolerance < 0 ? 0 : start - settings.tolerance,
+        end:
+          end + settings.tolerance > data.length
+            ? data.length
+            : end + settings.tolerance,
+      });
+    }
+  }, [containerHeight, data.length, rowHeight, settings.tolerance]);
+
   useEffect(() => {
-    const handleScroll = () => {
-      const container = containerRef.current;
-      if (container) {
-        const { scrollTop } = container;
-        const start = Math.floor(scrollTop / rowHeight);
-        const end = Math.min(
-          start + Math.ceil(containerHeight / rowHeight),
-          data.length
-        );
-
-        setVisibleRange({
-          start:
-            start - settings.tolerance < 0 ? 0 : start - settings.tolerance,
-          end:
-            end + settings.tolerance > data.length
-              ? data.length
-              : end + settings.tolerance,
-        });
-      }
-    };
-
     handleScroll();
     const container = containerRef.current;
     container?.addEventListener('scroll', handleScroll);
     return () => container?.removeEventListener('scroll', handleScroll);
-  }, [containerHeight, data.length, rowHeight, settings.tolerance]);
+  }, [handleScroll]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const localStorageScroll = window.localStorage.getItem(
+        `virtualScroll_${id}`
+      );
+      if (localStorageScroll) {
+        const scrollTop = parseInt(localStorageScroll, 10);
+        containerRef.current.scrollTo(0, scrollTop);
+        handleScroll();
+      }
+    }
+  }, [handleScroll, id]);
+
+  useOnUnmount(() => {
+    if (saveState) {
+      window.localStorage.setItem(`virtualScroll_${id}`, `${scroll}`);
+    }
+  }, [id, scroll, saveState]);
 
   const visibleData = data.slice(
     Math.max(0, visibleRange.start),

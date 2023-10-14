@@ -17,8 +17,10 @@ export default function ImageZoom({ src, alt }: { src: string; alt: string }) {
   );
 
   return (
-    <QuickPinchZoom onUpdate={onUpdate} wheelScaleFactor={500}>
-      <img ref={imgRef} src={src} alt={alt} />
-    </QuickPinchZoom>
+    <div className="tooltip" data-tip="Use ctrl + wheel to zoom in/out">
+      <QuickPinchZoom onUpdate={onUpdate} wheelScaleFactor={500}>
+        <img ref={imgRef} src={src} alt={alt} />
+      </QuickPinchZoom>
+    </div>
   );
 }

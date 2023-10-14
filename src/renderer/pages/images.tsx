@@ -22,9 +22,13 @@ export default function Images() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [loaded, setLoaded] = useState<boolean>(false);
+  const virtualScrollId = 'images_virtualscroll';
+
   const [images, setImages] = useState<ImageRow[]>([]);
+  const [rowNumber, setRowNumber] = useState<number>(3);
+  const [imageAnimated, setImageAnimated] = useState<boolean>(true);
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
+  const [sortBy, setSortBy] = useState<string>('ratingDesc');
 
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput
@@ -40,34 +44,83 @@ export default function Images() {
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
+  const maxRows = 3;
   const rowMargin = 10;
 
   useEffect(() => {
     const load = async () => {
-      if (!loaded) {
-        const imagesRows = await window.ipcHandler.getImages();
-        setImages(imagesRows);
-
-        setLoaded(true);
-      }
+      const imagesRows: ImageRow[] = await window.ipcHandler.getImages();
+      setImages(imagesRows.sort((a, b) => b.rating - a.rating));
     };
     load();
-  }, [loaded]);
+  }, []);
+
+  const sortImages = (sortByArg: string) => {
+    switch (sortByArg) {
+      case 'rowNumAsc': {
+        const sortedImages = images.sort((a, b) => a.rowNum - b.rowNum);
+        setImages(sortedImages);
+        break;
+      }
+
+      case 'rowNumDesc': {
+        const sortedImages = images.sort((a, b) => b.rowNum - a.rowNum);
+        setImages(sortedImages);
+        break;
+      }
+
+      case 'nameAsc': {
+        const sortedImages = images.sort((a, b) => {
+          if (a.name > b.name) return 1;
+          if (a.name < b.name) return -1;
+          return 0;
+        });
+        setImages(sortedImages);
+        break;
+      }
+
+      case 'nameDesc': {
+        const sortedImages = images.sort((a, b) => {
+          if (b.name > a.name) return 1;
+          if (b.name < a.name) return -1;
+          return 0;
+        });
+        setImages(sortedImages);
+        break;
+      }
+
+      case 'ratingAsc': {
+        const sortedImages = images.sort((a, b) => a.rating - b.rating);
+        setImages(sortedImages);
+        break;
+      }
+
+      case 'ratingDesc':
+      default: {
+        const sortedImages = images.sort((a, b) => b.rating - a.rating);
+        setImages(sortedImages);
+        break;
+      }
+    }
+    setSortBy(sortBy);
+  };
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
     setContainerHeight(windowHeight - 150);
 
-    const cardHeight = containerHeight / 3 - rowMargin;
-    const cardWidth = (cardHeight * 2) / 3;
+    const cardHeight = containerHeight / rowNumber - rowMargin;
+    const cardWidth = (cardHeight * 2) / rowNumber;
+
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
 
     setPerChunk(
-      Math.floor((window.innerWidth - window.innerHeight * 0.2) / cardWidth)
+      Math.floor((window.innerWidth - window.innerHeight * 0.15) / cardWidth) ||
+        1
     );
-  }, [containerHeight]);
+  }, [containerHeight, rowNumber]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -90,10 +143,10 @@ export default function Images() {
       setImages([imagesData, ...images]);
     };
 
-    window.ipcOn.detectedAddImage(cb);
+    const remove = window.ipcOn.detectedAddImage(cb);
 
-    return () => window.ipcOn.rmDetectedAddImage(cb);
-  });
+    return () => remove();
+  }, []);
 
   const fuse = new Fuse(images, {
     keys: ['model'],
@@ -126,7 +179,7 @@ export default function Images() {
     return resultArr;
   }, []);
 
-  const onClick = (hash: string) => {
+  const onImageClick = (hash: string) => {
     if (deleteActive) {
       if (imagesToDelete[hash]) {
         const imgs = { ...imagesToDelete };
@@ -137,6 +190,14 @@ export default function Images() {
       }
     } else {
       navigate(`/image-detail/${hash}`);
+    }
+  };
+
+  const changeImageRow = () => {
+    if (rowNumber >= maxRows) {
+      setRowNumber(1);
+    } else {
+      setRowNumber(rowNumber + 1);
     }
   };
 
@@ -155,6 +216,11 @@ export default function Images() {
 
   const rowRenderer = (row: VirtualScrollData) => {
     const items = row.row.map(({ item }: Fuse.FuseResult<ImageRow>) => {
+      const imageSrc =
+        rowNumber <= 2
+          ? `${item.path}\\${item.name}.png`
+          : `${item.path}\\${item.name}.thumbnail.png`;
+
       return (
         <div
           id={`${item.hash}`}
@@ -165,11 +231,16 @@ export default function Images() {
               'opacity-50': imagesToDelete[item.hash],
             },
           ])}
-          onClick={() => onClick(item.hash)}
+          onClick={() => onImageClick(item.hash)}
           aria-hidden="true"
         >
           <figure
-            className="card__figure rounded-md overflow-hidden relative"
+            className={classNames([
+              'card__figure rounded-md overflow-hidden relative',
+              {
+                animated: imageAnimated,
+              },
+            ])}
             style={{
               width: `${width}px`,
               height: `${height}px`,
@@ -179,16 +250,19 @@ export default function Images() {
               <Rating value={item.rating} />
             </div>
             <Image
-              src={`${item.path}\\${item.name}.thumbnail.png`}
+              src={imageSrc}
               alt={`model_detail_model_image_${item.hash}`}
               height="100%"
               width="100%"
-              className="object-cover"
+              className={classNames({
+                'object-contain': rowNumber === 1,
+                'object-left': rowNumber === 1,
+                'object-cover': rowNumber >= 2,
+              })}
               draggable={false}
             />
             <div className="absolute bottom-0 left-0 w-full p-3 flex flex-col">
               <p className="text font-bold text-white">{item.model}</p>
-              <p className="text font-bold text-white">{item.name}</p>
             </div>
           </figure>
         </div>
@@ -206,8 +280,8 @@ export default function Images() {
     <div ref={setRef} className="W-full h-full flex">
       <div className="w-fit h-full">
         <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
-          <li>
-            <button type="button">
+          <li className="tooltip tooltip-right" data-tip={`rows ${rowNumber}`}>
+            <button type="button" onClick={() => changeImageRow()}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -219,12 +293,165 @@ export default function Images() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                  d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"
                 />
               </svg>
             </button>
           </li>
-          <li>
+          <li
+            className="tooltip tooltip-right"
+            data-tip={`image animated: ${imageAnimated ? 'on' : 'off'}`}
+          >
+            <button
+              type="button"
+              onClick={() => setImageAnimated(!imageAnimated)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': imageAnimated },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by rating asc">
+            <button type="button" onClick={() => sortImages('ratingAsc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'ratingAsc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by rating desc">
+            <button type="button" onClick={() => sortImages('ratingDesc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'ratingDesc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by desc">
+            <button type="button" onClick={() => sortImages('rowNumDesc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'rowNumDesc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by asc">
+            <button type="button" onClick={() => sortImages('rowNumAsc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'rowNumAsc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 5.25l-7.5 7.5-7.5-7.5m15 6l-7.5 7.5-7.5-7.5"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by name asc">
+            <button type="button" onClick={() => sortImages('nameAsc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'nameAsc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by name desc">
+            <button type="button" onClick={() => sortImages('nameDesc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'nameDesc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="delete images">
             <button type="button" onClick={() => toggleImagesDeleteState()}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -249,6 +476,8 @@ export default function Images() {
       </div>
       <div className="pt-10 pl-10" style={{ width: `calc(100% - 68px)` }}>
         <VirtualScroll
+          id={virtualScrollId}
+          saveState
           data={chunks}
           settings={{
             buffer,

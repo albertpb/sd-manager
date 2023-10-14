@@ -155,6 +155,8 @@ export default function Checkpoints() {
       </div>
       <div className="pt-10 pl-10" style={{ width: `calc(100% - 68px)` }}>
         <VirtualScroll
+          id="checkpoints_virtualscroll"
+          saveState
           data={chunks}
           settings={{
             buffer,

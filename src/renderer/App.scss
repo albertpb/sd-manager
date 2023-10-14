@@ -19,7 +19,7 @@
   }
 }
 
-.card__figure:hover {
+.card__figure.animated:hover {
   img {
     transform: scale(1.1);
   }

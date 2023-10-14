@@ -10,7 +10,7 @@ export async function getImagesIpc(
 
   if (modelName) {
     return db.all(
-      `SELECT * FROM images WHERE model = $modelName AND deleted = 0 ORDER BY rating DESC, rowid DESC`,
+      `SELECT *, ROW_NUMBER () OVER (ORDER BY rowid ASC) rowNum FROM images WHERE model = $modelName AND deleted = 0 ORDER BY rating DESC, rowid DESC`,
       {
         $modelName: modelName,
       }
@@ -18,7 +18,7 @@ export async function getImagesIpc(
   }
 
   return db.all(
-    `SELECT * FROM images WHERE deleted = 0 ORDER BY rating DESC, rowid DESC`
+    `SELECT *, ROW_NUMBER () OVER (ORDER BY rowid ASC) rowNum FROM images WHERE deleted = 0 ORDER BY rating DESC, rowid DESC`
   );
 }
 

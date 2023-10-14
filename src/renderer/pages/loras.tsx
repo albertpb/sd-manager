@@ -153,6 +153,8 @@ export default function Loras() {
       </div>
       <div className="pt-10 pl-10" style={{ width: `calc(100% - 68px)` }}>
         <VirtualScroll
+          id="loras_virtualscroll"
+          saveState
           data={chunks}
           settings={{
             buffer,
