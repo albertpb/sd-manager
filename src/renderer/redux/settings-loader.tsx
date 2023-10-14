@@ -14,6 +14,10 @@ export default function SettingsLoader({ children }: { children: ReactNode }) {
     const loadConf = async () => {
       if (!loaded) {
         const response: Record<string, any> = await dispatch(loadSettings());
+        window.document.documentElement.setAttribute(
+          'data-theme',
+          response.payload?.theme || 'default',
+        );
         setLoaded(true);
 
         if (

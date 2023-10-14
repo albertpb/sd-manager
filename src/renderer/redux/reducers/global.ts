@@ -7,6 +7,7 @@ export interface SettingsState {
   lorasPath: string | null;
   imagesPath: string | null;
   imagesDestPath: string | null;
+  theme: string | null;
 }
 
 interface GlobalState {
@@ -35,6 +36,7 @@ const initialState: GlobalState = {
     lorasPath: null,
     imagesPath: null,
     imagesDestPath: null,
+    theme: 'default',
   },
   checkpoints: {
     models: {},
@@ -48,7 +50,7 @@ const initialState: GlobalState = {
 };
 
 const readModelsAsync = async (
-  modelType: string
+  modelType: string,
 ): Promise<Record<string, Model>> => {
   const filesHashMap = await window.ipcHandler.readModels(modelType);
   return filesHashMap;
@@ -64,7 +66,7 @@ export const readCheckpoints = createAsyncThunk(
       return models;
     }
     return {};
-  }
+  },
 );
 
 export const readLoras = createAsyncThunk(
@@ -77,7 +79,7 @@ export const readLoras = createAsyncThunk(
       return models;
     }
     return {};
-  }
+  },
 );
 
 const loadSettingsAsync = async () => {
@@ -105,7 +107,7 @@ export const organizeImages = createAsyncThunk(
     ) {
       await window.ipcHandler.organizeImages();
     }
-  }
+  },
 );
 
 export const deleteImages = createAsyncThunk(
@@ -114,7 +116,7 @@ export const deleteImages = createAsyncThunk(
     const state = getState() as { global: GlobalState };
 
     await window.ipcHandler.deleteImages(state.global.imagesToDelete);
-  }
+  },
 );
 
 export const updateModel = createAsyncThunk(
@@ -122,7 +124,7 @@ export const updateModel = createAsyncThunk(
   async (arg: { hash: string; field: keyof Model; value: any }) => {
     await window.ipcHandler.updateModel(arg.hash, arg.field, arg.value);
     return arg;
-  }
+  },
 );
 
 export const globalSlice = createSlice({
@@ -168,6 +170,10 @@ export const globalSlice = createSlice({
     },
     setImagesToDelete: (state, action) => {
       state.imagesToDelete = action.payload;
+    },
+    setTheme: (state, action) => {
+      state.settings.theme = action.payload;
+      saveSettings('theme', action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -239,4 +245,5 @@ export const {
   setNavbarSearchInputValue,
   setScanModelsOnStart,
   setImagesToDelete,
+  setTheme,
 } = globalSlice.actions;

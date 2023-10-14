@@ -1,3 +1,4 @@
+const themes = require('./themes');
 /* eslint global-require: off, import/no-extraneous-dependencies: off */
 
 /** @type {import('tailwindcss').Config} */
@@ -6,17 +7,15 @@ module.exports = {
   plugins: [require('@tailwindcss/typography'), require('daisyui')],
   daisyui: {
     themes: [
-      'light',
-      'dark',
-      'coffee',
+      ...themes,
       {
-        mytheme: {
-          primary: '#1971c2',
-          secondary: '#e03131',
-          accent: '#228be6',
-          neutral: '#1a1b1e',
-          'base-100': '#2c2e33',
-          info: '#c1c2c5',
+        default: {
+          primary: '#9ece6a',
+          secondary: '#f7768e',
+          accent: '#ff9e64',
+          neutral: '#414868',
+          'base-100': '#1a1b26',
+          info: '#b4f9f8',
           success: '#2f9e44',
           warning: '#e03131',
           error: '#fa5252',

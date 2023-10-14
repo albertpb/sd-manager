@@ -8,7 +8,9 @@ import {
   setLorasPath,
   setScanModelsOnStart,
   unInit,
+  setTheme,
 } from 'renderer/redux/reducers/global';
+import themes from '../../../themes';
 
 export default function Settings() {
   const { settings } = useSelector((state: RootState) => state.global);
@@ -50,13 +52,18 @@ export default function Settings() {
     await dispatch(organizeImages());
   };
 
+  const changeTheme = async (theme: string) => {
+    window.document.documentElement.setAttribute('data-theme', theme);
+    await dispatch(setTheme(theme));
+  };
+
   return (
     <section className="pt-10 px-10 w-full">
       <div>
         <p className="text-2xl">Settings</p>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="mr-4 w-2/3">
+        <div className="w-2/3">
           <p>
             <span>Checkpoints folder:</span> {settings.checkpointsPath}{' '}
           </p>
@@ -72,7 +79,7 @@ export default function Settings() {
         </div>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="mr-4 w-2/3">
+        <div className="w-2/3">
           <p>
             <span>Loras folder:</span> {settings.lorasPath}{' '}
           </p>
@@ -94,7 +101,7 @@ export default function Settings() {
           className="label cursor-pointer ml-0 pl-0 w-full justify-start"
           htmlFor="scanModelsOnStart"
         >
-          <span className="label-text text-base mr-4 w-2/3">
+          <span className="label-text text-base w-2/3">
             Scan models on start
           </span>
           <input
@@ -107,7 +114,7 @@ export default function Settings() {
         </label>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="mr-4 w-2/3">
+        <div className="w-2/3">
           <p>
             <span>Source Images folder:</span> {settings.imagesPath}{' '}
           </p>
@@ -121,7 +128,7 @@ export default function Settings() {
         </button>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="mr-4 w-2/3">
+        <div className="w-2/3">
           <p>
             <span>Destination Images folder:</span> {settings.imagesDestPath}{' '}
           </p>
@@ -135,7 +142,7 @@ export default function Settings() {
         </button>
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="mr-4 w-2/3">
+        <div className="w-2/3">
           <p>
             Copy Images folder into the destination images folder sorted by
             models{' '}
@@ -148,6 +155,25 @@ export default function Settings() {
         >
           Scan Images
         </button>
+      </div>
+      <div className="mt-3 flex flex-row items-center w-1/2">
+        <div className="w-2/3">
+          <p>Change theme</p>
+        </div>
+        <select
+          className="select select-bordered w-1/3"
+          onChange={(e) => changeTheme(e.target.value)}
+          value={settings.theme || 'default'}
+        >
+          <option value="default">Default</option>
+          {themes.map((theme) => {
+            return (
+              <option value={theme}>{`${theme[0].toUpperCase()}${theme.slice(
+                1,
+              )}`}</option>
+            );
+          })}
+        </select>
       </div>
     </section>
   );
