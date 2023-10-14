@@ -1,3 +1,4 @@
+import { IpcRendererEvent } from 'electron';
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { init, readCheckpoints, readLoras } from './reducers/global';
@@ -37,11 +38,15 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   ]);
 
   useEffect(() => {
-    window.ipcOn.modelsProgress((event, m, p) => {
+    const cb = (event: IpcRendererEvent, m: string, p: number) => {
       setMsg(m);
       setProgress(p);
-    });
-  }, [msg, progress]);
+    };
+
+    window.ipcOn.modelsProgress(cb);
+
+    return () => window.ipcOn.rmModelsProgress(cb);
+  }, []);
 
   if (!initialized) {
     return (

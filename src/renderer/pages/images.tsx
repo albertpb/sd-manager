@@ -93,7 +93,7 @@ export default function Images() {
     window.ipcOn.detectedAddImage(cb);
 
     return () => window.ipcOn.rmDetectedAddImage(cb);
-  }, [images]);
+  });
 
   const fuse = new Fuse(images, {
     keys: ['model'],

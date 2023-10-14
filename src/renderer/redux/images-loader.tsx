@@ -11,12 +11,14 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    const listener = (event: IpcRendererEvent, m: string, p: number) => {
+    const cb = (event: IpcRendererEvent, m: string, p: number) => {
       setMsg(m);
       setProgress(p);
     };
-    window.ipcOn.imagesProgress(listener);
-  }, [msg, progress]);
+    window.ipcOn.imagesProgress(cb);
+
+    return () => window.ipcOn.rmImagesProgress(cb);
+  }, []);
 
   if (!imagesLoading) return children;
 

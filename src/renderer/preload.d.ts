@@ -9,7 +9,13 @@ declare global {
       modelsProgress: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
+      rmModelsProgress: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
       imagesProgress: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
+      rmImagesProgress: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
       detectedAddImage: (
@@ -19,6 +25,9 @@ declare global {
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
       duplicatesDetected: (
+        cb: (event: IpcRendererEvent, ...args: any[]) => void
+      ) => any;
+      rmDuplicatesDetected: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void
       ) => any;
     };

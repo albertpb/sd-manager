@@ -41,13 +41,20 @@ contextBridge.exposeInMainWorld('ipcHandler', ipcHandler);
 
 contextBridge.exposeInMainWorld('ipcOn', {
   modelsProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.once('models-progress', cb),
+    ipcRenderer.on('models-progress', cb),
+  rmModelsProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
+    ipcRenderer.removeListener('models-progress', cb),
   imagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.once('images-progress', cb),
+    ipcRenderer.on('images-progress', cb),
+  rmImagesProgress: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
+    ipcRenderer.removeListener('images-progress', cb),
   detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.once('detectedAddImage', cb),
+    ipcRenderer.on('detectedAddImage', cb),
   rmDetectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
     ipcRenderer.removeListener('detectedAddImage', cb),
   duplicatesDetected: (cb: (event: IpcRendererEvent, ...args: any[]) => any) =>
-    ipcRenderer.once('duplicates-detected', cb),
+    ipcRenderer.on('duplicates-detected', cb),
+  rmDuplicatesDetected: (
+    cb: (event: IpcRendererEvent, ...args: any[]) => any
+  ) => ipcRenderer.removeListener('duplicates-detected', cb),
 });

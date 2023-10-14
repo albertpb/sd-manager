@@ -46,6 +46,7 @@ export default function ModelDetail() {
         return state.global.loras.models[selectedModelHash];
       }
     }
+    navigate('/');
     return null;
   });
 
@@ -111,7 +112,7 @@ export default function ModelDetail() {
     window.ipcOn.detectedAddImage(cb);
 
     return () => window.ipcOn.rmDetectedAddImage(cb);
-  }, [modelData, userImagesList]);
+  }, []);
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
