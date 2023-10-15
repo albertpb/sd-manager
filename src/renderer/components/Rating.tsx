@@ -1,9 +1,13 @@
+import classNames from 'classnames';
+
 export default function Rating({
   value,
   onClick,
+  hidden,
 }: {
   value: number;
   onClick?: (value: number) => void;
+  hidden?: boolean;
 }) {
   const stars = (
     <>
@@ -55,5 +59,16 @@ export default function Rating({
     </>
   );
 
-  return <div className="rating">{stars}</div>;
+  return (
+    <div
+      className={classNames([
+        'rating',
+        {
+          'rating-hidden': hidden,
+        },
+      ])}
+    >
+      {stars}
+    </div>
+  );
 }
