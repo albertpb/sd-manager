@@ -51,7 +51,7 @@ export default function AspectRatioHelper() {
         <p className="text-2xl font-bold text-gray-300">Aspect Ratio Helper</p>
       </div>
       <div className="mt-20">
-        <div className="flex flex-row w-1/2">
+        <div className="flex flex-row w-full xl:w-1/2">
           <div className="flex flex-col w-full">
             <div className="w-full px-6 form-control">
               <label htmlFor="ar-ratiowidth" className="label">

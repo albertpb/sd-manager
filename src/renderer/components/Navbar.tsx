@@ -90,31 +90,62 @@ export default function Navbar() {
       </button>
     ) : null;
 
+  const tabsList = Object.values(tabs).map((t) => (
+    <li key={t.id}>
+      <Link
+        to={t.path}
+        className={classNames([{ active: t.id === currentTab }])}
+      >
+        {t.label}
+      </Link>
+    </li>
+  ));
+
   return (
     <>
       <nav className="navbar bg-base-200 fixed top-0 z-50">
-        <div className="mx-2">
-          <button className="normal-case text-xl" type="button">
+        <div className="navbar-start">
+          <div className="dropdown">
+            <label
+              htmlFor="tabList"
+              tabIndex={0}
+              className="btn btn-ghost xl:hidden"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h8m-8 6h16"
+                />
+              </svg>
+            </label>
+
+            <ul
+              id="tabList"
+              tabIndex={0}
+              className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
+            >
+              {tabsList}
+            </ul>
+          </div>
+          <button className="btn btn-ghost normal-case text-xl" type="button">
             SD Manager
           </button>
+          <div className="hidden xl:flex">
+            <ul className="menu menu-horizontal px-1">{tabsList}</ul>
+          </div>
         </div>
-        <div className="flex-1 tabs tabs-boxed m-2">
-          {Object.values(tabs).map((t) => (
-            <Link
-              key={t.id}
-              to={t.path}
-              className={classNames('tab', {
-                'tab-active': currentTab === t.id,
-              })}
-            >
-              {t.label}
-            </Link>
-          ))}
-        </div>
-        <div className="flex-none">
+        <div className="navbar-end">
           {imagesToDeleteButton}
           {location.pathname === '/images' ? (
-            <div className="mx-2">
+            <div className="mx-2 hidden xl:block">
               <select
                 className="select select-bordered w-full max-w-xs"
                 value={filterCheckpoint}
@@ -132,7 +163,7 @@ export default function Navbar() {
               </select>
             </div>
           ) : null}
-          <div className="form-control">
+          <div className="form-control hidden xl:block">
             <input
               ref={searchRef}
               type="text"

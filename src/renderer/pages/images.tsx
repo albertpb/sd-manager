@@ -123,6 +123,7 @@ export default function Images() {
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
     setContainerHeight(windowHeight - 150);
 
     const cardHeight = containerHeight / rowNumber - rowMargin;
@@ -133,8 +134,7 @@ export default function Images() {
     setBuffer(Math.floor(containerHeight / cardHeight));
 
     setPerChunk(
-      Math.floor((window.innerWidth - window.innerHeight * 0.15) / cardWidth) ||
-        1,
+      Math.floor((windowWidth - windowHeight * 0.15) / cardWidth) || 1,
     );
   }, [containerHeight, rowNumber]);
 
@@ -280,7 +280,7 @@ export default function Images() {
     });
 
     return (
-      <div key={row.id} className="flex w-full">
+      <div key={row.id} className="flex flex-nowrap w-full">
         {items}
       </div>
     );

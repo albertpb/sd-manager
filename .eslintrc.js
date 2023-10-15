@@ -31,6 +31,8 @@ module.exports = {
     'class-methods-use-this': 'off',
     'no-continue': 'off',
     'compat/compat': 'off',
+    'jsx-a11y/label-has-associated-control': 'off',
+    'jsx-a11y/no-noninteractive-tabindex': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

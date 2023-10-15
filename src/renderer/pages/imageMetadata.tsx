@@ -48,9 +48,9 @@ export default function ImageMetadata() {
       <div className="w-full">
         <p className="text-2xl font-bold text-gray-300">Image metadata</p>
       </div>
-      <div className="flex flex-row mt-4">
+      <div className="flex flex-col xl:flex-row mt-4">
         <div
-          className="w-1/2 mr-4"
+          className="w-full xl:w-1/2 xl:mr-4"
           onDrop={(e) => onFilesDrop(e)}
           onDragOver={(e) => e.preventDefault()}
         >
@@ -91,7 +91,10 @@ export default function ImageMetadata() {
             />
           </label>
         </div>
-        <div className="w-1/2 ml-4" data-color-mode="dark">
+        <div
+          className="w-full xl:w-1/2 xl:ml-4 mt-4 xl:mt-0"
+          data-color-mode="dark"
+        >
           <CodeMirror
             extensions={[jsonLang()]}
             theme="dark"

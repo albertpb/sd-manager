@@ -7,7 +7,7 @@ export default function MainLayout() {
       <Navbar />
       <section
         className="mx-0"
-        style={{ height: 'calc( 100dvh - 72px)', marginTop: '72px' }}
+        style={{ height: 'calc( 100dvh - 68px)', marginTop: '68px' }}
       >
         <Outlet />
       </section>

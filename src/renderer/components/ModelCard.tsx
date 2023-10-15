@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import Image from './Image';
 import Rating from './Rating';
 
@@ -7,6 +8,7 @@ type ModelCardProps = {
   width?: string;
   height?: string;
   rating?: number;
+  imageClassName?: any;
 };
 
 export default function ModelCard({
@@ -15,6 +17,7 @@ export default function ModelCard({
   rating,
   width = '480px',
   height = '320px',
+  imageClassName = 'object-cover',
 }: ModelCardProps) {
   return (
     <div
@@ -33,7 +36,7 @@ export default function ModelCard({
           alt={name}
           height="100%"
           width="100%"
-          className="object-cover"
+          className={classNames([imageClassName])}
         />
         <div className="absolute top-0 left-0 w-full">
           <div className="w-full h-full flex flex-row p-3">

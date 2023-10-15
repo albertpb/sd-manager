@@ -6,16 +6,15 @@ import MainLayout from './layouts/Main.layout';
 import Settings from './pages/settings';
 import SettingsLoader from './redux/settings-loader';
 import ModelsLoader from './redux/models-loader';
-import Checkpoints from './pages/checkpoints';
 import ModelDetail from './pages/modelDetail';
 import ImagesLoader from './redux/images-loader';
 import Testing from './pages/test';
 import ImageDetail from './pages/imageDetail';
 import AspectRatioHelper from './pages/aspectRatioHelper';
 import Notificator from './redux/notification';
-import Loras from './pages/loras';
 import Images from './pages/images';
 import ImageMetadata from './pages/imageMetadata';
+import Models from './pages/models';
 
 export default function App() {
   return (
@@ -27,7 +26,7 @@ export default function App() {
               <ImagesLoader>
                 <Routes>
                   <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Checkpoints />} />
+                    <Route index element={<Models type="checkpoints" />} />
                     <Route
                       path="/model-detail/:hash"
                       element={<ModelDetail />}
@@ -36,7 +35,7 @@ export default function App() {
                       path="/image-detail/:hash"
                       element={<ImageDetail />}
                     />
-                    <Route path="/loras" element={<Loras />} />
+                    <Route path="/loras" element={<Models type="loras" />} />
                     <Route path="/images" element={<Images />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/ar-helper" element={<AspectRatioHelper />} />

@@ -14,29 +14,35 @@ interface RowData {
   id: string;
 }
 
-export default function Loras() {
+export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
   const navigate = useNavigate();
+  const checkpoints = useSelector(
+    (state: RootState) => state.global.checkpoints,
+  );
   const loras = useSelector((state: RootState) => state.global.loras);
+  const models = type === 'checkpoints' ? checkpoints : loras;
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
-    (state: RootState) => state.global.navbarSearchInput
+    (state: RootState) => state.global.navbarSearchInput,
   );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
+  const [rowNumber, setRowNumber] = useState<number>(3);
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
+  const maxRows = 3;
   const rowMargin = 10;
 
   const onClick = (hash: string) => {
     navigate(`/model-detail/${hash}`);
   };
 
-  const modelsList = Object.values(loras.models).sort(
-    (a, b) => b.rating - a.rating
+  const modelsList = Object.values(models.models).sort(
+    (a, b) => b.rating - a.rating,
   );
   const fuse = new Fuse(modelsList, {
     keys: ['name'],
@@ -56,26 +62,35 @@ export default function Loras() {
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
     setContainerHeight(windowHeight - 150);
 
-    const cardHeight = containerHeight / 3 - rowMargin;
-    const cardWidth = (cardHeight * 2) / 3;
+    const cardHeight = containerHeight / rowNumber - rowMargin;
+    const cardWidth = (cardHeight * 2) / rowNumber;
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
 
     setPerChunk(
-      Math.floor((window.innerWidth - window.innerHeight * 0.2) / cardWidth)
+      Math.floor((windowWidth - windowHeight * 0.15) / cardWidth) || 1,
     );
-  }, [containerHeight]);
+  }, [containerHeight, rowNumber]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
       containerRef.current = node;
       calcImagesValues();
     },
-    [calcImagesValues]
+    [calcImagesValues],
   );
+
+  const changeImageRow = () => {
+    if (rowNumber >= maxRows) {
+      setRowNumber(1);
+    } else {
+      setRowNumber(rowNumber + 1);
+    }
+  };
 
   useEffect(() => {
     calcImagesValues();
@@ -102,7 +117,10 @@ export default function Loras() {
 
   const rowRenderer = (row: VirtualScrollData) => {
     const items = row.row.map(({ item }: Fuse.FuseResult<Model>) => {
-      const imagePath = `${settings.lorasPath}\\${item.name}\\${item.name}_0.png`;
+      const imagePath =
+        type === 'checkpoints'
+          ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
+          : `${settings.lorasPath}\\${item.name}\\${item.name}_0.png`;
       return (
         <div
           onClick={() => onClick(item.hash)}
@@ -115,6 +133,11 @@ export default function Loras() {
             imagePath={imagePath}
             width={`${width}px`}
             height={`${height}px`}
+            imageClassName={{
+              'object-contain': rowNumber === 1,
+              'object-left': rowNumber === 1,
+              'object-cover': rowNumber >= 2,
+            }}
           />
         </div>
       );
@@ -149,11 +172,29 @@ export default function Loras() {
               </svg>
             </button>
           </li>
+          <li className="tooltip tooltip-right" data-tip={`rows ${rowNumber}`}>
+            <button type="button" onClick={() => changeImageRow()}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"
+                />
+              </svg>
+            </button>
+          </li>
         </ul>
       </div>
       <div className="pt-10 pl-10" style={{ width: `calc(100% - 68px)` }}>
         <VirtualScroll
-          id="loras_virtualscroll"
+          id={`${type}_virtualscroll`}
           saveState
           data={chunks}
           settings={{
