@@ -168,9 +168,10 @@ export default function Settings() {
           <option value="default">Default</option>
           {themes.map((theme) => {
             return (
-              <option value={theme}>{`${theme[0].toUpperCase()}${theme.slice(
-                1,
-              )}`}</option>
+              <option
+                key={theme}
+                value={theme}
+              >{`${theme[0].toUpperCase()}${theme.slice(1)}`}</option>
             );
           })}
         </select>
