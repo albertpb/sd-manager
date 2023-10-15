@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Model } from 'main/ipc/model';
+import { ImageRow } from 'main/ipc/organizeImages';
 
 export interface SettingsState {
   scanModelsOnStart: string | null;
@@ -10,7 +11,7 @@ export interface SettingsState {
   theme: string | null;
 }
 
-interface GlobalState {
+export interface GlobalState {
   initialized: boolean;
   checkpointsLoading: boolean;
   lorasLoading: boolean;
@@ -21,6 +22,8 @@ interface GlobalState {
   loras: {
     models: Record<string, Model>;
   };
+  images: ImageRow[];
+  filterCheckpoint: string;
   imagesLoading: boolean;
   navbarSearchInput: string;
   imagesToDelete: Record<string, boolean>;
@@ -44,6 +47,8 @@ const initialState: GlobalState = {
   loras: {
     models: {},
   },
+  images: [],
+  filterCheckpoint: '',
   imagesLoading: false,
   imagesToDelete: {},
   navbarSearchInput: '',
@@ -81,6 +86,10 @@ export const readLoras = createAsyncThunk(
     return {};
   },
 );
+
+export const readImages = createAsyncThunk('read_images', async () => {
+  return window.ipcHandler.getImages();
+});
 
 const loadSettingsAsync = async () => {
   const settings = await window.ipcHandler.settings('readAll');
@@ -175,6 +184,12 @@ export const globalSlice = createSlice({
       state.settings.theme = action.payload;
       saveSettings('theme', action.payload);
     },
+    setFilterCheckpoint: (state, action) => {
+      state.filterCheckpoint = action.payload;
+    },
+    setImages: (state, action) => {
+      state.images = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(readCheckpoints.pending, (state) => {
@@ -191,6 +206,10 @@ export const globalSlice = createSlice({
     builder.addCase(readLoras.fulfilled, (state, action) => {
       state.loras.models = action.payload;
       state.lorasLoading = false;
+    });
+
+    builder.addCase(readImages.fulfilled, (state, action) => {
+      state.images = action.payload;
     });
 
     builder.addCase(loadSettings.fulfilled, (state, action) => {
@@ -246,4 +265,6 @@ export const {
   setScanModelsOnStart,
   setImagesToDelete,
   setTheme,
+  setFilterCheckpoint,
+  setImages,
 } = globalSlice.actions;

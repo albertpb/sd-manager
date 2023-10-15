@@ -1,6 +1,5 @@
 import classNames from 'classnames';
 import Fuse from 'fuse.js';
-import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,18 +23,23 @@ export default function Images() {
 
   const virtualScrollId = 'images_virtualscroll';
 
-  const [images, setImages] = useState<ImageRow[]>([]);
   const [rowNumber, setRowNumber] = useState<number>(3);
   const [imageAnimated, setImageAnimated] = useState<boolean>(true);
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('ratingDesc');
 
+  const images = useSelector((state: RootState) => state.global.images);
   const navbarSearchInput = useSelector(
-    (state: RootState) => state.global.navbarSearchInput
+    (state: RootState) => state.global.navbarSearchInput,
   );
   const imagesToDelete = useSelector(
-    (state: RootState) => state.global.imagesToDelete
+    (state: RootState) => state.global.imagesToDelete,
   );
+  const filterCheckpoint = useSelector(
+    (state: RootState) => state.global.filterCheckpoint,
+  );
+
+  const [imagesList, setImagesList] = useState<ImageRow[]>(images);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -47,63 +51,75 @@ export default function Images() {
   const maxRows = 3;
   const rowMargin = 10;
 
-  useEffect(() => {
-    const load = async () => {
-      const imagesRows: ImageRow[] = await window.ipcHandler.getImages();
-      setImages(imagesRows.sort((a, b) => b.rating - a.rating));
-    };
-    load();
-  }, []);
+  const filterFunc = useCallback(
+    (img: ImageRow) => img.model === filterCheckpoint,
+    [filterCheckpoint],
+  );
 
-  const sortImages = (sortByArg: string) => {
-    setSortBy(sortByArg);
-    switch (sortByArg) {
-      case 'rowNumAsc': {
-        const sortedImages = images.sort((a, b) => a.rowNum - b.rowNum);
-        setImages(sortedImages);
-        break;
-      }
+  const sortFilterImages = useCallback(
+    (sortByArg: string) => {
+      setSortBy(sortByArg);
 
-      case 'rowNumDesc': {
-        const sortedImages = images.sort((a, b) => b.rowNum - a.rowNum);
-        setImages(sortedImages);
-        break;
-      }
+      const filteredImages =
+        filterCheckpoint === '' ? [...images] : [...images].filter(filterFunc);
 
-      case 'nameAsc': {
-        const sortedImages = images.sort((a, b) => {
-          if (a.name > b.name) return 1;
-          if (a.name < b.name) return -1;
-          return 0;
-        });
-        setImages(sortedImages);
-        break;
-      }
+      switch (sortByArg) {
+        case 'rowNumAsc': {
+          const sortedImages = filteredImages.sort(
+            (a, b) => a.rowNum - b.rowNum,
+          );
+          setImagesList(sortedImages);
+          break;
+        }
 
-      case 'nameDesc': {
-        const sortedImages = images.sort((a, b) => {
-          if (b.name > a.name) return 1;
-          if (b.name < a.name) return -1;
-          return 0;
-        });
-        setImages(sortedImages);
-        break;
-      }
+        case 'rowNumDesc': {
+          const sortedImages = filteredImages.sort(
+            (a, b) => b.rowNum - a.rowNum,
+          );
+          setImagesList(sortedImages);
+          break;
+        }
 
-      case 'ratingAsc': {
-        const sortedImages = images.sort((a, b) => a.rating - b.rating);
-        setImages(sortedImages);
-        break;
-      }
+        case 'nameAsc': {
+          const sortedImages = filteredImages.sort((a, b) => {
+            if (a.name > b.name) return 1;
+            if (a.name < b.name) return -1;
+            return 0;
+          });
+          setImagesList(sortedImages);
+          break;
+        }
 
-      case 'ratingDesc':
-      default: {
-        const sortedImages = images.sort((a, b) => b.rating - a.rating);
-        setImages(sortedImages);
-        break;
+        case 'nameDesc': {
+          const sortedImages = filteredImages.sort((a, b) => {
+            if (b.name > a.name) return 1;
+            if (b.name < a.name) return -1;
+            return 0;
+          });
+          setImagesList(sortedImages);
+          break;
+        }
+
+        case 'ratingAsc': {
+          const sortedImages = filteredImages.sort(
+            (a, b) => a.rating - b.rating,
+          );
+          setImagesList(sortedImages);
+          break;
+        }
+
+        case 'ratingDesc':
+        default: {
+          const sortedImages = filteredImages.sort(
+            (a, b) => b.rating - a.rating,
+          );
+          setImagesList(sortedImages);
+          break;
+        }
       }
-    }
-  };
+    },
+    [filterFunc, images, filterCheckpoint],
+  );
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
@@ -118,7 +134,7 @@ export default function Images() {
 
     setPerChunk(
       Math.floor((window.innerWidth - window.innerHeight * 0.15) / cardWidth) ||
-        1
+        1,
     );
   }, [containerHeight, rowNumber]);
 
@@ -127,8 +143,12 @@ export default function Images() {
       containerRef.current = node;
       calcImagesValues();
     },
-    [calcImagesValues]
+    [calcImagesValues],
   );
+
+  useEffect(() => {
+    sortFilterImages(sortBy);
+  }, [images, sortFilterImages, sortBy]);
 
   useEffect(() => {
     calcImagesValues();
@@ -138,23 +158,13 @@ export default function Images() {
     return () => window.removeEventListener('resize', calcImagesValues);
   }, [containerRef, width, calcImagesValues]);
 
-  useEffect(() => {
-    const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
-      setImages([imagesData, ...images]);
-    };
-
-    const remove = window.ipcOn.detectedAddImage(cb);
-
-    return () => remove();
-  }, [images]);
-
-  const fuse = new Fuse(images, {
+  const fuse = new Fuse(imagesList, {
     keys: ['model'],
   });
 
   const imagesResult =
     navbarSearchInput === ''
-      ? images.map((image, i) => {
+      ? imagesList.map((image, i) => {
           return {
             item: image,
             matches: [],
@@ -326,7 +336,7 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by rating asc">
-            <button type="button" onClick={() => sortImages('ratingAsc')}>
+            <button type="button" onClick={() => sortFilterImages('ratingAsc')}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -347,7 +357,10 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by rating desc">
-            <button type="button" onClick={() => sortImages('ratingDesc')}>
+            <button
+              type="button"
+              onClick={() => sortFilterImages('ratingDesc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -368,7 +381,10 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by desc">
-            <button type="button" onClick={() => sortImages('rowNumDesc')}>
+            <button
+              type="button"
+              onClick={() => sortFilterImages('rowNumDesc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -389,7 +405,7 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by asc">
-            <button type="button" onClick={() => sortImages('rowNumAsc')}>
+            <button type="button" onClick={() => sortFilterImages('rowNumAsc')}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -410,7 +426,7 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by name asc">
-            <button type="button" onClick={() => sortImages('nameAsc')}>
+            <button type="button" onClick={() => sortFilterImages('nameAsc')}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -431,7 +447,7 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by name desc">
-            <button type="button" onClick={() => sortImages('nameDesc')}>
+            <button type="button" onClick={() => sortFilterImages('nameDesc')}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

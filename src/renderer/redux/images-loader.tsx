@@ -1,14 +1,28 @@
 import { IpcRendererEvent } from 'electron';
+import { ImageRow } from 'main/ipc/organizeImages';
 import { ReactNode, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '.';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '.';
+import { readImages, setImages } from './reducers/global';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
+  const dispatch = useDispatch<AppDispatch>();
+
   const [msg, setMsg] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
   const imagesLoading = useSelector(
-    (state: RootState) => state.global.imagesLoading
+    (state: RootState) => state.global.imagesLoading,
   );
+
+  const images = useSelector((state: RootState) => state.global.images);
+
+  useEffect(() => {
+    const load = async () => {
+      await dispatch(readImages());
+    };
+
+    load();
+  }, [dispatch]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
@@ -19,6 +33,16 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
     return () => remove();
   }, []);
+
+  useEffect(() => {
+    const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
+      dispatch(setImages([imagesData, ...images]));
+    };
+
+    const remove = window.ipcOn.detectedAddImage(cb);
+
+    return () => remove();
+  }, [images, dispatch]);
 
   if (!imagesLoading) return children;
 

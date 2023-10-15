@@ -1,24 +1,42 @@
 import classNames from 'classnames';
+import { useLocation, Link } from 'react-router-dom';
 import useTab, { tabs } from 'renderer/hooks/tabs';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
 import { AppDispatch, RootState } from 'renderer/redux';
+import { createSelector } from '@reduxjs/toolkit';
 import {
   deleteImages,
+  setFilterCheckpoint,
   setNavbarSearchInputValue,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function Navbar() {
+  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const currentTab = useTab();
   const searchRef = useRef<HTMLInputElement>(null);
   const searchValue = useSelector(
-    (state: RootState) => state.global.navbarSearchInput
+    (state: RootState) => state.global.navbarSearchInput,
   );
-  const imagesToDeleteCount = useSelector(
-    (state: RootState) => Object.keys(state.global.imagesToDelete).length
+  const imagesToDelete = useSelector(
+    (state: RootState) => state.global.imagesToDelete,
+  );
+  const imagesToDeleteCount = createSelector(
+    (state: typeof imagesToDelete) => state,
+    (itd) => Object.keys(itd).length,
+  )(imagesToDelete);
+
+  const models = useSelector(
+    (state: RootState) => state.global.checkpoints.models,
+  );
+  const checkpoints = createSelector(
+    (state: typeof models) => state,
+    (chkps) => Object.values(chkps),
+  )(models);
+  const filterCheckpoint = useSelector(
+    (state: RootState) => state.global.filterCheckpoint,
   );
 
   const [cofirmDialogIsOpen, setConfirmDialogIsOpen] = useState<boolean>(false);
@@ -41,6 +59,10 @@ export default function Navbar() {
 
   const onDeleteImages = () => {
     dispatch(deleteImages());
+  };
+
+  const changeFilterCheckpoint = (checkpointName: string) => {
+    dispatch(setFilterCheckpoint(checkpointName));
   };
 
   const imagesToDeleteButton =
@@ -91,6 +113,25 @@ export default function Navbar() {
         </div>
         <div className="flex-none">
           {imagesToDeleteButton}
+          {location.pathname === '/images' ? (
+            <div className="mx-2">
+              <select
+                className="select select-bordered w-full max-w-xs"
+                value={filterCheckpoint}
+                onChange={(e) => changeFilterCheckpoint(e.target.value)}
+              >
+                <option value="">None</option>
+                {checkpoints.map((chkpt) => (
+                  <option
+                    value={chkpt.name}
+                    key={`navbar_checkpoint_select_${chkpt.hash}`}
+                  >
+                    {chkpt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <div className="form-control">
             <input
               ref={searchRef}
