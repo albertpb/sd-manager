@@ -52,6 +52,7 @@ export default class SqliteDB {
         "sourcePath" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "fileName" TEXT NOT NULL,
+        "baseModel" TEXT,
         "deleted" BOOLEAN NOT NULL DEFAULT 0,
         PRIMARY KEY ("hash"),
         CONSTRAINT "model_fk" FOREIGN KEY ("model") REFERENCES "models" ("hash") ON DELETE CASCADE ON UPDATE CASCADE
@@ -67,7 +68,7 @@ export default class SqliteDB {
     if (version.user_version === 1) {
       try {
         await db.run(
-          `ALTER TABLE images ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0`
+          `ALTER TABLE images ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0`,
         );
       } catch (error) {
         console.log(error);
@@ -79,13 +80,25 @@ export default class SqliteDB {
     if (version.user_version === 2) {
       try {
         await db.run(
-          `ALTER TABLE models ADD COLUMN "rating" INTEGER NOT NULL DEFAULT 1`
+          `ALTER TABLE models ADD COLUMN "rating" INTEGER NOT NULL DEFAULT 1`,
         );
       } catch (error) {
         console.log(error);
       }
 
       await db.run(`PRAGMA user_version = 3`);
+    }
+
+    if (version.user_version === 3) {
+      try {
+        await db.run(
+          `ALTER TABLE models ADD COLUMN "baseModel" TEXT DEFAULT ''`,
+        );
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 4`);
     }
   }
 }

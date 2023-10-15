@@ -10,6 +10,7 @@ import {
 } from '../util';
 import SqliteDB from '../db';
 import { settingsDB } from './settings';
+import { ModelCivitaiInfo } from '../interfaces';
 
 export type Model = {
   hash: string;
@@ -17,13 +18,14 @@ export type Model = {
   path: string;
   type: string;
   rating: number;
+  baseModel: string | null;
 };
 
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
   event: IpcMainInvokeEvent,
   modelType: string,
-  folderPath: string
+  folderPath: string,
 ) => {
   const folderExists = await checkFolderExists(folderPath);
   if (!folderExists) return {};
@@ -54,10 +56,10 @@ export const readdirModelsIpc = async (
     const fileNameNoExt = files[i].substring(0, files[i].lastIndexOf('.'));
 
     const modelInfoExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.civitai.info`
+      `${folderPath}\\${fileNameNoExt}.civitai.info`,
     );
 
-    let modelInfo;
+    let modelInfo: ModelCivitaiInfo | undefined;
 
     if (!modelsHashMap[fileNameNoExt]) {
       const hash = await calculateHashFile(`${folderPath}\\${files[i]}`);
@@ -68,7 +70,7 @@ export const readdirModelsIpc = async (
         modelInfo = await downloadModelInfoByHash(
           fileNameNoExt,
           hash,
-          folderPath
+          folderPath,
         );
       } catch (error) {
         continue;
@@ -76,14 +78,15 @@ export const readdirModelsIpc = async (
 
       try {
         await db.run(
-          `INSERT INTO models(hash, name, path, type, rating) VALUES ($hash, $name, $path, $type, $rating)`,
+          `INSERT INTO models(hash, name, path, type, rating, baseModel) VALUES ($hash, $name, $path, $type, $rating, $baseModel)`,
           {
             $hash: hash,
             $name: fileNameNoExt,
             $path: path,
             $type: modelType,
             $rating: 1,
-          }
+            $baseModel: modelInfo?.baseModel || '',
+          },
         );
       } catch (error) {
         console.log(fileNameNoExt, modelType, hash);
@@ -93,7 +96,7 @@ export const readdirModelsIpc = async (
           browserWindow.webContents.send(
             'duplicates-detected',
             'Detected model duplicated',
-            fileNameNoExt
+            fileNameNoExt,
           );
         }
       }
@@ -104,27 +107,27 @@ export const readdirModelsIpc = async (
         path,
         type: modelType,
         rating: 1,
+        baseModel: modelInfo?.baseModel || '',
       };
     }
 
     if (modelInfoExists && !modelInfo) {
       const modelInfoStr = await fs.promises.readFile(
         `${folderPath}\\${fileNameNoExt}.civitai.info`,
-        { encoding: 'utf-8' }
+        { encoding: 'utf-8' },
       );
       modelInfo = JSON.parse(modelInfoStr);
     }
 
     const imageExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.png`
+      `${folderPath}\\${fileNameNoExt}.png`,
     );
 
     if (!imageExists) {
       if (modelInfo && modelInfo.images && modelInfo.images.length > 0) {
         const imagesModelFolder = `${folderPath}\\${fileNameNoExt}`;
-        const imagesModelFolderExists = await checkFolderExists(
-          imagesModelFolder
-        );
+        const imagesModelFolderExists =
+          await checkFolderExists(imagesModelFolder);
         if (!imagesModelFolderExists) {
           fs.mkdirSync(imagesModelFolder);
         }
@@ -134,12 +137,27 @@ export const readdirModelsIpc = async (
             await downloadImage(
               `${fileNameNoExt}_${c}`,
               modelInfo.images[c].url,
-              imagesModelFolder
+              imagesModelFolder,
             );
           } catch (error) {
             console.log(error);
           }
         }
+      }
+    }
+
+    if (
+      modelsHashMap[fileNameNoExt].baseModel === '' ||
+      modelsHashMap[fileNameNoExt].baseModel === null
+    ) {
+      if (modelInfo) {
+        await db.run(
+          `UPDATE models SET baseModel = $baseModel WHERE hash = $hash`,
+          {
+            $baseModel: modelInfo.baseModel,
+            $hash: modelsHashMap[fileNameNoExt].hash,
+          },
+        );
       }
     }
 
@@ -156,7 +174,7 @@ export const readdirModelsIpc = async (
 export const readdirModelImagesIpc = async (
   event: IpcMainInvokeEvent,
   model: string,
-  modelsPath: string
+  modelsPath: string,
 ) => {
   const folderPath = `${modelsPath}\\${model}`;
 
@@ -176,7 +194,7 @@ export async function readModelsIpc(event: IpcMainInvokeEvent, type: string) {
     `SELECT * FROM models WHERE type = $type`,
     {
       $type: type,
-    }
+    },
   );
 
   return models.reduce((acc: Record<string, Model>, model: Model) => {
@@ -189,7 +207,7 @@ export async function updateModelIpc(
   event: IpcMainInvokeEvent,
   hash: string,
   field: string,
-  value: string
+  value: string,
 ) {
   const db = await SqliteDB.getInstance().getdb();
   return db.run(`UPDATE models SET ${field} = $value WHERE hash = $hash`, {
@@ -201,10 +219,10 @@ export async function updateModelIpc(
 export const readModelInfoIpc = async (
   event: IpcMainInvokeEvent,
   model: string,
-  folderPath: string
+  folderPath: string,
 ) => {
   const modelInfo = await readModelInfoFile(
-    `${folderPath}\\${model}.civitai.info`
+    `${folderPath}\\${model}.civitai.info`,
   );
 
   return modelInfo;
@@ -220,7 +238,7 @@ export async function readModelIpc(event: IpcMainInvokeEvent, hash: string) {
 export async function readModelByNameIpc(
   event: IpcMainInvokeEvent,
   name: string,
-  type: string
+  type: string,
 ) {
   const db = await SqliteDB.getInstance().getdb();
   return db.get(`SELECT * FROM models WHERE name = $name AND type = $type`, {

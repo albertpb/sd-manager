@@ -8,6 +8,7 @@ import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
 import { Model } from 'main/ipc/model';
+import classNames from 'classnames';
 
 interface RowData {
   row: Fuse.FuseResult<Model>[];
@@ -20,11 +21,16 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
     (state: RootState) => state.global.checkpoints,
   );
   const loras = useSelector((state: RootState) => state.global.loras);
-  const models = type === 'checkpoints' ? checkpoints : loras;
+  const modelsState = type === 'checkpoints' ? checkpoints : loras;
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
   );
+
+  const [models, setModels] = useState<Model[]>(
+    Object.values(modelsState.models),
+  );
+  const [filterBy, setFilterBy] = useState<string>('');
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -41,9 +47,7 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
     navigate(`/model-detail/${hash}`);
   };
 
-  const modelsList = Object.values(models.models).sort(
-    (a, b) => b.rating - a.rating,
-  );
+  const modelsList = Object.values(models).sort((a, b) => b.rating - a.rating);
   const fuse = new Fuse(modelsList, {
     keys: ['name'],
   });
@@ -59,6 +63,23 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
           };
         })
       : fuse.search(navbarSearchInput);
+
+  const filterByBaseModel = (baseModel: string) => {
+    if (baseModel === '') {
+      setModels(Object.values(modelsState.models));
+    } else if (baseModel === 'Other') {
+      const filteredModels = Object.values(modelsState.models).filter(
+        (model) => model.baseModel === 'Other' || model.baseModel === null,
+      );
+      setModels(filteredModels);
+    } else {
+      const filteredModels = Object.values(modelsState.models).filter(
+        (model) => model.baseModel === baseModel,
+      );
+      setModels(filteredModels);
+    }
+    setFilterBy(baseModel);
+  };
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
@@ -188,6 +209,62 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
                   d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"
                 />
               </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="All">
+            <button type="button" onClick={() => filterByBaseModel('')}>
+              <span
+                className={classNames([
+                  'w-5 h-5',
+                  {
+                    'text-green-500': filterBy === '',
+                  },
+                ])}
+              >
+                All
+              </span>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="SD 1.5">
+            <button type="button" onClick={() => filterByBaseModel('SD 1.5')}>
+              <span
+                className={classNames([
+                  'w-5 h-5',
+                  {
+                    'text-green-500': filterBy === 'SD 1.5',
+                  },
+                ])}
+              >
+                1.5
+              </span>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="SD XL">
+            <button type="button" onClick={() => filterByBaseModel('SDXL 1.0')}>
+              <span
+                className={classNames([
+                  'w-5 h-5',
+                  {
+                    'text-green-500': filterBy === 'SDXL 1.0',
+                  },
+                ])}
+              >
+                XL
+              </span>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="SD Other">
+            <button type="button" onClick={() => filterByBaseModel('Other')}>
+              <span
+                className={classNames([
+                  'w-5 h-5',
+                  {
+                    'text-green-500': filterBy === 'Other',
+                  },
+                ])}
+              >
+                Oth
+              </span>
             </button>
           </li>
         </ul>
