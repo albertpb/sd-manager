@@ -136,6 +136,14 @@ export const updateModel = createAsyncThunk(
   },
 );
 
+export const updateImage = createAsyncThunk(
+  'updateImage',
+  async (arg: { hash: string; field: keyof ImageRow; value: any }) => {
+    await window.ipcHandler.updateImage(arg.hash, arg.field, arg.value);
+    return arg;
+  },
+);
+
 export const globalSlice = createSlice({
   name: 'Global',
   initialState,
@@ -247,6 +255,18 @@ export const globalSlice = createSlice({
       if (lora) {
         state.loras.models[action.payload.hash] = {
           ...state.loras.models[action.payload.hash],
+          [action.payload.field]: action.payload.value,
+        };
+      }
+    });
+
+    builder.addCase(updateImage.fulfilled, (state, action) => {
+      const index = state.images.findIndex(
+        (img) => img.hash === action.payload.hash,
+      );
+      if (index !== -1) {
+        state.images[index] = {
+          ...state.images[index],
           [action.payload.field]: action.payload.value,
         };
       }

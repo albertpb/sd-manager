@@ -16,6 +16,7 @@ import { AppDispatch } from 'renderer/redux';
 import {
   deleteImages,
   setImagesToDelete,
+  updateImage,
 } from 'renderer/redux/reducers/global';
 import { saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
@@ -27,13 +28,13 @@ export default function ImageDetail() {
   const hash = navigatorParams.hash;
 
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
-    null
+    null,
   );
   const [imageData, setImageData] = useState<ImageRow | undefined>();
   const [modelData, setModelData] = useState<Model | undefined>();
   const [showExif, setShowExif] = useState<boolean>(false);
   const [imageMetadata, setImageMetadata] = useState<ImageMetaData | null>(
-    null
+    null,
   );
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [markdownText, setMarkdownText] = useState<string | undefined>('');
@@ -60,7 +61,7 @@ export default function ImageDetail() {
 
       const fileMdText = await window.ipcHandler.readFile(
         `${folderPath}\\markdown.md`,
-        'utf-8'
+        'utf-8',
       );
       if (fileMdText) {
         setMarkdownText(fileMdText);
@@ -68,7 +69,7 @@ export default function ImageDetail() {
 
       const model = await window.ipcHandler.readModelByName(
         iData.model,
-        'checkpoint'
+        'checkpoint',
       );
       setModelData(model);
     };
@@ -92,8 +93,6 @@ export default function ImageDetail() {
         const file = dataTransfer.files[i];
         const fileType = file.type;
 
-        console.log(file);
-
         if (fileType === 'image/png') {
           const dest = `${imageData.path}\\${
             imageData.name
@@ -110,17 +109,19 @@ export default function ImageDetail() {
   const revealInFolder = () => {
     if (imageData) {
       window.ipcHandler.openFolderLink(
-        `${imageData.path}\\${imageData.fileName}`
+        `${imageData.path}\\${imageData.fileName}`,
       );
     }
   };
 
   const onRatingChange = async (value: number) => {
-    await window.ipcHandler.updateImage(hash, 'rating', value);
-    setImageData({
-      ...imageData,
-      rating: value,
-    } as ImageRow);
+    if (hash) {
+      await dispatch(updateImage({ hash, field: 'rating', value }));
+      setImageData({
+        ...imageData,
+        rating: value,
+      } as ImageRow);
+    }
   };
 
   if (!imageData) return null;
@@ -159,7 +160,7 @@ export default function ImageDetail() {
     dispatch(
       setImagesToDelete({
         [imageData.hash]: true,
-      })
+      }),
     );
 
     setConfirmDialogIsOpen(true);
@@ -168,9 +169,7 @@ export default function ImageDetail() {
   const onDeleteImages = async () => {
     await dispatch(deleteImages());
 
-    if (modelData) {
-      navigate(`/model-detail/${modelData.hash}`);
-    }
+    navigate(-1);
   };
 
   const onCancelDelete = () => {
