@@ -15,13 +15,13 @@ interface RowData {
   id: string;
 }
 
-export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
+export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
   const checkpoints = useSelector(
     (state: RootState) => state.global.checkpoints,
   );
   const loras = useSelector((state: RootState) => state.global.loras);
-  const modelsState = type === 'checkpoints' ? checkpoints : loras;
+  const modelsState = type === 'checkpoint' ? checkpoints : loras;
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
@@ -114,6 +114,15 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
   };
 
   useEffect(() => {
+    if (type === 'checkpoint') {
+      setModels(Object.values(checkpoints.models));
+    }
+    if (type === 'lora') {
+      setModels(Object.values(loras.models));
+    }
+  }, [type, loras.models, checkpoints.models]);
+
+  useEffect(() => {
     calcImagesValues();
 
     window.addEventListener('resize', calcImagesValues);
@@ -139,9 +148,10 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
   const rowRenderer = (row: VirtualScrollData) => {
     const items = row.row.map(({ item }: Fuse.FuseResult<Model>) => {
       const imagePath =
-        type === 'checkpoints'
+        type === 'checkpoint'
           ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
           : `${settings.lorasPath}\\${item.name}\\${item.name}_0.png`;
+
       return (
         <div
           onClick={() => onClick(item.hash)}
@@ -154,6 +164,7 @@ export default function Models({ type }: { type: 'checkpoints' | 'loras' }) {
             imagePath={imagePath}
             width={`${width}px`}
             height={`${height}px`}
+            type={type}
             imageClassName={{
               'object-contain': rowNumber === 1,
               'object-left': rowNumber === 1,

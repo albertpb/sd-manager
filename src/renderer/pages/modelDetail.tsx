@@ -35,7 +35,7 @@ export default function ModelDetail() {
 
   const settings = useSelector((state: RootState) => state.global.settings);
   const imagesToDelete = useSelector(
-    (state: RootState) => state.global.imagesToDelete
+    (state: RootState) => state.global.imagesToDelete,
   );
   const modelData: Model | null = useSelector((state: RootState) => {
     if (selectedModelHash) {
@@ -80,7 +80,7 @@ export default function ModelDetail() {
         if (modelsPath) {
           const modelCiviInfo = await window.ipcHandler.readFile(
             `${modelsPath}\\${modelData.name}.civitai.info`,
-            'utf-8'
+            'utf-8',
           );
           if (modelCiviInfo) {
             setModelCivitaiInfo(JSON.parse(modelCiviInfo));
@@ -93,7 +93,7 @@ export default function ModelDetail() {
           const modelImagesListResponse =
             await window.ipcHandler.readdirModelImages(
               modelData.name,
-              modelsPath
+              modelsPath,
             );
           setModelImagesList(modelImagesListResponse);
         }
@@ -115,7 +115,14 @@ export default function ModelDetail() {
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
     let rowsToShow = 1;
+
+    if (windowWidth <= 1320) {
+      setShowHead(false);
+    } else {
+      setShowHead(true);
+    }
 
     if (showHead) {
       rowsToShow = 1;
@@ -130,9 +137,7 @@ export default function ModelDetail() {
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
-    setPerChunk(
-      Math.floor((window.innerWidth - window.innerWidth * 0.15) / cardWidth)
-    );
+    setPerChunk(Math.floor((windowWidth - windowWidth * 0.15) / cardWidth));
   }, [showHead, containerHeight]);
 
   useEffect(() => {
@@ -154,7 +159,7 @@ export default function ModelDetail() {
       containerRef.current = node;
       calcImagesValues();
     },
-    [calcImagesValues]
+    [calcImagesValues],
   );
 
   const revealInFolder = (imgPath: string) => {
@@ -171,7 +176,7 @@ export default function ModelDetail() {
             dispatch(setImagesToDelete(imgs));
           } else {
             dispatch(
-              setImagesToDelete({ ...imagesToDelete, [item.hash]: true })
+              setImagesToDelete({ ...imagesToDelete, [item.hash]: true }),
             );
           }
         } else {
@@ -204,7 +209,7 @@ export default function ModelDetail() {
           hash: modelData.hash,
           field: 'rating',
           value: rating,
-        })
+        }),
       );
     }
   };
@@ -279,7 +284,7 @@ export default function ModelDetail() {
           }, []);
 
     const rowRenderer = (row: VirtualScrollData) => {
-      const items = row.row.map((item: Row, j: number) => {
+      const items = row.row.map((item: ImageRow, j: number) => {
         return (
           <div
             id={`${item.hash}`}
@@ -386,41 +391,39 @@ export default function ModelDetail() {
           </button>
         </div>
         <section className="w-11/12">
+          <div className="flex flex-row items-center">
+            <p className="text-2xl font-bold text-gray-300">{modelData.name}</p>
+            <div className="ml-4 flex">
+              <Rating
+                value={modelData.rating}
+                onClick={(value) => onRatingChange(value)}
+              />
+            </div>
+          </div>
           <div
             className={classNames('courtain', {
               'courtain-hidden': !showHead,
             })}
             style={{
-              height: showHead ? '427px' : '0px',
+              height: showHead ? '380px' : '0px',
             }}
           >
-            <div>
-              <div className="flex flex-row items-center">
-                <p className="text-2xl font-bold text-gray-300">
-                  {modelData.name}
-                </p>
-                <div className="ml-4 flex">
-                  <Rating
-                    value={modelData.rating}
-                    onClick={(value) => onRatingChange(value)}
-                  />
-                </div>
+            <div className="flex w-full mt-4">
+              <div className="w-4/6">
+                <Carousel responsive={responsive}>{modelImages}</Carousel>
               </div>
-              <div className="flex w-full my-4">
-                <div className="w-4/6">
-                  <Carousel responsive={responsive}>{modelImages}</Carousel>
-                </div>
-                <div className="w-2/6 pl-4">
-                  <div className="overflow-x-auto">
-                    <ModelTableDetail modelInfo={modelCivitaiInfo} />
-                  </div>
+              <div
+                className="w-2/6 pl-4 overflow-y-auto"
+                style={{ height: '330px' }}
+              >
+                <div className="">
+                  <ModelTableDetail modelInfo={modelCivitaiInfo} />
                 </div>
               </div>
             </div>
-            <hr className="mt-12 border-base-200" />
           </div>
           {chunks.length > 0 ? (
-            <div className="mt-8">
+            <div className="">
               <div className="flex items-center">
                 <div className="w-1/3"> </div>
                 <h3 className="text-xl font-bold text-center w-1/3">Images</h3>

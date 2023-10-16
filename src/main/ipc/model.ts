@@ -55,6 +55,12 @@ export const readdirModelsIpc = async (
   for (let i = 0; i < files.length; i++) {
     const fileNameNoExt = files[i].substring(0, files[i].lastIndexOf('.'));
 
+    if (browserWindow !== null) {
+      const progress = ((i + 1) / files.length) * 100;
+      const msg = `${files[i]}`;
+      browserWindow.webContents.send('models-progress', msg, progress);
+    }
+
     const modelInfoExists = await checkFileExists(
       `${folderPath}\\${fileNameNoExt}.civitai.info`,
     );
@@ -159,12 +165,6 @@ export const readdirModelsIpc = async (
           },
         );
       }
-    }
-
-    if (browserWindow !== null) {
-      const progress = ((i + 1) / files.length) * 100;
-      const msg = `${files[i]}`;
-      browserWindow.webContents.send('models-progress', msg, progress);
     }
   }
 

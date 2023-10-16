@@ -168,7 +168,12 @@ export default function Navbar() {
               ref={searchRef}
               type="text"
               placeholder="Search"
-              className="input input-bordered w-96"
+              className={classNames([
+                'input input-bordered w-96',
+                {
+                  'input-primary': searchValue !== '',
+                },
+              ])}
               value={searchValue}
               onChange={(e) =>
                 dispatch(setNavbarSearchInputValue(e.target.value))

@@ -8,7 +8,7 @@ export type ModelTableDetailProps = {
 export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
   const openCivitaiLink = () => {
     window.ipcHandler.openLink(
-      `https://civitai.com/models/${modelInfo.modelId}`
+      `https://civitai.com/models/${modelInfo.modelId}`,
     );
   };
 
@@ -37,7 +37,7 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
           <td>Trained words</td>
           <td>
             <div>
-              <CopyText>{modelInfo?.trainedWords?.join(' ') || ''}</CopyText>
+              <CopyText>{modelInfo?.trainedWords?.join(', ') || ''}</CopyText>
             </div>
           </td>
         </tr>
@@ -59,7 +59,7 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
             <button
               type="button"
               onClick={() => openCivitaiLink()}
-              className="link"
+              className="link px-5"
             >
               Civitai Link
             </button>

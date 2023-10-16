@@ -9,6 +9,7 @@ type ModelCardProps = {
   height?: string;
   rating?: number;
   imageClassName?: any;
+  type: string;
 };
 
 export default function ModelCard({
@@ -18,6 +19,7 @@ export default function ModelCard({
   width = '480px',
   height = '320px',
   imageClassName = 'object-cover',
+  type,
 }: ModelCardProps) {
   return (
     <div
@@ -40,7 +42,7 @@ export default function ModelCard({
         />
         <div className="absolute top-0 left-0 w-full">
           <div className="w-full h-full flex flex-row p-3">
-            <div className="badge badge-accent">checkpoint</div>
+            <div className="badge badge-accent">{type}</div>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 w-full p-3 flex ">
