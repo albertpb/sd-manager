@@ -5,14 +5,14 @@ import { ImageMetaData } from 'main/exif';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useCallback, useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from 'renderer/components/ConfirmDialog';
 import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
-import { AppDispatch } from 'renderer/redux';
+import { AppDispatch, RootState } from 'renderer/redux';
 import {
   deleteImages,
   setImagesToDelete,
@@ -27,6 +27,8 @@ export default function ImageDetail() {
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
 
+  const images = useSelector((state: RootState) => state.global.images);
+
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null,
   );
@@ -38,7 +40,8 @@ export default function ImageDetail() {
   );
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [markdownText, setMarkdownText] = useState<string | undefined>('');
-  const [cofirmDialogIsOpen, setConfirmDialogIsOpen] = useState<boolean>(false);
+  const [confirmDialogIsOpen, setConfirmDialogIsOpen] =
+    useState<boolean>(false);
 
   useEffect(() => {
     if (!hash) return;
@@ -75,6 +78,58 @@ export default function ImageDetail() {
     };
     load();
   }, [hash]);
+
+  const goToNextOrPrevImage = useCallback(
+    (next: boolean) => {
+      const index = images.findIndex((image) => image.hash === imageData?.hash);
+      if (index) {
+        const image = next ? images[index + 1] : images[index - 1];
+        if (image.hash) {
+          navigate(`/image-detail/${image.hash}`);
+        }
+      }
+    },
+    [imageData, images, navigate],
+  );
+
+  const deleteImage = useCallback(() => {
+    if (imageData) {
+      dispatch(
+        setImagesToDelete({
+          [imageData.hash]: true,
+        }),
+      );
+
+      setConfirmDialogIsOpen(true);
+    }
+  }, [imageData, dispatch]);
+
+  const doDelete = useCallback(async () => {
+    await dispatch(deleteImages());
+
+    goToNextOrPrevImage(false);
+  }, [dispatch, goToNextOrPrevImage]);
+
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        goToNextOrPrevImage(false);
+      }
+      if (e.key === 'ArrowRight') {
+        goToNextOrPrevImage(true);
+      }
+      if (e.key === 'Delete') {
+        deleteImage();
+      }
+      if (e.key === 'Enter' && confirmDialogIsOpen) {
+        doDelete();
+      }
+    };
+
+    window.addEventListener('keydown', listener);
+
+    return () => window.removeEventListener('keydown', listener);
+  }, [goToNextOrPrevImage, deleteImage, confirmDialogIsOpen, doDelete]);
 
   const goBack = useCallback(() => {
     navigate(-1);
@@ -124,6 +179,12 @@ export default function ImageDetail() {
     }
   };
 
+  const onCancelDelete = () => {
+    dispatch(setImagesToDelete({}));
+
+    setConfirmDialogIsOpen(false);
+  };
+
   if (!imageData) return null;
 
   if (showExif) {
@@ -156,28 +217,6 @@ export default function ImageDetail() {
     );
   }
 
-  const deleteImage = () => {
-    dispatch(
-      setImagesToDelete({
-        [imageData.hash]: true,
-      }),
-    );
-
-    setConfirmDialogIsOpen(true);
-  };
-
-  const onDeleteImages = async () => {
-    await dispatch(deleteImages());
-
-    navigate(-1);
-  };
-
-  const onCancelDelete = () => {
-    dispatch(setImagesToDelete({}));
-
-    setConfirmDialogIsOpen(false);
-  };
-
   return (
     <>
       <div className="flex">
@@ -197,6 +236,52 @@ export default function ImageDetail() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                  />
+                </svg>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="tooltip tooltip-right"
+                data-tip="Go Next Image or press ← Key"
+                onClick={() => goToNextOrPrevImage(true)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"
+                  />
+                </svg>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="tooltip tooltip-right"
+                data-tip="Go Next Image or press → Key"
+                onClick={() => goToNextOrPrevImage(false)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
                   />
                 </svg>
               </button>
@@ -314,9 +399,9 @@ export default function ImageDetail() {
       </div>
       <ConfirmDialog
         msg="Are you sure to delete selected images ?, only images from destination folder will be deleted"
-        isOpen={cofirmDialogIsOpen}
+        isOpen={confirmDialogIsOpen}
         onClose={() => onCancelDelete()}
-        onConfirm={() => onDeleteImages()}
+        onConfirm={() => doDelete()}
       />
     </>
   );
