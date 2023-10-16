@@ -52,18 +52,12 @@ export default function Images() {
   const maxRows = 3;
   const rowMargin = 10;
 
-  const filterImagesByRating = (rating: number) => {
-    if (filterByRating === rating) {
-      setFilterByRating(0);
-      setImagesList([...images]);
-    } else {
-      setFilterByRating(rating);
-      const filteredImages = images.filter((image) => image.rating === rating);
-      setImagesList(filteredImages);
-    }
-  };
+  const filterByRatingFunc = useCallback(
+    (img: ImageRow) => img.rating === filterByRating,
+    [filterByRating],
+  );
 
-  const filterFunc = useCallback(
+  const filterByModelFunc = useCallback(
     (img: ImageRow) => img.model === filterCheckpoint,
     [filterCheckpoint],
   );
@@ -72,13 +66,20 @@ export default function Images() {
     (sortByArg: string) => {
       setSortBy(sortByArg);
 
-      const filteredImages =
-        filterCheckpoint === '' ? [...images] : [...images].filter(filterFunc);
+      let filteredImages =
+        filterCheckpoint === ''
+          ? [...images]
+          : [...images].filter(filterByModelFunc);
+
+      filteredImages =
+        filterByRating > 0
+          ? filteredImages.filter(filterByRatingFunc)
+          : filteredImages;
 
       switch (sortByArg) {
         case 'rowNumAsc': {
           const sortedImages = filteredImages.sort(
-            (a, b) => a.rowNum - b.rowNum,
+            (a, b) => (a.rowNum || 0) - (b.rowNum || 0),
           );
           setImagesList(sortedImages);
           break;
@@ -86,7 +87,7 @@ export default function Images() {
 
         case 'rowNumDesc': {
           const sortedImages = filteredImages.sort(
-            (a, b) => b.rowNum - a.rowNum,
+            (a, b) => (b.rowNum || 0) - (a.rowNum || 0),
           );
           setImagesList(sortedImages);
           break;
@@ -130,8 +131,23 @@ export default function Images() {
         }
       }
     },
-    [filterFunc, images, filterCheckpoint],
+    [
+      filterByModelFunc,
+      images,
+      filterCheckpoint,
+      filterByRating,
+      filterByRatingFunc,
+    ],
   );
+
+  const filterImagesByRating = (rating: number) => {
+    if (rating === filterByRating) {
+      setFilterByRating(0);
+    } else {
+      setFilterByRating(rating);
+    }
+    sortFilterImages(sortBy);
+  };
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;

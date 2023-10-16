@@ -4,36 +4,39 @@ import SqliteDB from '../db';
 
 export async function getImagesIpc(
   event: IpcMainInvokeEvent,
-  modelName: string | undefined
+  modelName: string | undefined,
 ) {
   const db = await SqliteDB.getInstance().getdb();
 
   if (modelName) {
     return db.all(
-      `SELECT *, ROW_NUMBER () OVER (ORDER BY rowid ASC) rowNum FROM images WHERE model = $modelName AND deleted = 0 ORDER BY rating DESC, rowid DESC`,
+      `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE model = $modelName AND deleted = 0 ORDER BY rating DESC, rowNum DESC`,
       {
         $modelName: modelName,
-      }
+      },
     );
   }
 
   return db.all(
-    `SELECT *, ROW_NUMBER () OVER (ORDER BY rowid ASC) rowNum FROM images WHERE deleted = 0 ORDER BY rating DESC, rowid DESC`
+    `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE deleted = 0 ORDER BY rating DESC, rowNum DESC`,
   );
 }
 
 export async function getImageIpc(event: IpcMainInvokeEvent, hash: string) {
   const db = await SqliteDB.getInstance().getdb();
-  return db.get(`SELECT * FROM images WHERE hash = $hash`, {
-    $hash: hash,
-  });
+  return db.get(
+    `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE hash = $hash ORDER BY rating DESC, rowNum DESC`,
+    {
+      $hash: hash,
+    },
+  );
 }
 
 export async function updateImageIpc(
   event: IpcMainInvokeEvent,
   hash: string,
   field: string,
-  value: string
+  value: string,
 ) {
   const db = await SqliteDB.getInstance().getdb();
   return db.run(`UPDATE images SET ${field} = $value WHERE hash = $hash`, {
@@ -44,7 +47,7 @@ export async function updateImageIpc(
 
 export async function deleteImages(
   event: IpcMainInvokeEvent,
-  images: Record<string, boolean>
+  images: Record<string, boolean>,
 ) {
   const db = await SqliteDB.getInstance().getdb();
   const arr = Object.keys(images);

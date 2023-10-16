@@ -73,7 +73,7 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.handle('readdirModels', (event, model, folderPath) =>
-  readdirModelsIpc(mainWindow, event, model, folderPath)
+  readdirModelsIpc(mainWindow, event, model, folderPath),
 );
 ipcMain.handle('getImage', getImageIpc);
 ipcMain.handle('getImages', getImagesIpc);
@@ -113,7 +113,6 @@ ipcMain.handle(
 
       watcherImagesFolder = chokidar.watch(folderToWatch, {
         persistent: true,
-        depth: 1,
         ignoreInitial: true,
         awaitWriteFinish: true,
       });
@@ -131,7 +130,7 @@ ipcMain.handle(
         console.log(
           'imagesDestPathExists',
           imagesDestPath,
-          imagesDestPathExists
+          imagesDestPathExists,
         );
 
         if (imagesDestPathExists) {
@@ -186,7 +185,7 @@ ipcMain.handle(
                 $sourcePath: imagesData.sourcePath,
                 $name: imagesData.name,
                 $fileName: imagesData.fileName,
-              }
+              },
             );
 
             if (mainWindow !== null) {
@@ -196,7 +195,7 @@ ipcMain.handle(
         }
       });
     }
-  }
+  },
 );
 
 if (process.env.NODE_ENV === 'production') {
@@ -219,7 +218,7 @@ const installExtensions = async () => {
   return installer
     .default(
       extensions.map((name) => installer[name]),
-      forceDownload
+      forceDownload,
     )
     .catch(console.log);
 };
@@ -324,7 +323,7 @@ app
         `file:///${
           url.pathToFileURL(decodeURI(request.url.slice('sd:///'.length)))
             .pathname
-        }`
+        }`,
       );
     });
 

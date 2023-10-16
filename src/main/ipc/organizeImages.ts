@@ -14,7 +14,7 @@ import { extractMetadata, parseImageSdMeta } from '../exif';
 import { settingsDB } from './settings';
 
 export type ImageRow = {
-  rowNum: number;
+  rowNum?: number;
   hash: string;
   path: string;
   rating: number;
@@ -27,7 +27,7 @@ export type ImageRow = {
 };
 
 export const organizeImagesIpc = async (
-  browserWindow: BrowserWindow | null
+  browserWindow: BrowserWindow | null,
 ) => {
   const settings = await settingsDB('readAll');
 
@@ -43,7 +43,7 @@ export const organizeImagesIpc = async (
       acc[row.hash] = row;
       return acc;
     },
-    {}
+    {},
   );
 
   if (!folderExists) {
@@ -75,6 +75,12 @@ export const organizeImagesIpc = async (
     const file = fs.readFileSync(files[i]);
     const exif = extractMetadata(file);
 
+    if (browserWindow !== null) {
+      const progress = ((i + 1) / files.length) * 100;
+      const msg = `${files[i]}`;
+      browserWindow.webContents.send('images-progress', msg, progress);
+    }
+
     if (ext === 'png') {
       const metadata = parseImageSdMeta(exif);
 
@@ -93,7 +99,7 @@ export const organizeImagesIpc = async (
             fs.copyFileSync(
               files[i],
               imageDestPath,
-              fs.constants.COPYFILE_EXCL
+              fs.constants.COPYFILE_EXCL,
             );
           } catch (error) {
             console.log(`${imageDestPath} already exists`);
@@ -121,18 +127,12 @@ export const organizeImagesIpc = async (
                 $sourcePath: files[i],
                 $name: fileNameNoExt,
                 $fileName: fileName,
-              }
+              },
             );
           } catch (error) {
             console.log(error);
           }
         }
-      }
-
-      if (browserWindow !== null) {
-        const progress = ((i + 1) / files.length) * 100;
-        const msg = `${files[i]}`;
-        browserWindow.webContents.send('images-progress', msg, progress);
       }
     }
   }

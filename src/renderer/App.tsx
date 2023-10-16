@@ -26,7 +26,7 @@ export default function App() {
               <ImagesLoader>
                 <Routes>
                   <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Models type="checkpoints" />} />
+                    <Route index element={<Models type="checkpoint" />} />
                     <Route
                       path="/model-detail/:hash"
                       element={<ModelDetail />}
@@ -35,7 +35,7 @@ export default function App() {
                       path="/image-detail/:hash"
                       element={<ImageDetail />}
                     />
-                    <Route path="/loras" element={<Models type="loras" />} />
+                    <Route path="/loras" element={<Models type="lora" />} />
                     <Route path="/images" element={<Images />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/ar-helper" element={<AspectRatioHelper />} />
