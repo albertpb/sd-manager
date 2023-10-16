@@ -117,6 +117,18 @@ export const readdirModelsIpc = async (
       };
     }
 
+    if (!modelInfoExists) {
+      try {
+        modelInfo = await downloadModelInfoByHash(
+          fileNameNoExt,
+          modelsHashMap[fileNameNoExt].hash,
+          folderPath,
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
     if (modelInfoExists && !modelInfo) {
       const modelInfoStr = await fs.promises.readFile(
         `${folderPath}\\${fileNameNoExt}.civitai.info`,
