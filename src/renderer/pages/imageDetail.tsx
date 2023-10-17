@@ -153,7 +153,17 @@ export default function ImageDetail() {
             imageData.name
           }\\${createId()}.png`;
 
-          await window.ipcHandler.saveImageMD(file.path, dest);
+          try {
+            await window.ipcHandler.saveImageMD(file.path, dest);
+          } catch (error) {
+            console.log(error);
+
+            try {
+              await window.ipcHandler.saveImageFromClipboard(dest);
+            } catch (err) {
+              console.log(err);
+            }
+          }
 
           onMDChangeText(`${markdownText} \n ![](sd:///${dest}) \n`);
         }

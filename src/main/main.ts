@@ -59,7 +59,11 @@ import {
 } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
 import { fileAttach } from './ipc/fileAttach';
-import { saveMDIpc, saveImageMDIpc } from './ipc/saveMD';
+import {
+  saveMDIpc,
+  saveImageMDIpc,
+  saveImageFromClipboardIpc,
+} from './ipc/saveMD';
 import { readImageMetadata } from './ipc/metadata';
 
 class AppUpdater {
@@ -95,6 +99,7 @@ ipcMain.handle('getPaths', getPathsIpc);
 ipcMain.handle('fileAttach', fileAttach);
 ipcMain.handle('saveMD', saveMDIpc);
 ipcMain.handle('saveImageMD', saveImageMDIpc);
+ipcMain.handle('saveImageFromClipboard', saveImageFromClipboardIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
 
 let watcherImagesFolder: FSWatcher | null = null;

@@ -53,7 +53,7 @@ contextBridge.exposeInMainWorld('ipcOn', {
     return () => ipcRenderer.removeListener('detectedAddImage', cb);
   },
   duplicatesDetected: (
-    cb: (event: IpcRendererEvent, ...args: any[]) => any
+    cb: (event: IpcRendererEvent, ...args: any[]) => any,
   ) => {
     ipcRenderer.on('duplicates-detected', cb);
     return () => ipcRenderer.removeListener('duplicates-detected', cb);
