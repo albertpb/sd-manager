@@ -17,14 +17,16 @@ export const tabs = {
     label: 'Images',
     path: 'images',
   },
+  /*
   arHelper: {
     id: 'arHelper',
     label: 'AspectRatio Helper',
     path: 'ar-helper',
   },
+  */
   imageMetadata: {
     id: 'imageMetadata',
-    label: 'Image Metadata',
+    label: 'Png Info',
     path: 'image-metadata',
   },
   /*
@@ -45,7 +47,7 @@ export default function useTab() {
 
   useEffect(() => {
     const currentTab = Object.values(tabs).find(
-      (t) => `/${t.path}` === pathName
+      (t) => `/${t.path}` === pathName,
     );
     if (currentTab) {
       setTab(currentTab.id as Tabs);
