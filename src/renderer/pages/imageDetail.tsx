@@ -86,8 +86,10 @@ export default function ImageDetail() {
         const image = next ? images[index + 1] : images[index - 1];
         if (image.hash) {
           navigate(`/image-detail/${image.hash}`);
+          return;
         }
       }
+      navigate('/images');
     },
     [imageData, images, navigate],
   );
