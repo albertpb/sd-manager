@@ -44,8 +44,10 @@ export default function Navbar() {
   useEffect(() => {
     const keyListener = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'f') {
-        if (searchRef.current !== null) {
-          searchRef.current.focus();
+        if (location.pathname !== '/image-metadata') {
+          if (searchRef.current !== null) {
+            searchRef.current.focus();
+          }
         }
       }
     };
