@@ -63,6 +63,8 @@ export default class SqliteDB {
         "value" TEXT NOT NULL,
         PRIMARY KEY ("key")
       )`);
+
+      version.user_version = 1;
     }
 
     if (version.user_version === 1) {
@@ -75,6 +77,8 @@ export default class SqliteDB {
       }
 
       await db.run(`PRAGMA user_version = 2`);
+
+      version.user_version = 2;
     }
 
     if (version.user_version === 2) {
@@ -87,6 +91,8 @@ export default class SqliteDB {
       }
 
       await db.run(`PRAGMA user_version = 3`);
+
+      version.user_version = 3;
     }
 
     if (version.user_version === 3) {
@@ -99,6 +105,8 @@ export default class SqliteDB {
       }
 
       await db.run(`PRAGMA user_version = 4`);
+
+      version.user_version = 4;
     }
   }
 }
