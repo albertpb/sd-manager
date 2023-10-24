@@ -7,6 +7,7 @@ import {
   calculateHashFile,
   checkFolderExists,
   readModelInfoFile,
+  deleteModelFiles,
 } from '../util';
 import SqliteDB from '../db';
 import { settingsDB } from './settings';
@@ -69,7 +70,7 @@ export const readdirModelsIpc = async (
 
     if (!modelsHashMap[fileNameNoExt]) {
       const hash = await calculateHashFile(`${folderPath}\\${files[i]}`);
-      const path = `${folderPath}\\${files[i]}`;
+      const filePath = `${folderPath}\\${files[i]}`;
 
       // verify if is a valid hash by downloading info from civitai
       try {
@@ -84,11 +85,11 @@ export const readdirModelsIpc = async (
 
       try {
         await db.run(
-          `INSERT INTO models(hash, name, path, type, rating, baseModel) VALUES ($hash, $name, $path, $type, $rating, $baseModel)`,
+          `INSERT INTO models(hash, name, path, type, rating, baseModel) VALUES ($hash, $name, $path, $type, $rating, $baseModel, $modelId, $modelVersionId)`,
           {
             $hash: hash,
             $name: fileNameNoExt,
-            $path: path,
+            $path: filePath,
             $type: modelType,
             $rating: 1,
             $baseModel: modelInfo?.baseModel || '',
@@ -99,6 +100,8 @@ export const readdirModelsIpc = async (
         console.log(error);
 
         if (browserWindow !== null) {
+          await deleteModelFiles(filePath, fileNameNoExt);
+
           browserWindow.webContents.send(
             'duplicates-detected',
             'Detected model duplicated',
@@ -110,7 +113,7 @@ export const readdirModelsIpc = async (
       modelsHashMap[fileNameNoExt] = {
         hash,
         name: fileNameNoExt,
-        path,
+        path: filePath,
         type: modelType,
         rating: 1,
         baseModel: modelInfo?.baseModel || '',
