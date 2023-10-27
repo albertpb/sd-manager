@@ -40,11 +40,11 @@ export default function VirtualScroll({
 }: VirtualScrollProps) {
   const rowHeight = useMemo(
     () => settings.rowHeight + settings.rowMargin,
-    [settings.rowHeight, settings.rowMargin]
+    [settings.rowHeight, settings.rowMargin],
   );
   const containerHeight = useMemo(
     () => rowHeight * settings.buffer,
-    [rowHeight, settings.buffer]
+    [rowHeight, settings.buffer],
   );
 
   const [visibleRange, setVisibleRange] = useState({
@@ -63,7 +63,7 @@ export default function VirtualScroll({
       const start = Math.floor(scrollTop / rowHeight);
       const end = Math.min(
         start + Math.ceil(containerHeight / rowHeight),
-        data.length
+        data.length,
       );
 
       setVisibleRange({
@@ -86,7 +86,7 @@ export default function VirtualScroll({
   useEffect(() => {
     if (containerRef.current) {
       const localStorageScroll = window.localStorage.getItem(
-        `virtualScroll_${id}`
+        `virtualScroll_${id}`,
       );
       if (localStorageScroll) {
         const scrollTop = parseInt(localStorageScroll, 10);
@@ -104,7 +104,7 @@ export default function VirtualScroll({
 
   const visibleData = data.slice(
     Math.max(0, visibleRange.start),
-    Math.min(data.length, visibleRange.end)
+    Math.min(data.length, visibleRange.end),
   );
 
   const paddingTop = visibleRange.start * rowHeight;

@@ -1,14 +1,21 @@
 import Fuse from 'fuse.js';
-import { useSelector } from 'react-redux';
-import { RootState } from 'renderer/redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
 import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
+import {
+  setCheckingModelsUpdate,
+  setModelsCheckingUpdate,
+  setModelsToUpdate,
+  setNavbarDisabled,
+} from 'renderer/redux/reducers/global';
+import { IpcRendererEvent } from 'electron';
 
 interface RowData {
   row: Fuse.FuseResult<Model>[];
@@ -17,11 +24,14 @@ interface RowData {
 
 export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const checkpoints = useSelector(
-    (state: RootState) => state.global.checkpoints,
+    (state: RootState) => state.global.checkpoint,
   );
-  const loras = useSelector((state: RootState) => state.global.loras);
+  const loras = useSelector((state: RootState) => state.global.lora);
+
   const modelsState = type === 'checkpoint' ? checkpoints : loras;
+
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
@@ -30,7 +40,9 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const [models, setModels] = useState<Model[]>(
     Object.values(modelsState.models),
   );
-  const [filterBy, setFilterBy] = useState<string>('');
+
+  const [filterBy, setFilterBy] = useState<string>('none');
+  const [sortBy, setSortBy] = useState<string>('ratingDesc');
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -43,20 +55,35 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const maxRows = 3;
   const rowMargin = 10;
 
-  const onClick = (hash: string) => {
-    navigate(`/model-detail/${hash}`);
-  };
+  const onModelCardClick = useCallback(
+    (e: MouseEvent<HTMLDivElement>, hash: string) => {
+      if (e.ctrlKey) {
+        const model = Object.values(modelsState.models).find(
+          (m) => m.hash === hash,
+        );
+        if (model) {
+          window.ipcHandler.openLink(
+            `https://civitai.com/models/${model.modelId}`,
+          );
+          return;
+        }
+      }
+      if (!modelsState.checkingUpdates) {
+        navigate(`/model-detail/${hash}`);
+      }
+    },
+    [modelsState.checkingUpdates, navigate, modelsState.models],
+  );
 
-  const modelsList = Object.values(models).sort((a, b) => b.rating - a.rating);
-  const fuse = new Fuse(modelsList, {
+  const fuse = new Fuse(models, {
     keys: ['name'],
   });
 
   const resultCards =
     navbarSearchInput === ''
-      ? modelsList.map((chkpt, i) => {
+      ? models.map((model, i) => {
           return {
-            item: chkpt,
+            item: model,
             matches: [],
             score: 1,
             refIndex: i,
@@ -64,22 +91,87 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
         })
       : fuse.search(navbarSearchInput);
 
-  const filterByBaseModel = (baseModel: string) => {
-    if (baseModel === '') {
-      setModels(Object.values(modelsState.models));
-    } else if (baseModel === 'Other') {
-      const filteredModels = Object.values(modelsState.models).filter(
-        (model) => model.baseModel === 'Other' || model.baseModel === null,
-      );
-      setModels(filteredModels);
-    } else {
-      const filteredModels = Object.values(modelsState.models).filter(
-        (model) => model.baseModel === baseModel,
-      );
-      setModels(filteredModels);
-    }
-    setFilterBy(baseModel);
-  };
+  const sortFilterModels = useCallback(
+    (filter = 'none', sort = 'none') => {
+      let filterSortedModels = Object.values(modelsState.models);
+
+      switch (filter) {
+        case 'Other': {
+          filterSortedModels = filterSortedModels.filter(
+            (model) => model.baseModel === 'Other' || model.baseModel === null,
+          );
+          break;
+        }
+
+        case 'SD 1.5': {
+          filterSortedModels = filterSortedModels.filter(
+            (model) => model.baseModel === 'SD 1.5',
+          );
+          break;
+        }
+
+        case 'SDXL 1.0': {
+          filterSortedModels = filterSortedModels.filter(
+            (model) => model.baseModel === 'SDXL 1.0',
+          );
+          break;
+        }
+
+        case 'update': {
+          filterSortedModels = filterSortedModels.filter((model) => {
+            if (model.modelId) {
+              return modelsState.update[model.modelId].needUpdate;
+            }
+            return false;
+          });
+          break;
+        }
+
+        default: {
+          break;
+        }
+      }
+
+      switch (sort) {
+        case 'ratingAsc': {
+          filterSortedModels = filterSortedModels.sort(
+            (a, b) => a.rating - b.rating,
+          );
+          break;
+        }
+
+        case 'ratingDesc': {
+          filterSortedModels = filterSortedModels.sort(
+            (a, b) => b.rating - a.rating,
+          );
+          break;
+        }
+
+        case 'modelIdAsc': {
+          filterSortedModels = filterSortedModels.sort(
+            (a, b) => (a.modelId || 0) - (b.modelId || 0),
+          );
+          break;
+        }
+
+        case 'modelIdDesc': {
+          filterSortedModels = filterSortedModels.sort(
+            (a, b) => (b.modelId || 0) - (a.modelId || 0),
+          );
+          break;
+        }
+
+        default: {
+          break;
+        }
+      }
+
+      setSortBy(sort);
+      setFilterBy(filter);
+      setModels(filterSortedModels);
+    },
+    [modelsState.models, modelsState.update],
+  );
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
@@ -114,13 +206,8 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   };
 
   useEffect(() => {
-    if (type === 'checkpoint') {
-      setModels(Object.values(checkpoints.models));
-    }
-    if (type === 'lora') {
-      setModels(Object.values(loras.models));
-    }
-  }, [type, loras.models, checkpoints.models]);
+    sortFilterModels('none', 'ratingDesc');
+  }, [sortFilterModels]);
 
   useEffect(() => {
     calcImagesValues();
@@ -129,6 +216,48 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
     return () => window.removeEventListener('resize', calcImagesValues);
   }, [containerRef, width, calcImagesValues]);
+
+  const checkUpdates = async () => {
+    setModels([]);
+    setSortBy('none');
+    setFilterBy('none');
+    dispatch(setNavbarDisabled(true));
+    dispatch(setCheckingModelsUpdate({ type, updating: true }));
+    await window.ipcHandler.checkModelsToUpdate(type);
+    dispatch(setNavbarDisabled(false));
+    dispatch(setCheckingModelsUpdate({ type, updating: false }));
+    sortFilterModels('update', 'modelIdAsc');
+  };
+
+  const checkingModelUpdateCb = useCallback(
+    (event: IpcRendererEvent, loading: boolean, modelId: number) => {
+      if (models.findIndex((model) => model.modelId === modelId) === -1) {
+        const updatingModels = Object.values(modelsState.models).filter(
+          (model) => model.modelId === modelId,
+        );
+        setModels([...updatingModels, ...models]);
+      }
+
+      dispatch(setModelsCheckingUpdate({ type, modelId, loading }));
+    },
+    [dispatch, modelsState.models, type, models],
+  );
+
+  useEffect(() => {
+    const remove = window.ipcOn.checkingModelUpdate(checkingModelUpdateCb);
+
+    return () => remove();
+  }, [checkingModelUpdateCb]);
+
+  useEffect(() => {
+    const remove = window.ipcOn.modelToUpdate(
+      (event: IpcRendererEvent, modelId: number) => {
+        dispatch(setModelsToUpdate({ type, modelId }));
+      },
+    );
+
+    return () => remove();
+  }, [dispatch, type]);
 
   const chunks = resultCards.reduce((resultArr: RowData[], item, index) => {
     const chunkIndex = Math.floor(index / perChunk);
@@ -152,13 +281,24 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
           ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
           : `${settings.lorasPath}\\${item.name}\\${item.name}_0.png`;
 
+      const loading =
+        item.modelId && modelsState.update[item.modelId]
+          ? modelsState.update[item.modelId].loading
+          : false;
+      const needUpdate =
+        item.modelId && modelsState.update[item.modelId]
+          ? modelsState.update[item.modelId].needUpdate
+          : false;
+
       return (
         <div
-          onClick={() => onClick(item.hash)}
+          onClick={(e) => onModelCardClick(e, item.hash)}
           key={`${item.hash}_${item.name}`}
           aria-hidden="true"
         >
           <ModelCard
+            loading={loading}
+            needUpdate={needUpdate}
             name={item.name}
             rating={item.rating}
             imagePath={imagePath}
@@ -187,7 +327,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
       <div className="w-fit h-full">
         <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
           <li>
-            <button type="button">
+            <button type="button" disabled={modelsState.checkingUpdates}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -205,7 +345,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip={`rows ${rowNumber}`}>
-            <button type="button" onClick={() => changeImageRow()}>
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => changeImageRow()}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -223,7 +367,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="All">
-            <button type="button" onClick={() => filterByBaseModel('')}>
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels()}
+            >
               <span
                 className={classNames([
                   'w-5 h-5',
@@ -237,7 +385,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="SD 1.5">
-            <button type="button" onClick={() => filterByBaseModel('SD 1.5')}>
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels('SD 1.5', sortBy)}
+            >
               <span
                 className={classNames([
                   'w-5 h-5',
@@ -251,7 +403,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="SD XL">
-            <button type="button" onClick={() => filterByBaseModel('SDXL 1.0')}>
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels('SDXL 1.0', sortBy)}
+            >
               <span
                 className={classNames([
                   'w-5 h-5',
@@ -265,7 +421,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="SD Other">
-            <button type="button" onClick={() => filterByBaseModel('Other')}>
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels('Other', sortBy)}
+            >
               <span
                 className={classNames([
                   'w-5 h-5',
@@ -276,6 +436,103 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
               >
                 Oth
               </span>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="Check Updates">
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => checkUpdates()}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by rating asc">
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels(filterBy, 'ratingAsc')}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'ratingAsc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="sort by rating desc">
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels(filterBy, 'ratingDesc')}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'ratingDesc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="filter update">
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => sortFilterModels('update', 'modelIdAsc')}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': filterBy === 'update' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859M12 3v8.25m0 0l-3-3m3 3l3-3"
+                />
+              </svg>
             </button>
           </li>
         </ul>

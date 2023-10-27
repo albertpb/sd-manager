@@ -8,7 +8,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
   const initialized = useSelector(
-    (state: RootState) => state.global.initialized
+    (state: RootState) => state.global.initialized,
   );
   const settings = useSelector((state: RootState) => state.global.settings);
 
@@ -19,7 +19,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
       if (!initialized) {
         await window.ipcHandler.readdirModels(
           'checkpoint',
-          settings.checkpointsPath
+          settings.checkpointsPath,
         );
         await window.ipcHandler.readdirModels('lora', settings.lorasPath);
         await dispatch(readCheckpoints());

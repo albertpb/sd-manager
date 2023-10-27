@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import {
   checkFileExists,
@@ -8,6 +9,9 @@ import {
   checkFolderExists,
   readModelInfoFile,
   deleteModelFiles,
+  getModelInfo,
+  sleep,
+  getAllFiles,
 } from '../util';
 import SqliteDB from '../db';
 import { settingsDB } from './settings';
@@ -20,6 +24,8 @@ export type Model = {
   type: string;
   rating: number;
   baseModel: string | null;
+  modelId: number | null;
+  modelVersionId: number | null;
 };
 
 export const readdirModelsIpc = async (
@@ -45,39 +51,37 @@ export const readdirModelsIpc = async (
     return modelsHashMap;
   }
 
-  const dirents = fs.readdirSync(folderPath, {
-    withFileTypes: true,
-  });
-  const files = dirents
-    .filter((dirent) => dirent.isFile())
-    .map((dirent) => dirent.name)
-    .filter((f) => f.match(/(.safetensors|.ckpt)/));
+  const files = getAllFiles(folderPath).filter(
+    (f) => f.endsWith('.safetensors') || f.endsWith('.ckpt'),
+  );
 
   for (let i = 0; i < files.length; i++) {
-    const fileNameNoExt = files[i].substring(0, files[i].lastIndexOf('.'));
+    const parsedFile = path.parse(files[i]);
+    const baseName = parsedFile.base;
+    const fileNameNoExt = parsedFile.name;
+    const fileFolderPath = parsedFile.dir;
 
     if (browserWindow !== null) {
       const progress = ((i + 1) / files.length) * 100;
-      const msg = `${files[i]}`;
+      const msg = `${baseName}`;
       browserWindow.webContents.send('models-progress', msg, progress);
     }
 
     const modelInfoExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.civitai.info`,
+      `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
     );
 
     let modelInfo: ModelCivitaiInfo | undefined;
 
     if (!modelsHashMap[fileNameNoExt]) {
-      const hash = await calculateHashFile(`${folderPath}\\${files[i]}`);
-      const filePath = `${folderPath}\\${files[i]}`;
+      const hash = await calculateHashFile(`${files[i]}`);
 
       // verify if is a valid hash by downloading info from civitai
       try {
         modelInfo = await downloadModelInfoByHash(
           fileNameNoExt,
           hash,
-          folderPath,
+          fileFolderPath,
         );
       } catch (error) {
         continue;
@@ -85,22 +89,24 @@ export const readdirModelsIpc = async (
 
       try {
         await db.run(
-          `INSERT INTO models(hash, name, path, type, rating, baseModel) VALUES ($hash, $name, $path, $type, $rating, $baseModel, $modelId, $modelVersionId)`,
+          `INSERT INTO models(hash, name, path, type, rating, baseModel, modelId, modelVersionId) VALUES ($hash, $name, $path, $type, $rating, $baseModel, $modelId, $modelVersionId)`,
           {
             $hash: hash,
             $name: fileNameNoExt,
-            $path: filePath,
+            $path: files[i],
             $type: modelType,
             $rating: 1,
             $baseModel: modelInfo?.baseModel || '',
+            $modelId: modelInfo?.modelId || null,
+            $modelVersionId: modelInfo?.id || null,
           },
         );
       } catch (error) {
-        console.log(fileNameNoExt, modelType, hash);
+        console.log(files[i], modelType, hash);
         console.log(error);
 
         if (browserWindow !== null) {
-          await deleteModelFiles(filePath, fileNameNoExt);
+          await deleteModelFiles(fileFolderPath, fileNameNoExt);
 
           browserWindow.webContents.send(
             'duplicates-detected',
@@ -113,10 +119,12 @@ export const readdirModelsIpc = async (
       modelsHashMap[fileNameNoExt] = {
         hash,
         name: fileNameNoExt,
-        path: filePath,
+        path: fileFolderPath,
         type: modelType,
         rating: 1,
         baseModel: modelInfo?.baseModel || '',
+        modelId: modelInfo?.id || null,
+        modelVersionId: modelInfo?.modelId || null,
       };
     }
 
@@ -125,7 +133,7 @@ export const readdirModelsIpc = async (
         modelInfo = await downloadModelInfoByHash(
           fileNameNoExt,
           modelsHashMap[fileNameNoExt].hash,
-          folderPath,
+          fileFolderPath,
         );
       } catch (error) {
         console.log(error);
@@ -134,19 +142,19 @@ export const readdirModelsIpc = async (
 
     if (modelInfoExists && !modelInfo) {
       const modelInfoStr = await fs.promises.readFile(
-        `${folderPath}\\${fileNameNoExt}.civitai.info`,
+        `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
         { encoding: 'utf-8' },
       );
       modelInfo = JSON.parse(modelInfoStr);
     }
 
     const imageExists = await checkFileExists(
-      `${folderPath}\\${fileNameNoExt}.png`,
+      `${fileFolderPath}\\${fileNameNoExt}.png`,
     );
 
     if (!imageExists) {
       if (modelInfo && modelInfo.images && modelInfo.images.length > 0) {
-        const imagesModelFolder = `${folderPath}\\${fileNameNoExt}`;
+        const imagesModelFolder = `${fileFolderPath}\\${fileNameNoExt}`;
         const imagesModelFolderExists =
           await checkFolderExists(imagesModelFolder);
         if (!imagesModelFolderExists) {
@@ -176,6 +184,22 @@ export const readdirModelsIpc = async (
           `UPDATE models SET baseModel = $baseModel WHERE hash = $hash`,
           {
             $baseModel: modelInfo.baseModel,
+            $hash: modelsHashMap[fileNameNoExt].hash,
+          },
+        );
+      }
+    }
+
+    if (
+      !modelsHashMap[fileNameNoExt].modelId ||
+      !modelsHashMap[fileNameNoExt].modelVersionId
+    ) {
+      if (modelInfo) {
+        await db.run(
+          `UPDATE models SET modelId = $modelId, modelVersionId = $modelVersionId WHERE hash = $hash`,
+          {
+            $modelId: modelInfo.modelId,
+            $modelVersionId: modelInfo.id,
             $hash: modelsHashMap[fileNameNoExt].hash,
           },
         );
@@ -218,17 +242,25 @@ export async function readModelsIpc(event: IpcMainInvokeEvent, type: string) {
   }, {});
 }
 
+export const updateModel = async (
+  hash: string,
+  field: string,
+  value: string,
+) => {
+  const db = await SqliteDB.getInstance().getdb();
+  await db.run(`UPDATE models SET ${field} = $value WHERE hash = $hash`, {
+    $value: value,
+    $hash: hash,
+  });
+};
+
 export async function updateModelIpc(
   event: IpcMainInvokeEvent,
   hash: string,
   field: string,
   value: string,
 ) {
-  const db = await SqliteDB.getInstance().getdb();
-  return db.run(`UPDATE models SET ${field} = $value WHERE hash = $hash`, {
-    $value: value,
-    $hash: hash,
-  });
+  await updateModel(hash, field, value);
 }
 
 export const readModelInfoIpc = async (
@@ -260,4 +292,75 @@ export async function readModelByNameIpc(
     $name: name,
     $type: type,
   });
+}
+
+export async function checkModelsToUpdateIpc(
+  browserWindow: BrowserWindow | null,
+  event: IpcMainInvokeEvent,
+  type: string,
+) {
+  const db = await SqliteDB.getInstance().getdb();
+  const models: Model[] = await db.all(
+    `SELECT * FROM models WHERE type = $type`,
+    {
+      $type: type,
+    },
+  );
+
+  const modelsById = models.reduce((acc: Record<string, Model>, model) => {
+    if (model.modelVersionId) {
+      acc[model.modelVersionId] = model;
+    }
+    return acc;
+  }, {});
+
+  const modelsIdsSet = new Set<number>();
+  for (let i = 0; i < models.length; i++) {
+    const modelId = models[i].modelId;
+    if (modelId !== null) {
+      modelsIdsSet.add(modelId);
+    }
+  }
+  let modelsIds = Array.from(modelsIdsSet) as number[];
+  modelsIds = modelsIds.sort((a, b) => a - b);
+
+  for (let i = 0; i < modelsIds.length; i++) {
+    try {
+      if (browserWindow !== null) {
+        browserWindow.webContents.send(
+          'checking-model-update',
+          true,
+          modelsIds[i],
+        );
+      }
+
+      await sleep(2000);
+
+      const model = await getModelInfo(modelsIds[i]);
+
+      if (browserWindow !== null) {
+        browserWindow.webContents.send(
+          'checking-model-update',
+          false,
+          modelsIds[i],
+        );
+      }
+
+      if (!modelsById[model.modelVersions[0].id]) {
+        if (browserWindow !== null) {
+          browserWindow.webContents.send('model-need-update', modelsIds[i]);
+        }
+      }
+    } catch (error) {
+      console.log(error);
+
+      if (browserWindow !== null) {
+        browserWindow.webContents.send(
+          'checking-model-update',
+          false,
+          modelsIds[i],
+        );
+      }
+    }
+  }
 }

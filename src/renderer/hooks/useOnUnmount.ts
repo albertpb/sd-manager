@@ -2,7 +2,7 @@ import { DependencyList, useEffect, useRef } from 'react';
 
 const useOnUnmount = (
   callback: () => void,
-  dependencies: DependencyList | undefined
+  dependencies: DependencyList | undefined,
 ) => {
   const isUnmounting = useRef(false);
 
@@ -14,7 +14,7 @@ const useOnUnmount = (
         callback();
       }
     },
-    dependencies
+    dependencies,
   );
 };
 

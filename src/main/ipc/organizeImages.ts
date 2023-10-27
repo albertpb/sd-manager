@@ -8,6 +8,7 @@ import {
   calculateHashFile,
   checkFileExists,
   checkFolderExists,
+  getAllFiles,
   getFileNameExt,
 } from '../util';
 import { extractMetadata, parseImageSdMeta } from '../exif';
@@ -51,20 +52,6 @@ export const organizeImagesIpc = async (
       recursive: true,
     });
   }
-
-  const getAllFiles = (dirPath: string, arrayOfFiles: string[] = []) => {
-    const files = fs.readdirSync(dirPath);
-
-    files.forEach((file) => {
-      if (fs.statSync(`${dirPath}\\${file}`).isDirectory()) {
-        arrayOfFiles = getAllFiles(`${dirPath}\\${file}`, arrayOfFiles);
-      } else {
-        arrayOfFiles.push(`${dirPath}\\${file}`);
-      }
-    });
-
-    return arrayOfFiles;
-  };
 
   const files = getAllFiles(imagesSrcPath);
 

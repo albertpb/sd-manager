@@ -5,7 +5,7 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { ModelCivitaiInfo } from './interfaces';
+import { ModelCivitaiInfo, ModelInfo } from './interfaces';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -33,7 +33,7 @@ export function checkFolderExists(folder: string) {
 
 export function calculateHashFile(
   filePath: string,
-  algorithm = 'sha256'
+  algorithm = 'sha256',
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     const shasum = crypto.createHash(algorithm);
@@ -63,7 +63,7 @@ export function calculateHashFile(
 
 export function calculateHashFileOnWorker(
   filePath: string,
-  algorithm = 'sha256'
+  algorithm = 'sha256',
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(
@@ -73,7 +73,7 @@ export function calculateHashFileOnWorker(
           filePath,
           algorithm,
         },
-      }
+      },
     );
 
     worker.on('message', resolve);
@@ -89,17 +89,17 @@ export function calculateHashFileOnWorker(
 export async function downloadModelInfoByHash(
   modelName: string,
   hash: string,
-  downloadDir: string
+  downloadDir: string,
 ) {
   try {
     const response = await axios.get(
-      `https://civitai.com/api/v1/model-versions/by-hash/${hash}`
+      `https://civitai.com/api/v1/model-versions/by-hash/${hash}`,
     );
 
     await fs.promises.writeFile(
       `${downloadDir}\\${modelName}.civitai.info`,
       JSON.stringify(response.data, null, 2),
-      { encoding: 'utf-8' }
+      { encoding: 'utf-8' },
     );
 
     return response.data;
@@ -107,7 +107,7 @@ export async function downloadModelInfoByHash(
     await fs.promises.writeFile(
       `${downloadDir}\\${modelName}.civitai.info`,
       '{}',
-      { encoding: 'utf-8' }
+      { encoding: 'utf-8' },
     );
 
     throw error;
@@ -118,7 +118,7 @@ export async function downloadImage(
   fileName: string,
   url: string,
   savePath: string,
-  resolution = 1024
+  resolution = 1024,
 ) {
   const fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
 
@@ -171,3 +171,70 @@ export const getFilenameNoExt = (fileName: string) => {
 export const getFileNameExt = (fileName: string) => {
   return fileName.split('.').pop();
 };
+
+export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
+  try {
+    const folderPath = path.dirname(filePath);
+
+    fs.unlinkSync(filePath);
+    fs.rmdirSync(`${folderPath}\\${fileNameNoExt}`);
+    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.civitai.info`);
+    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.preview.png`);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getModelInfo = async (modelId: number): Promise<ModelInfo> => {
+  const response = await axios.get(
+    `https://civitai.com/api/v1/models/${modelId}`,
+  );
+  return response.data;
+};
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export function retryPromise<T>(
+  promiseFactory: () => Promise<T>,
+  maxAttempts: number,
+  delayMs: number,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+
+    function attempt() {
+      promiseFactory()
+        .then(resolve)
+        .catch((error) => {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(attempt, delayMs); // Retry after a delay
+          } else {
+            reject(error); // Reject if maxAttempts reached
+          }
+        });
+    }
+
+    attempt(); // Start the first attempt
+  });
+}
+
+export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
+  const files = fs.readdirSync(dirPath, { withFileTypes: true });
+
+  arrayOfFiles = arrayOfFiles || [];
+
+  files.forEach((file) => {
+    if (file.isDirectory()) {
+      arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
+    } else {
+      arrayOfFiles.push(`${file.path}\\${file.name}`);
+    }
+  });
+
+  return arrayOfFiles;
+}

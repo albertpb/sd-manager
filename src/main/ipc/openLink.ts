@@ -6,7 +6,7 @@ export const openLinkIpc = async (event: IpcMainInvokeEvent, url: string) => {
 
 export const openFolderLinkIpc = async (
   event: IpcMainInvokeEvent,
-  url: string
+  url: string,
 ) => {
   shell.showItemInFolder(url);
 };

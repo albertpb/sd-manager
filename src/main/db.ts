@@ -108,5 +108,18 @@ export default class SqliteDB {
 
       version.user_version = 4;
     }
+
+    if (version.user_Version === 4) {
+      try {
+        await db.run(`ALTER TABLE models ADD COLUMN modelId INTEGER`);
+        await db.run(`ALTER TABLE models ADD COLUMN modelVersionId INTEGER`);
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 5`);
+
+      version.user_version = 5;
+    }
   }
 }

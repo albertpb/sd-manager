@@ -9,7 +9,7 @@ import { RootState } from '.';
 export default function Notificator({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const imageLoading = useSelector<RootState>(
-    (state) => state.global.imagesLoading
+    (state) => state.global.imagesLoading,
   );
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function Notificator({ children }: { children: ReactNode }) {
             onClick: () => navigate(`/image-detail/${imageData.hash}`),
             closeOnClick: true,
             autoClose: 5000,
-          }
+          },
         );
       }
     };

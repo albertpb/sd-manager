@@ -1,5 +1,5 @@
 type ModelInfoFile = {
-  id: string;
+  id: number;
   url: string;
   sizeKB: number;
   name: string;
@@ -41,8 +41,8 @@ type ModelInfoImage = {
 };
 
 export type ModelCivitaiInfo = {
-  id: string;
-  modelId: string;
+  id: number;
+  modelId: number;
   name: string;
   createdAt: string;
   updatedAt: string;
@@ -65,4 +65,31 @@ export type ModelCivitaiInfo = {
   files: ModelInfoFile[];
   images: ModelInfoImage[];
   downloadUrl: string;
+};
+
+export type ModelInfo = {
+  id: number;
+  name: string;
+  description: string;
+  type: string;
+  poi: boolean;
+  nsfw: boolean;
+  allowNoCredit: boolean;
+  allowCommercialUse: string;
+  allowDerivatives: boolean;
+  allowDifferentLicense: boolean;
+  stats: {
+    downloadCount: number;
+    ratingCount: number;
+    rating: number;
+    favoriteCount: number;
+    commentCount: number;
+    tippedAmountCount: number;
+  };
+  creator: {
+    username: string;
+    image: string;
+  };
+  tags: string[];
+  modelVersions: ModelCivitaiInfo[];
 };

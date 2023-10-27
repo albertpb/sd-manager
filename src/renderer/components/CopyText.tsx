@@ -18,7 +18,7 @@ export default function CopyText({ children }: { children: string }) {
       onClick={() => onClick()}
       className={classNames(
         'copy-hover hover:backdrop-brightness-50 cursor-pointer flex justify-between items-center px-5 py-2',
-        classEffect
+        classEffect,
       )}
     >
       <p className="prose max-w-none">{children}</p>

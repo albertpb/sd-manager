@@ -11,6 +11,7 @@ const channels = [
   'organizeImages',
   'readModels',
   'updateModel',
+  'checkModelsToUpdate',
   'readModel',
   'readModelByName',
   'selectDir',
@@ -28,6 +29,7 @@ const channels = [
   'saveImageMD',
   'saveImageFromClipboard',
   'readImageMetadata',
+  'checkModelsToUpdate',
 ] as const;
 export type Channels = (typeof channels)[number];
 
@@ -49,13 +51,23 @@ contextBridge.exposeInMainWorld('ipcOn', {
     return () => ipcRenderer.removeListener('images-progress', cb);
   },
   detectedAddImage: (cb: (event: IpcRendererEvent, ...args: any[]) => any) => {
-    ipcRenderer.on('detectedAddImage', cb);
-    return () => ipcRenderer.removeListener('detectedAddImage', cb);
+    ipcRenderer.on('detected-add-image', cb);
+    return () => ipcRenderer.removeListener('detected-add-image', cb);
   },
   duplicatesDetected: (
     cb: (event: IpcRendererEvent, ...args: any[]) => any,
   ) => {
     ipcRenderer.on('duplicates-detected', cb);
     return () => ipcRenderer.removeListener('duplicates-detected', cb);
+  },
+  checkingModelUpdate: (
+    cb: (event: IpcRendererEvent, ...args: any[]) => any,
+  ) => {
+    ipcRenderer.on('checking-model-update', cb);
+    return () => ipcRenderer.removeListener('checking-model-update', cb);
+  },
+  modelToUpdate: (cb: (event: IpcRendererEvent, ...args: any[]) => any) => {
+    ipcRenderer.on('model-need-update', cb);
+    return () => ipcRenderer.removeListener('model-need-update', cb);
   },
 });

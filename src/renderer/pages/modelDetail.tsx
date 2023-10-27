@@ -39,11 +39,11 @@ export default function ModelDetail() {
   );
   const modelData: Model | null = useSelector((state: RootState) => {
     if (selectedModelHash) {
-      if (state.global.checkpoints.models[selectedModelHash]) {
-        return state.global.checkpoints.models[selectedModelHash];
+      if (state.global.checkpoint.models[selectedModelHash]) {
+        return state.global.checkpoint.models[selectedModelHash];
       }
-      if (state.global.loras.models[selectedModelHash]) {
-        return state.global.loras.models[selectedModelHash];
+      if (state.global.lora.models[selectedModelHash]) {
+        return state.global.lora.models[selectedModelHash];
       }
     }
     return null;

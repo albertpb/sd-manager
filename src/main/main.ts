@@ -37,6 +37,7 @@ import { settingsDB, settingsIpc } from './ipc/settings';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import { ImageRow, organizeImagesIpc } from './ipc/organizeImages';
 import {
+  checkModelsToUpdateIpc,
   readModelByNameIpc,
   readModelInfoIpc,
   readModelIpc,
@@ -86,6 +87,9 @@ ipcMain.handle('deleteImages', deleteImages);
 ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
 ipcMain.handle('readModels', readModelsIpc);
 ipcMain.handle('updateModel', updateModelIpc);
+ipcMain.handle('checkModelsToUpdate', (event, type) =>
+  checkModelsToUpdateIpc(mainWindow, event, type),
+);
 ipcMain.handle('readModel', readModelIpc);
 ipcMain.handle('readModelByName', readModelByNameIpc);
 ipcMain.handle('settings', settingsIpc);
@@ -194,7 +198,7 @@ ipcMain.handle(
             );
 
             if (mainWindow !== null) {
-              mainWindow.webContents.send('detectedAddImage', imagesData);
+              mainWindow.webContents.send('detected-add-image', imagesData);
             }
           }
         }

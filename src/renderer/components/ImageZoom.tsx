@@ -13,7 +13,7 @@ export default function ImageZoom({ src, alt }: { src: string; alt: string }) {
         img.style.setProperty('transform', value);
       }
     },
-    [imgRef]
+    [imgRef],
   );
 
   return (

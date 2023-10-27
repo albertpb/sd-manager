@@ -10,6 +10,8 @@ type ModelCardProps = {
   rating?: number;
   imageClassName?: any;
   type: string;
+  loading?: boolean;
+  needUpdate?: boolean;
 };
 
 export default function ModelCard({
@@ -20,14 +22,30 @@ export default function ModelCard({
   height = '320px',
   imageClassName = 'object-cover',
   type,
+  loading = false,
+  needUpdate = false,
 }: ModelCardProps) {
+  const loadingOverlay = (
+    <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
+      <span className="loading loading-ring loading-lg" />
+      <div>Checking . . .</div>
+    </div>
+  );
+
   return (
     <div
-      className="relative overflow-hidden rounded-md p-0 m-2 cursor-pointer"
+      className={classNames([
+        'relative overflow-hidden rounded-md p-0 m-2 cursor-pointer',
+      ])}
       style={{ width, height }}
     >
+      {loading && loadingOverlay}
       <figure
-        className="card__figure animated rounded-md overflow-hidden relative"
+        className={classNames([
+          'card__figure rounded-md overflow-hidden',
+          { animate: !loading },
+          { 'blur-sm': loading },
+        ])}
         style={{ width, height }}
       >
         <div className="absolute top-2 right-2 z-20">
@@ -41,8 +59,11 @@ export default function ModelCard({
           className={classNames([imageClassName])}
         />
         <div className="absolute top-0 left-0 w-full">
-          <div className="w-full h-full flex flex-row p-3">
-            <div className="badge badge-accent">{type}</div>
+          <div className="w-full h-full flex p-3 flex-col">
+            <div className="badge badge-accent mb-2">{type}</div>
+            {needUpdate ? (
+              <div className="badge badge-warning mb-2">Update Available</div>
+            ) : null}
           </div>
         </div>
         <div className="absolute bottom-0 left-0 w-full p-3 flex ">

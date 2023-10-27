@@ -17,6 +17,9 @@ export default function Navbar() {
   const dispatch = useDispatch<AppDispatch>();
   const currentTab = useTab();
   const searchRef = useRef<HTMLInputElement>(null);
+  const navbarDisabled = useSelector(
+    (state: RootState) => state.global.navbarDisabled,
+  );
   const searchValue = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
   );
@@ -29,7 +32,7 @@ export default function Navbar() {
   )(imagesToDelete);
 
   const models = useSelector(
-    (state: RootState) => state.global.checkpoints.models,
+    (state: RootState) => state.global.checkpoint.models,
   );
   const checkpoints = createSelector(
     (state: typeof models) => state,
@@ -57,7 +60,7 @@ export default function Navbar() {
     return () => {
       document.removeEventListener('keydown', keyListener);
     };
-  }, []);
+  }, [location.pathname]);
 
   const onDeleteImages = () => {
     dispatch(deleteImages());
@@ -68,7 +71,7 @@ export default function Navbar() {
   };
 
   const imagesToDeleteButton =
-    imagesToDeleteCount > 0 ? (
+    imagesToDeleteCount > 0 && !navbarDisabled ? (
       <button
         type="button"
         className="mx-1 btn btn-outline btn-info"
@@ -96,7 +99,13 @@ export default function Navbar() {
     <li key={t.id}>
       <Link
         to={t.path}
-        className={classNames([{ active: t.id === currentTab }])}
+        className={classNames([
+          { active: t.id === currentTab },
+          { disabled: navbarDisabled },
+        ])}
+        onClick={(e) => {
+          if (navbarDisabled) e.preventDefault();
+        }}
       >
         {t.label}
       </Link>
@@ -182,7 +191,16 @@ export default function Navbar() {
               }
             />
           </div>
-          <Link className="btn btn-square btn-ghost" to="/settings">
+          <Link
+            className={classNames([
+              'btn btn-square btn-ghost',
+              { disabled: navbarDisabled },
+            ])}
+            to="/settings"
+            onClick={(e) => {
+              if (navbarDisabled) e.preventDefault();
+            }}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
