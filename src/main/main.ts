@@ -53,11 +53,7 @@ import {
   getImagesIpc,
   updateImageIpc,
 } from './ipc/image';
-import {
-  extractMetadata,
-  parseAutomatic1111Meta,
-  parseComfyUiMeta,
-} from './exif';
+import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
 import { fileAttach } from './ipc/fileAttach';
 import {
@@ -145,12 +141,7 @@ ipcMain.handle(
         if (imagesDestPathExists) {
           const file = fs.readFileSync(detectedFile);
           const exif = extractMetadata(file);
-          let metadata = null;
-          if (exif.parameters) {
-            metadata = parseAutomatic1111Meta(exif.parameters);
-          } else if (exif.workflow) {
-            metadata = parseComfyUiMeta(exif.workflow);
-          }
+          const metadata = parseImageSdMeta(exif);
 
           if (metadata && metadata.model) {
             const imagesFolder = `${imagesDestPath}\\${metadata.model}`;

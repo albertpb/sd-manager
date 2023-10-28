@@ -40,7 +40,7 @@ export function extractMetadata(pngData: Buffer) {
       const textData = pngData.toString(
         'utf8',
         keywordOffset + 1,
-        offset + length + 8
+        offset + length + 8,
       );
 
       // Store the metadata in the object
@@ -55,7 +55,7 @@ export function extractMetadata(pngData: Buffer) {
 }
 
 export function parseAutomatic1111Meta(
-  parameters: string
+  parameters: string,
 ): ImageMetaData | null {
   const texts = parameters.split(/\r?\n/);
   if (texts.length === 3) {
@@ -69,7 +69,7 @@ export function parseAutomatic1111Meta(
         acc[key.replace(' ', '_')] = value;
         return acc;
       },
-      {}
+      {},
     );
 
     const params: ImageMetaData = {
@@ -106,7 +106,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 
   if (parsed.nodes && Array.isArray(parsed.nodes)) {
     let KSamplerNode = parsed.nodes.find(
-      (node: Record<string, any>) => node.type === 'KSamplerAdvanced'
+      (node: Record<string, any>) => node.type === 'KSamplerAdvanced',
     );
 
     if (KSamplerNode) {
@@ -117,7 +117,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
       params.sampler = `${KSamplerNode.widgets_values[5]}`;
     } else {
       KSamplerNode = parsed.nodes.find(
-        (node: Record<string, any>) => node.type === 'KSampler'
+        (node: Record<string, any>) => node.type === 'KSampler',
       );
 
       if (KSamplerNode) {
@@ -160,7 +160,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
         if (node.type === 'CheckpointLoaderSimple') {
           params.model = node.widgets_values[0].replace(
             /.safetensors|.ckpt/g,
-            ''
+            '',
           );
         }
       }
@@ -169,12 +169,32 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
   return params;
 }
 
+export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
+  const parsed = JSON.parse(invokeaiMetadata);
+
+  const params: ImageMetaData = {
+    positivePrompt: parsed.positive_prompt,
+    negativePrompt: parsed.negative_prompt,
+    cfg: parsed.cfg_scale,
+    seed: parsed.seed,
+    steps: parsed.steps,
+    model: parsed.model.model_name,
+    sampler: parsed.scheduler,
+    scheduler: parsed.scheduler,
+    generatedBy: 'InvokeAI',
+  };
+
+  return params;
+};
+
 export const parseImageSdMeta = (exif: Record<string, any>) => {
   let metadata: ImageMetaData | null = null;
   if (exif.parameters) {
     metadata = parseAutomatic1111Meta(exif.parameters);
   } else if (exif.workflow) {
     metadata = parseComfyUiMeta(exif.workflow);
+  } else if (exif.invokeai_metadata) {
+    metadata = parseInvokeAIMeta(exif.invokeai_metadata);
   }
 
   return metadata;
