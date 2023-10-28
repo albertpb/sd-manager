@@ -8,7 +8,6 @@ import {
   calculateHashFile,
   checkFolderExists,
   readModelInfoFile,
-  deleteModelFiles,
   getModelInfo,
   sleep,
   getAllFiles,
@@ -107,7 +106,7 @@ export const readdirModelsIpc = async (
         console.log(error);
 
         if (browserWindow !== null) {
-          await deleteModelFiles(fileFolderPath, fileNameNoExt);
+          // await deleteModelFiles(fileFolderPath, fileNameNoExt);
 
           browserWindow.webContents.send(
             'duplicates-detected',
