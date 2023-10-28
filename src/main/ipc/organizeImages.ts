@@ -30,14 +30,17 @@ export type ImageRow = {
 export const organizeImagesIpc = async (
   browserWindow: BrowserWindow | null,
 ) => {
-  const settings = await settingsDB('readAll');
+  const db = await SqliteDB.getInstance().getdb();
 
-  const imagesSrcPath = settings.imagesPath;
+  const settings = await settingsDB('readAll');
+  const foldersToWatch: { path: string }[] = await db.all(
+    `SELECT * FROM watch_folders`,
+  );
+
   const imagesDestPath = settings.imagesDestPath;
 
   const folderExists = await checkFolderExists(imagesDestPath);
 
-  const db = await SqliteDB.getInstance().getdb();
   const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
   const imagesRowsHashMap = imagesRows.reduce(
     (acc: Record<string, ImageRow>, row) => {
@@ -53,7 +56,12 @@ export const organizeImagesIpc = async (
     });
   }
 
-  const files = getAllFiles(imagesSrcPath);
+  const files = foldersToWatch
+    .map((f) => f.path)
+    .reduce((acc: string[], folder) => {
+      acc = acc.concat(getAllFiles(folder));
+      return acc;
+    }, []);
 
   for (let i = 0; i < files.length; i++) {
     const fileNameNoExt = createId();

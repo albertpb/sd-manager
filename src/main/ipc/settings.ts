@@ -6,7 +6,7 @@ export type StoreAction = 'save' | 'read' | 'readAll';
 export const settingsDB = async (
   action: StoreAction,
   key?: string,
-  data?: string
+  data?: string,
 ) => {
   const db = await SqliteDB.getInstance().getdb();
 
@@ -19,7 +19,7 @@ export const settingsDB = async (
           2: data,
           3: data,
           4: key,
-        }
+        },
       );
       break;
     }
@@ -50,7 +50,7 @@ export const settingsIpc = async (
   event: IpcMainInvokeEvent,
   action: StoreAction,
   key: string,
-  data?: string
+  data?: string,
 ) => {
   return settingsDB(action, key, data);
 };

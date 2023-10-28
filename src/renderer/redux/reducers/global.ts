@@ -6,7 +6,6 @@ export type SettingsState = {
   scanModelsOnStart: string | null;
   checkpointsPath: string | null;
   lorasPath: string | null;
-  imagesPath: string | null;
   imagesDestPath: string | null;
   theme: string | null;
 };
@@ -43,7 +42,6 @@ const initialState: GlobalState = {
     scanModelsOnStart: '0',
     checkpointsPath: null,
     lorasPath: null,
-    imagesPath: null,
     imagesDestPath: null,
     theme: 'default',
   },
@@ -117,19 +115,9 @@ const saveSettings = async (key: string, value: any) => {
   await window.ipcHandler.settings('save', key, value);
 };
 
-export const organizeImages = createAsyncThunk(
-  'organizeImages',
-  async (arg, { getState }) => {
-    const state = getState() as { global: GlobalState };
-
-    if (
-      state.global.settings.imagesPath &&
-      state.global.settings.imagesDestPath
-    ) {
-      await window.ipcHandler.organizeImages();
-    }
-  },
-);
+export const organizeImages = createAsyncThunk('organizeImages', async () => {
+  await window.ipcHandler.organizeImages();
+});
 
 export const deleteImages = createAsyncThunk(
   'deleteImages',
@@ -177,12 +165,6 @@ export const globalSlice = createSlice({
     },
     unInit: (state) => {
       state.initialized = false;
-    },
-    setImagesPath: (state, action) => {
-      if (action.payload) {
-        state.settings.imagesPath = action.payload;
-        saveSettings('imagesPath', action.payload);
-      }
     },
     setImagesDestPath: (state, action) => {
       if (action.payload) {
@@ -354,7 +336,6 @@ export const {
   setLorasPath,
   init,
   unInit,
-  setImagesPath,
   setImagesDestPath,
   setNavbarSearchInputValue,
   setScanModelsOnStart,

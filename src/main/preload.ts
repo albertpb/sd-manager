@@ -30,6 +30,7 @@ const channels = [
   'saveImageFromClipboard',
   'readImageMetadata',
   'checkModelsToUpdate',
+  'watchFolder',
 ] as const;
 export type Channels = (typeof channels)[number];
 

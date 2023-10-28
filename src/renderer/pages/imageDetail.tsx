@@ -326,7 +326,7 @@ export default function ImageDetail() {
             <div>
               <div className="flex flex-row items-center">
                 <Link
-                  to={`/model-detail/${modelData?.hash}`}
+                  to={modelData?.hash ? `/model-detail/${modelData.hash}` : ''}
                   className="text-2xl font-bold text-gray-300"
                 >
                   {imageData.model}

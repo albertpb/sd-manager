@@ -188,9 +188,23 @@ export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
 };
 
 export const parseImageSdMeta = (exif: Record<string, any>) => {
-  let metadata: ImageMetaData | null = null;
+  let metadata: ImageMetaData = {
+    cfg: '',
+    generatedBy: '',
+    model: 'None',
+    negativePrompt: '',
+    positivePrompt: '',
+    sampler: '',
+    scheduler: '',
+    seed: '',
+    steps: '',
+  };
+
   if (exif.parameters) {
-    metadata = parseAutomatic1111Meta(exif.parameters);
+    const automatic1111Meta = parseAutomatic1111Meta(exif.parameters);
+    if (automatic1111Meta) {
+      metadata = automatic1111Meta;
+    }
   } else if (exif.workflow) {
     metadata = parseComfyUiMeta(exif.workflow);
   } else if (exif.invokeai_metadata) {

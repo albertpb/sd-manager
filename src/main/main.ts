@@ -17,7 +17,6 @@ import {
   dialog,
   protocol,
   net,
-  IpcMainInvokeEvent,
 } from 'electron';
 import chokidar, { FSWatcher } from 'chokidar';
 import fs from 'fs';
@@ -62,6 +61,7 @@ import {
   saveImageFromClipboardIpc,
 } from './ipc/saveMD';
 import { readImageMetadata } from './ipc/metadata';
+import { watchFolderIpc } from './ipc/watchFolders';
 
 class AppUpdater {
   constructor() {
@@ -101,102 +101,102 @@ ipcMain.handle('saveMD', saveMDIpc);
 ipcMain.handle('saveImageMD', saveImageMDIpc);
 ipcMain.handle('saveImageFromClipboard', saveImageFromClipboardIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
+ipcMain.handle('watchFolder', watchFolderIpc);
 
 let watcherImagesFolder: FSWatcher | null = null;
-ipcMain.handle(
-  'watchImagesFolder',
-  async (event: IpcMainInvokeEvent, folderToWatch: string) => {
-    const folderExists = await checkFolderExists(folderToWatch);
+ipcMain.handle('watchImagesFolder', async () => {
+  const db = await SqliteDB.getInstance().getdb();
 
-    const response = await settingsDB('read', 'imagesDestPath');
-    const imagesDestPath = response?.value;
+  const foldersToWatch: { path: string }[] = await db.all(
+    `SELECT * FROM watch_folders`,
+  );
 
-    if (folderExists && imagesDestPath) {
-      if (watcherImagesFolder !== null) {
-        watcherImagesFolder.close();
-      }
+  const response = await settingsDB('read', 'imagesDestPath');
+  const imagesDestPath = response?.value;
 
-      watcherImagesFolder = chokidar.watch(folderToWatch, {
+  if (imagesDestPath) {
+    if (watcherImagesFolder !== null) {
+      watcherImagesFolder.close();
+    }
+
+    watcherImagesFolder = chokidar.watch(
+      foldersToWatch.map((f) => f.path),
+      {
         persistent: true,
         ignoreInitial: true,
         awaitWriteFinish: true,
-      });
+      },
+    );
 
-      watcherImagesFolder.on('add', async (detectedFile: string) => {
-        console.log('detedted file ', detectedFile);
+    watcherImagesFolder.on('add', async (detectedFile: string) => {
+      console.log('detedted file ', detectedFile);
 
-        const fileBaseName = `${path.basename(detectedFile)}`;
-        const fileNameNoExt = getFilenameNoExt(fileBaseName);
-        const ext = fileBaseName.split('.').pop();
-        if (ext !== 'png') return;
+      const fileBaseName = `${path.basename(detectedFile)}`;
+      const fileNameNoExt = getFilenameNoExt(fileBaseName);
+      const ext = fileBaseName.split('.').pop();
+      if (ext !== 'png') return;
 
-        const imagesDestPathExists = await checkFolderExists(imagesDestPath);
+      const imagesDestPathExists = await checkFolderExists(imagesDestPath);
 
-        console.log(
-          'imagesDestPathExists',
-          imagesDestPath,
-          imagesDestPathExists,
-        );
+      console.log('imagesDestPathExists', imagesDestPath, imagesDestPathExists);
 
-        if (imagesDestPathExists) {
-          const file = fs.readFileSync(detectedFile);
-          const exif = extractMetadata(file);
-          const metadata = parseImageSdMeta(exif);
+      if (imagesDestPathExists) {
+        const file = fs.readFileSync(detectedFile);
+        const exif = extractMetadata(file);
+        const metadata = parseImageSdMeta(exif);
 
-          if (metadata && metadata.model) {
-            const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
-            const imagesFolderExists = await checkFolderExists(imagesFolder);
+        if (metadata && metadata.model) {
+          const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
+          const imagesFolderExists = await checkFolderExists(imagesFolder);
 
-            if (!imagesFolderExists) {
-              fs.mkdirSync(imagesFolder);
-            }
+          if (!imagesFolderExists) {
+            fs.mkdirSync(imagesFolder);
+          }
 
-            fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
+          fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
 
-            const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
-            await sharp(detectedFile)
-              .resize({ height: 400 })
-              .withMetadata()
-              .toFile(thumbnailDestPath);
+          const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
+          await sharp(detectedFile)
+            .resize({ height: 400 })
+            .withMetadata()
+            .toFile(thumbnailDestPath);
 
-            const hash = await calculateHashFile(detectedFile);
+          const hash = await calculateHashFile(detectedFile);
 
-            const imagesData: ImageRow = {
-              hash,
-              path: imagesFolder,
-              rating: 1,
-              model: metadata.model,
-              generatedBy: metadata.generatedBy,
-              sourcePath: detectedFile,
-              name: fileNameNoExt,
-              fileName: fileBaseName,
-              deleted: 0,
-            };
+          const imagesData: ImageRow = {
+            hash,
+            path: imagesFolder,
+            rating: 1,
+            model: metadata.model,
+            generatedBy: metadata.generatedBy,
+            sourcePath: detectedFile,
+            name: fileNameNoExt,
+            fileName: fileBaseName,
+            deleted: 0,
+          };
 
-            const db = await SqliteDB.getInstance().getdb();
-            await db.run(
-              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
-              {
-                $hash: imagesData.hash,
-                $path: imagesData.path,
-                $rating: imagesData.rating,
-                $model: imagesData.model,
-                $generatedBy: imagesData.generatedBy,
-                $sourcePath: imagesData.sourcePath,
-                $name: imagesData.name,
-                $fileName: imagesData.fileName,
-              },
-            );
+          await db.run(
+            `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+            {
+              $hash: imagesData.hash,
+              $path: imagesData.path,
+              $rating: imagesData.rating,
+              $model: imagesData.model,
+              $generatedBy: imagesData.generatedBy,
+              $sourcePath: imagesData.sourcePath,
+              $name: imagesData.name,
+              $fileName: imagesData.fileName,
+            },
+          );
 
-            if (mainWindow !== null) {
-              mainWindow.webContents.send('detected-add-image', imagesData);
-            }
+          if (mainWindow !== null) {
+            mainWindow.webContents.send('detected-add-image', imagesData);
           }
         }
-      });
-    }
-  },
-);
+      }
+    });
+  }
+});
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');

@@ -133,5 +133,19 @@ export default class SqliteDB {
 
       version.user_version = 6;
     }
+
+    if (version.user_version === 6) {
+      try {
+        await db.run(`CREATE TABLE IF NOT EXISTS "watch_folders" (
+          "path" TEXT NOT NULL
+        )`);
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 7`);
+
+      version.user_version = 7;
+    }
   }
 }
