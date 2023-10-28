@@ -109,7 +109,7 @@ export default class SqliteDB {
       version.user_version = 4;
     }
 
-    if (version.user_Version === 4) {
+    if (version.user_version === 4) {
       try {
         await db.run(`ALTER TABLE models ADD COLUMN modelId INTEGER`);
         await db.run(`ALTER TABLE models ADD COLUMN modelVersionId INTEGER`);

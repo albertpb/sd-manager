@@ -47,7 +47,7 @@ export const readdirModelsIpc = async (
   }, {});
 
   const scanModelsOnStart = await settingsDB('read', 'scanModelsOnStart');
-  if (scanModelsOnStart.value === '0') {
+  if (scanModelsOnStart?.value === '0') {
     return modelsHashMap;
   }
 

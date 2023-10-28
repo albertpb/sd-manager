@@ -10,7 +10,7 @@ import { checkFileExists } from '../util';
 export const readFileIpc = async (
   event: IpcMainInvokeEvent,
   path: string,
-  encoding: BufferEncoding
+  encoding: BufferEncoding,
 ) => {
   const fileExists = await checkFileExists(path);
   if (fileExists) {
