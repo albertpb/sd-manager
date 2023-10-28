@@ -425,7 +425,7 @@ export default function ModelDetail() {
           </div>
           <div>{ReactHtmlParser(modelData.description || '')}</div>
           {chunks.length > 0 ? (
-            <div className="">
+            <div className="pt-4">
               <div className="flex items-center">
                 <div className="w-1/3"> </div>
                 <h3 className="text-xl font-bold text-center w-1/3">Images</h3>

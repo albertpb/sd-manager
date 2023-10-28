@@ -1,5 +1,5 @@
 import { ModelCivitaiInfo } from 'main/interfaces';
-import CopyText from './CopyText';
+import BadgeCopyWords from './BadgeCommaTexts';
 
 export type ModelTableDetailProps = {
   modelInfo: ModelCivitaiInfo;
@@ -36,8 +36,12 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
         <tr>
           <td>Trained words</td>
           <td>
-            <div>
-              <CopyText>{modelInfo?.trainedWords?.join(', ') || ''}</CopyText>
+            <div className="px-5">
+              {modelInfo?.trainedWords.map((words) => (
+                <BadgeCopyWords
+                  words={words.split(',').filter((w) => w.trim() !== '')}
+                />
+              ))}
             </div>
           </td>
         </tr>
