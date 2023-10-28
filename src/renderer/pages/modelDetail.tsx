@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import { IpcRendererEvent } from 'electron';
+import ReactHtmlParser from 'html-react-parser';
 import { ImageRow } from 'main/ipc/organizeImages';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelCivitaiInfo } from 'main/interfaces';
@@ -422,6 +423,7 @@ export default function ModelDetail() {
               </div>
             </div>
           </div>
+          <div>{ReactHtmlParser(modelData.description || '')}</div>
           {chunks.length > 0 ? (
             <div className="">
               <div className="flex items-center">

@@ -38,7 +38,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   );
 
   const [models, setModels] = useState<Model[]>(
-    Object.values(modelsState.models),
+    Object.values(modelsState.models).sort((a, b) => b.rating - a.rating),
   );
 
   const [filterBy, setFilterBy] = useState<string>('none');
@@ -93,6 +93,10 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
   const sortFilterModels = useCallback(
     (filter = 'none', sort = 'none') => {
+      if (modelsState.checkingUpdates) {
+        return;
+      }
+
       let filterSortedModels = Object.values(modelsState.models);
 
       switch (filter) {
@@ -119,7 +123,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
         case 'update': {
           filterSortedModels = filterSortedModels.filter((model) => {
-            if (model.modelId) {
+            if (model.modelId && modelsState.update[model.modelId]) {
               return modelsState.update[model.modelId].needUpdate;
             }
             return false;
@@ -170,7 +174,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
       setFilterBy(filter);
       setModels(filterSortedModels);
     },
-    [modelsState.models, modelsState.update],
+    [modelsState.models, modelsState.update, modelsState.checkingUpdates],
   );
 
   const calcImagesValues = useCallback(() => {
@@ -206,8 +210,8 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   };
 
   useEffect(() => {
-    sortFilterModels('none', 'ratingDesc');
-  }, [sortFilterModels]);
+    sortFilterModels(filterBy, sortBy);
+  }, [sortFilterModels, filterBy, sortBy]);
 
   useEffect(() => {
     calcImagesValues();
@@ -219,14 +223,12 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
   const checkUpdates = async () => {
     setModels([]);
-    setSortBy('none');
-    setFilterBy('none');
+    sortFilterModels('update', 'modelIdAsc');
     dispatch(setNavbarDisabled(true));
     dispatch(setCheckingModelsUpdate({ type, updating: true }));
     await window.ipcHandler.checkModelsToUpdate(type);
     dispatch(setNavbarDisabled(false));
     dispatch(setCheckingModelsUpdate({ type, updating: false }));
-    sortFilterModels('update', 'modelIdAsc');
   };
 
   const checkingModelUpdateCb = useCallback(
@@ -438,28 +440,6 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
               </span>
             </button>
           </li>
-          <li className="tooltip tooltip-right" data-tip="Check Updates">
-            <button
-              disabled={modelsState.checkingUpdates}
-              type="button"
-              onClick={() => checkUpdates()}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"
-                />
-              </svg>
-            </button>
-          </li>
           <li className="tooltip tooltip-right" data-tip="sort by rating asc">
             <button
               disabled={modelsState.checkingUpdates}
@@ -506,6 +486,28 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"
+                />
+              </svg>
+            </button>
+          </li>
+          <li className="tooltip tooltip-right" data-tip="Check Updates">
+            <button
+              disabled={modelsState.checkingUpdates}
+              type="button"
+              onClick={() => checkUpdates()}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"
                 />
               </svg>
             </button>

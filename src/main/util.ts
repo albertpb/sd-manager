@@ -99,7 +99,7 @@ export async function downloadModelInfoByHash(
     await fs.promises.writeFile(
       `${downloadDir}\\${modelName}.civitai.info`,
       JSON.stringify(response.data, null, 2),
-      { encoding: 'utf-8' },
+      { encoding: 'utf-8', flag: 'w' },
     );
 
     return response.data;

@@ -26,6 +26,7 @@ export type Model = {
   baseModel: string | null;
   modelId: number | null;
   modelVersionId: number | null;
+  description: string;
 };
 
 export const readdirModelsIpc = async (
@@ -125,6 +126,7 @@ export const readdirModelsIpc = async (
         baseModel: modelInfo?.baseModel || '',
         modelId: modelInfo?.id || null,
         modelVersionId: modelInfo?.modelId || null,
+        description: '',
       };
     }
 
@@ -200,6 +202,18 @@ export const readdirModelsIpc = async (
           {
             $modelId: modelInfo.modelId,
             $modelVersionId: modelInfo.id,
+            $hash: modelsHashMap[fileNameNoExt].hash,
+          },
+        );
+      }
+    }
+
+    if (!modelsHashMap[fileNameNoExt].description) {
+      if (modelInfo) {
+        await db.run(
+          `UPDATE models SET description = $description WHERE hash = $hash`,
+          {
+            $description: modelInfo.description,
             $hash: modelsHashMap[fileNameNoExt].hash,
           },
         );

@@ -121,5 +121,17 @@ export default class SqliteDB {
 
       version.user_version = 5;
     }
+
+    if (version.user_version === 5) {
+      try {
+        await db.run(`ALTER TABLE models ADD COLUMN description TEXT`);
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 6`);
+
+      version.user_version = 6;
+    }
   }
 }

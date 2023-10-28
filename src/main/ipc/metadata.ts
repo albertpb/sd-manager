@@ -5,7 +5,7 @@ import { checkFileExists } from '../util';
 
 export const readImageMetadata = async (
   event: IpcMainInvokeEvent,
-  path: string
+  path: string,
 ) => {
   const fileExists = await checkFileExists(path);
 
