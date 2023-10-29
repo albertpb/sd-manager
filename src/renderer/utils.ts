@@ -1,6 +1,6 @@
 export function debounce<T extends any[]>(
   func: (...args: T) => void,
-  delay: number
+  delay: number,
 ) {
   let timerId: ReturnType<typeof setTimeout>;
 
@@ -18,11 +18,3 @@ const saveMd = async (path: string, value: string) => {
 };
 
 export const saveMdDebounced = debounce(saveMd, 1000);
-
-export const getFilenameNoExt = (fileName: string) => {
-  return fileName.substring(0, fileName.lastIndexOf('.'));
-};
-
-export const getFileNameExt = (fileName: string) => {
-  return fileName.split('.').pop();
-};

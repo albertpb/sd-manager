@@ -25,14 +25,9 @@ import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-import {
-  calculateHashFile,
-  checkFolderExists,
-  getFilenameNoExt,
-  resolveHtmlPath,
-} from './util';
+import { calculateHashFile, checkFolderExists, resolveHtmlPath } from './util';
 import SqliteDB from './db';
-import { settingsDB, settingsIpc } from './ipc/settings';
+import { settingsIpc } from './ipc/settings';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
 import {
   checkModelsToUpdateIpc,
@@ -112,92 +107,78 @@ ipcMain.handle('watchImagesFolder', async () => {
     `SELECT * FROM watch_folders`,
   );
 
-  const response = await settingsDB('read', 'imagesDestPath');
-  const imagesDestPath = response?.value;
+  if (watcherImagesFolder !== null) {
+    watcherImagesFolder.close();
+  }
 
-  if (imagesDestPath) {
-    if (watcherImagesFolder !== null) {
-      watcherImagesFolder.close();
+  watcherImagesFolder = chokidar.watch(
+    foldersToWatch.map((f) => f.path),
+    {
+      persistent: true,
+      ignoreInitial: true,
+      awaitWriteFinish: true,
+    },
+  );
+
+  watcherImagesFolder.on('add', async (detectedFile: string) => {
+    console.log('detedted file ', detectedFile);
+
+    const filePathParse = path.parse(detectedFile);
+    const fileBaseName = filePathParse.name;
+    const ext = filePathParse.ext;
+    if (ext !== '.png') return;
+
+    const file = fs.readFileSync(detectedFile);
+    const fileNameNoExt = filePathParse.name;
+    const exif = extractMetadata(file);
+    const metadata = parseImageSdMeta(exif);
+
+    const imagesFolder = filePathParse.dir;
+    const imagesFolderExists = await checkFolderExists(imagesFolder);
+
+    if (!imagesFolderExists) {
+      fs.mkdirSync(imagesFolder);
     }
 
-    watcherImagesFolder = chokidar.watch(
-      foldersToWatch.map((f) => f.path),
+    const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.webp`;
+    await sharp(detectedFile)
+      .resize({ height: 400 })
+      .withMetadata()
+      .toFormat('webp')
+      .toFile(thumbnailDestPath);
+
+    const hash = await calculateHashFile(detectedFile);
+
+    const imagesData: ImageRow = {
+      hash,
+      path: imagesFolder,
+      rating: 1,
+      model: metadata.model,
+      generatedBy: metadata.generatedBy,
+      sourcePath: detectedFile,
+      name: fileNameNoExt,
+      fileName: fileBaseName,
+      deleted: 0,
+    };
+
+    await db.run(
+      `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
       {
-        persistent: true,
-        ignoreInitial: true,
-        awaitWriteFinish: true,
+        $hash: imagesData.hash,
+        $path: imagesData.path,
+        $rating: imagesData.rating,
+        $model: imagesData.model,
+        $generatedBy: imagesData.generatedBy,
+        $sourcePath: imagesData.sourcePath,
+        $name: imagesData.name,
+        $fileName: imagesData.fileName,
       },
     );
 
-    watcherImagesFolder.on('add', async (detectedFile: string) => {
-      console.log('detedted file ', detectedFile);
-
-      const fileBaseName = `${path.basename(detectedFile)}`;
-      const fileNameNoExt = getFilenameNoExt(fileBaseName);
-      const ext = fileBaseName.split('.').pop();
-      if (ext !== 'png') return;
-
-      const imagesDestPathExists = await checkFolderExists(imagesDestPath);
-
-      console.log('imagesDestPathExists', imagesDestPath, imagesDestPathExists);
-
-      if (imagesDestPathExists) {
-        const file = fs.readFileSync(detectedFile);
-        const exif = extractMetadata(file);
-        const metadata = parseImageSdMeta(exif);
-
-        if (metadata && metadata.model) {
-          const imagesFolder = `${imagesDestPath}\\${metadata.model}`;
-          const imagesFolderExists = await checkFolderExists(imagesFolder);
-
-          if (!imagesFolderExists) {
-            fs.mkdirSync(imagesFolder);
-          }
-
-          fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
-
-          const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.webp`;
-          await sharp(detectedFile)
-            .resize({ height: 400 })
-            .withMetadata()
-            .toFormat('webp')
-            .toFile(thumbnailDestPath);
-
-          const hash = await calculateHashFile(detectedFile);
-
-          const imagesData: ImageRow = {
-            hash,
-            path: imagesFolder,
-            rating: 1,
-            model: metadata.model,
-            generatedBy: metadata.generatedBy,
-            sourcePath: detectedFile,
-            name: fileNameNoExt,
-            fileName: fileBaseName,
-            deleted: 0,
-          };
-
-          await db.run(
-            `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
-            {
-              $hash: imagesData.hash,
-              $path: imagesData.path,
-              $rating: imagesData.rating,
-              $model: imagesData.model,
-              $generatedBy: imagesData.generatedBy,
-              $sourcePath: imagesData.sourcePath,
-              $name: imagesData.name,
-              $fileName: imagesData.fileName,
-            },
-          );
-
-          if (mainWindow !== null) {
-            mainWindow.webContents.send('detected-add-image', imagesData);
-          }
-        }
-      }
-    });
-  }
+    if (mainWindow !== null) {
+      mainWindow.webContents.send('detected-add-image', imagesData);
+    }
+  });
 });
 
 if (process.env.NODE_ENV === 'production') {

@@ -3,12 +3,7 @@ import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import path from 'path';
 import sharp from 'sharp';
 import SqliteDB from '../db';
-import {
-  calculateHashFile,
-  checkFileExists,
-  getAllFiles,
-  getFileNameExt,
-} from '../util';
+import { calculateHashFile, checkFileExists, getAllFiles } from '../util';
 import { extractMetadata, parseImageSdMeta } from '../exif';
 
 export type ImageRow = {
@@ -107,7 +102,7 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
 
   for (let i = 0; i < files.length; i++) {
     const parsedFilePath = path.parse(files[i]);
-    const ext = getFileNameExt(path.basename(files[i]));
+    const ext = parsedFilePath.ext;
     const file = fs.readFileSync(files[i]);
     const exif = extractMetadata(file);
 
@@ -117,7 +112,7 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
       browserWindow.webContents.send('images-progress', msg, progress);
     }
 
-    if (ext === 'png') {
+    if (ext === '.png') {
       const metadata = parseImageSdMeta(exif);
 
       if (metadata && metadata.model) {
