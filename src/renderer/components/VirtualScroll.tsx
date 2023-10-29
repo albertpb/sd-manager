@@ -27,8 +27,8 @@ type VirtualScrollProps = {
   rowRenderer: (row: VirtualScrollData, index: number) => React.JSX.Element;
 };
 
-export const clearLocalStorage = (id: string) => {
-  window.localStorage.removeItem(`virtualScroll_${id}`);
+export const clearSessionStorage = (id: string) => {
+  window.sessionStorage.removeItem(`virtualScroll_${id}`);
 };
 
 export default function VirtualScroll({
@@ -85,11 +85,11 @@ export default function VirtualScroll({
 
   useEffect(() => {
     if (containerRef.current) {
-      const localStorageScroll = window.localStorage.getItem(
+      const sessionStorageScroll = window.sessionStorage.getItem(
         `virtualScroll_${id}`,
       );
-      if (localStorageScroll) {
-        const scrollTop = parseInt(localStorageScroll, 10);
+      if (sessionStorageScroll) {
+        const scrollTop = parseInt(sessionStorageScroll, 10);
         containerRef.current.scrollTo(0, scrollTop);
         handleScroll();
       }
@@ -98,7 +98,7 @@ export default function VirtualScroll({
 
   useOnUnmount(() => {
     if (saveState) {
-      window.localStorage.setItem(`virtualScroll_${id}`, `${scroll}`);
+      window.sessionStorage.setItem(`virtualScroll_${id}`, `${scroll}`);
     }
   }, [id, scroll, saveState]);
 
