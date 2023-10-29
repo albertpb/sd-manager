@@ -165,6 +165,24 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
             console.log(error);
           }
         }
+
+        if (
+          imagesRowsHashMap[imageHash] &&
+          imagesRowsHashMap[imageHash].model === 'unknown'
+        ) {
+          try {
+            await db.run(
+              `UPDATE images SET model = $model, generatedBy = $generatedBy WHERE hash = $hash`,
+              {
+                $hash: imageHash,
+                $model: metadata.model,
+                $generatedBy: metadata.generatedBy,
+              },
+            );
+          } catch (error) {
+            console.log(error);
+          }
+        }
       }
     }
   }

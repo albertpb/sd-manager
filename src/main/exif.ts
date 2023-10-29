@@ -58,7 +58,7 @@ export function parseAutomatic1111Meta(
   parameters: string,
 ): ImageMetaData | null {
   const texts = parameters.split(/\r?\n/);
-  if (texts.length === 3) {
+  if (texts.length >= 3) {
     const positivePrompt = texts[0];
     const negativePrompt = texts[1].split(': ')[1];
     const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
@@ -202,7 +202,7 @@ export const parseImageSdMeta = (exif: Record<string, any>) => {
 
   if (exif.parameters) {
     const automatic1111Meta = parseAutomatic1111Meta(exif.parameters);
-    if (automatic1111Meta) {
+    if (automatic1111Meta !== null) {
       metadata = automatic1111Meta;
     }
   } else if (exif.workflow) {
