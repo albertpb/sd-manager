@@ -3,11 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import {
   setCheckpointsPath,
-  organizeImages,
   setLorasPath,
   setScanModelsOnStart,
   unInit,
   setTheme,
+  readImages,
+  scanImages,
 } from 'renderer/redux/reducers/global';
 import themes from '../../../themes';
 
@@ -35,17 +36,18 @@ export default function Settings() {
       await window.ipcHandler.watchFolder('add', path);
       await window.ipcHandler.watchImagesFolder();
       setWatchFolders([...watchFolders, path]);
+      await dispatch(scanImages());
+      await dispatch(readImages());
     }
   };
 
-  const onSelectDestImagesDir = async () => {};
+  const updateImagesDb = async () => {
+    await dispatch(scanImages());
+    await dispatch(readImages());
+  };
 
   const onScanModelsOnStart = async (value: boolean) => {
     dispatch(setScanModelsOnStart(value ? '1' : '0'));
-  };
-
-  const onOrganizeImagesClick = async () => {
-    await dispatch(organizeImages());
   };
 
   const changeTheme = async (theme: string) => {
@@ -131,35 +133,6 @@ export default function Settings() {
       </div>
       <div className="mt-3 flex flex-row items-center w-1/2">
         <div className="w-2/3">
-          <p>
-            <span>Destination Images folder:</span> {settings.imagesDestPath}{' '}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-sm"
-          onClick={() => onSelectDestImagesDir()}
-        >
-          Change
-        </button>
-      </div>
-      <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="w-2/3">
-          <p>
-            Copy Images folder into the destination images folder sorted by
-            models{' '}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-sm"
-          onClick={() => onOrganizeImagesClick()}
-        >
-          Scan Images
-        </button>
-      </div>
-      <div className="mt-3 flex flex-row items-center w-1/2">
-        <div className="w-2/3">
           <p>Change theme</p>
         </div>
         <select
@@ -182,13 +155,20 @@ export default function Settings() {
       <div className="mt-5">
         <p className="text-2xl">Folders to watch images</p>
       </div>
-      <div className="lg:w-1/2 md:w-full my-6">
+      <div className="lg:w-1/2 md:w-full my-6 flex justify-between">
         <button
           type="button"
           className="btn btn-sm"
           onClick={() => onSelectImagesDir()}
         >
           Pick a folder to watch
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => updateImagesDb()}
+        >
+          update images database
         </button>
       </div>
       <div className="lg:w-1/2 md:w-full">
@@ -202,7 +182,7 @@ export default function Settings() {
           <tbody>
             {watchFolders.map((watchFolder) => {
               return (
-                <tr>
+                <tr key={`setting_watchfolder_${watchFolder}`}>
                   <td>{watchFolder}</td>
                   <td className="flex justify-end">
                     <svg

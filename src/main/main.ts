@@ -34,7 +34,6 @@ import {
 import SqliteDB from './db';
 import { settingsDB, settingsIpc } from './ipc/settings';
 import { readFileIpc, readImageIpc } from './ipc/readfile';
-import { ImageRow, organizeImagesIpc } from './ipc/organizeImages';
 import {
   checkModelsToUpdateIpc,
   readModelByNameIpc,
@@ -47,9 +46,11 @@ import {
 } from './ipc/model';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
 import {
-  deleteImages,
+  ImageRow,
+  removeImagesIpc,
   getImageIpc,
   getImagesIpc,
+  scanImagesIpc,
   updateImageIpc,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
@@ -79,8 +80,8 @@ ipcMain.handle('readdirModels', (event, model, folderPath) =>
 ipcMain.handle('getImage', getImageIpc);
 ipcMain.handle('getImages', getImagesIpc);
 ipcMain.handle('updateImage', updateImageIpc);
-ipcMain.handle('deleteImages', deleteImages);
-ipcMain.handle('organizeImages', () => organizeImagesIpc(mainWindow));
+ipcMain.handle('removeImages', removeImagesIpc);
+ipcMain.handle('scanImages', () => scanImagesIpc(mainWindow));
 ipcMain.handle('readModels', readModelsIpc);
 ipcMain.handle('updateModel', updateModelIpc);
 ipcMain.handle('checkModelsToUpdate', (event, type) =>
@@ -155,10 +156,11 @@ ipcMain.handle('watchImagesFolder', async () => {
 
           fs.copyFileSync(detectedFile, `${imagesFolder}\\${fileBaseName}`);
 
-          const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.png`;
+          const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.webp`;
           await sharp(detectedFile)
             .resize({ height: 400 })
             .withMetadata()
+            .toFormat('webp')
             .toFile(thumbnailDestPath);
 
           const hash = await calculateHashFile(detectedFile);

@@ -191,7 +191,7 @@ export const parseImageSdMeta = (exif: Record<string, any>) => {
   let metadata: ImageMetaData = {
     cfg: '',
     generatedBy: '',
-    model: 'None',
+    model: 'unknown',
     negativePrompt: '',
     positivePrompt: '',
     sampler: '',

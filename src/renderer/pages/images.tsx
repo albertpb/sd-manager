@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import Fuse from 'fuse.js';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -9,8 +9,12 @@ import Rating from 'renderer/components/Rating';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
-import { RootState } from 'renderer/redux';
-import { setImagesToDelete } from 'renderer/redux/reducers/global';
+import { AppDispatch, RootState } from 'renderer/redux';
+import {
+  readImages,
+  scanImages,
+  setImagesToDelete,
+} from 'renderer/redux/reducers/global';
 
 interface RowData {
   row: Fuse.FuseResult<ImageRow>[];
@@ -19,7 +23,7 @@ interface RowData {
 
 export default function Images() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const virtualScrollId = 'images_virtualscroll';
 
@@ -246,6 +250,11 @@ export default function Images() {
     }
   };
 
+  const updateImagesDb = async () => {
+    await dispatch(scanImages());
+    await dispatch(readImages());
+  };
+
   useEffect(() => {
     return () => {
       dispatch(setImagesToDelete({}));
@@ -257,7 +266,7 @@ export default function Images() {
       const imageSrc =
         rowNumber <= 2
           ? `${item.path}\\${item.name}.png`
-          : `${item.path}\\${item.name}.thumbnail.png`;
+          : `${item.path}\\${item.name}.thumbnail.webp`;
 
       return (
         <div
@@ -522,6 +531,27 @@ export default function Images() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"
+                />
+              </svg>
+            </button>
+          </li>
+          <li
+            className="tooltip tooltip-right"
+            data-tip="update images database"
+          >
+            <button type="button" onClick={() => updateImagesDb()}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
                 />
               </svg>
             </button>

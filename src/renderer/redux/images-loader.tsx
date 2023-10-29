@@ -1,5 +1,5 @@
 import { IpcRendererEvent } from 'electron';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '.';
@@ -50,7 +50,7 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
     <div className="w-full flex flex-col justify-center items-center h-screen">
       <div className="stats">
         <div className="stat place-items-center">
-          <div className="stat-title">Getting images</div>
+          <div className="stat-title">Parsing images metadata</div>
           <div className="stat-value">{progress.toFixed(2)}%</div>
           <div className="stat-desc">{msg}</div>
         </div>

@@ -3,7 +3,7 @@ import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { ImageMetaData } from 'main/exif';
 import { Model } from 'main/ipc/model';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -50,7 +50,7 @@ export default function ImageDetail() {
       const iData: ImageRow = await window.ipcHandler.getImage(hash);
       setImageData(iData);
 
-      const folderPath = `${iData.path}\\${iData.name}`;
+      const folderPath = `${iData.path}`;
       const {
         exif,
         metadata,
@@ -58,7 +58,7 @@ export default function ImageDetail() {
         base64: string;
         exif: Record<string, any>;
         metadata: ImageMetaData | null;
-      } = await window.ipcHandler.readImage(`${iData.path}\\${iData.fileName}`);
+      } = await window.ipcHandler.readImage(`${iData.sourcePath}`);
       setExifParams(exif);
       setImageMetadata(metadata);
 
@@ -175,9 +175,7 @@ export default function ImageDetail() {
 
   const revealInFolder = () => {
     if (imageData) {
-      window.ipcHandler.openFolderLink(
-        `${imageData.path}\\${imageData.fileName}`,
-      );
+      window.ipcHandler.openFolderLink(`${imageData.sourcePath}`);
     }
   };
 
@@ -231,7 +229,7 @@ export default function ImageDetail() {
 
   return (
     <>
-      <div className="flex">
+      <div className="flex min-h-full">
         <div className="w-fit h-auto">
           <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
             <li>
@@ -355,7 +353,7 @@ export default function ImageDetail() {
             </div>
             <div className="flex w-full my-4">
               <ImageZoom
-                src={`sd:///${imageData.path}\\${imageData.fileName}`}
+                src={`sd:///${imageData.sourcePath}`}
                 alt={imageData.name}
               />
             </div>

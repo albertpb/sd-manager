@@ -1,12 +1,11 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Model } from 'main/ipc/model';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
   checkpointsPath: string | null;
   lorasPath: string | null;
-  imagesDestPath: string | null;
   theme: string | null;
 };
 
@@ -42,7 +41,6 @@ const initialState: GlobalState = {
     scanModelsOnStart: '0',
     checkpointsPath: null,
     lorasPath: null,
-    imagesDestPath: null,
     theme: 'default',
   },
   checkpoint: {
@@ -115,8 +113,8 @@ const saveSettings = async (key: string, value: any) => {
   await window.ipcHandler.settings('save', key, value);
 };
 
-export const organizeImages = createAsyncThunk('organizeImages', async () => {
-  await window.ipcHandler.organizeImages();
+export const scanImages = createAsyncThunk('scanImages', async () => {
+  await window.ipcHandler.scanImages();
 });
 
 export const deleteImages = createAsyncThunk(
@@ -124,7 +122,7 @@ export const deleteImages = createAsyncThunk(
   async (arg, { getState }) => {
     const state = getState() as { global: GlobalState };
 
-    await window.ipcHandler.deleteImages(state.global.imagesToDelete);
+    await window.ipcHandler.removeImages(state.global.imagesToDelete);
   },
 );
 
@@ -165,12 +163,6 @@ export const globalSlice = createSlice({
     },
     unInit: (state) => {
       state.initialized = false;
-    },
-    setImagesDestPath: (state, action) => {
-      if (action.payload) {
-        state.settings.imagesDestPath = action.payload;
-        saveSettings('imagesDestPath', action.payload);
-      }
     },
     setScanModelsOnStart: (state, action) => {
       state.settings.scanModelsOnStart = action.payload;
@@ -284,10 +276,10 @@ export const globalSlice = createSlice({
       }
     });
 
-    builder.addCase(organizeImages.pending, (state) => {
+    builder.addCase(scanImages.pending, (state) => {
       state.imagesLoading = true;
     });
-    builder.addCase(organizeImages.fulfilled, (state) => {
+    builder.addCase(scanImages.fulfilled, (state) => {
       state.imagesLoading = false;
     });
 
@@ -336,7 +328,6 @@ export const {
   setLorasPath,
   init,
   unInit,
-  setImagesDestPath,
   setNavbarSearchInputValue,
   setScanModelsOnStart,
   setImagesToDelete,

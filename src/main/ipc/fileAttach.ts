@@ -5,7 +5,7 @@ import { IpcMainInvokeEvent } from 'electron';
 export const fileAttach = async (
   event: IpcMainInvokeEvent,
   filePath: string,
-  imageFolder: string
+  imageFolder: string,
 ) => {
   console.log(filePath, imageFolder);
 

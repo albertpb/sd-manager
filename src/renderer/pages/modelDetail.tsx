@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { IpcRendererEvent } from 'electron';
 import ReactHtmlParser from 'html-react-parser';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelCivitaiInfo } from 'main/interfaces';
 import { Model } from 'main/ipc/model';
@@ -256,7 +256,7 @@ export default function ModelDetail() {
             }
 
             resultArr[chunkIndex].row.push({
-              path: `${item.path}\\${item.name}.thumbnail.png`,
+              path: `${item.path}\\${item.name}.thumbnail.webp`,
               hash: item.hash,
               rating: item.rating,
               id: item.hash,

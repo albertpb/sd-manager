@@ -173,12 +173,26 @@ export const getFileNameExt = (fileName: string) => {
 };
 
 export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
+  const folderPath = path.dirname(filePath);
   try {
-    const folderPath = path.dirname(filePath);
-
     fs.unlinkSync(filePath);
+  } catch (error) {
+    console.log(error);
+  }
+
+  try {
     fs.rmdirSync(`${folderPath}\\${fileNameNoExt}`);
+  } catch (error) {
+    console.log(error);
+  }
+
+  try {
     fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.civitai.info`);
+  } catch (error) {
+    console.log(error);
+  }
+
+  try {
     fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.preview.png`);
   } catch (error) {
     console.log(error);

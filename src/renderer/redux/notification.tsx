@@ -1,5 +1,5 @@
 import { IpcRendererEvent } from 'electron';
-import { ImageRow } from 'main/ipc/organizeImages';
+import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -15,14 +15,11 @@ export default function Notificator({ children }: { children: ReactNode }) {
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imageData: ImageRow) => {
       if (!imageLoading) {
-        toast(
-          `File detected ${imageData.model} - ${imageData.path}\\${imageData.fileName}`,
-          {
-            onClick: () => navigate(`/image-detail/${imageData.hash}`),
-            closeOnClick: true,
-            autoClose: 5000,
-          },
-        );
+        toast(`File detected ${imageData.model} - ${imageData.sourcePath}`, {
+          onClick: () => navigate(`/image-detail/${imageData.hash}`),
+          closeOnClick: true,
+          autoClose: 5000,
+        });
       }
     };
     const remove = window.ipcOn.detectedAddImage(cb);

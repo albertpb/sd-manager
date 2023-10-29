@@ -24,18 +24,12 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
         await window.ipcHandler.readdirModels('lora', settings.lorasPath);
         await dispatch(readCheckpoints());
         await dispatch(readLoras());
-        window.ipcHandler.watchImagesFolder(settings.imagesPath);
+        window.ipcHandler.watchImagesFolder();
         dispatch(init());
       }
     };
     load();
-  }, [
-    dispatch,
-    initialized,
-    settings.imagesPath,
-    settings.checkpointsPath,
-    settings.lorasPath,
-  ]);
+  }, [dispatch, initialized, settings.checkpointsPath, settings.lorasPath]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

@@ -28,6 +28,29 @@ export type Model = {
   description: string;
 };
 
+export const removeModelsNotFound = async (files: string[], type: string) => {
+  const db = await SqliteDB.getInstance().getdb();
+
+  const models: Model[] = await db.all(
+    `SELECT * FROM models WHERE type = $type`,
+    { $type: type },
+  );
+
+  const filesHashMap = files.reduce((acc: Record<string, string>, f) => {
+    acc[f] = f;
+    return acc;
+  }, {});
+
+  for (let i = 0; i < models.length; i++) {
+    if (!filesHashMap[models[i].path]) {
+      await db.run(`DELETE FROM models WHERE path = $path AND type = $type`, {
+        $name: models[i].path,
+        $type: type,
+      });
+    }
+  }
+};
+
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
   event: IpcMainInvokeEvent,
@@ -41,7 +64,7 @@ export const readdirModelsIpc = async (
   const models: Model[] = await db.all(`SELECT * FROM models`);
   const modelsHashMap = models.reduce((acc: Record<string, Model>, row) => {
     if (row.type === modelType) {
-      acc[row.name] = row;
+      acc[row.path] = row;
     }
     return acc;
   }, {});
@@ -54,6 +77,8 @@ export const readdirModelsIpc = async (
   const files = getAllFiles(folderPath).filter(
     (f) => f.endsWith('.safetensors') || f.endsWith('.ckpt'),
   );
+
+  await removeModelsNotFound(files, modelType);
 
   for (let i = 0; i < files.length; i++) {
     const parsedFile = path.parse(files[i]);
@@ -73,18 +98,29 @@ export const readdirModelsIpc = async (
 
     let modelInfo: ModelCivitaiInfo | undefined;
 
-    if (!modelsHashMap[fileNameNoExt]) {
+    if (modelInfoExists) {
+      const modelInfoFile = fs.readFileSync(
+        `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+        { encoding: 'utf-8' },
+      );
+      modelInfo = JSON.parse(modelInfoFile);
+    }
+
+    if (!modelsHashMap[files[i]]) {
+      console.log('hashing', files[i]);
       const hash = await calculateHashFile(`${files[i]}`);
 
-      // verify if is a valid hash by downloading info from civitai
-      try {
-        modelInfo = await downloadModelInfoByHash(
-          fileNameNoExt,
-          hash,
-          fileFolderPath,
-        );
-      } catch (error) {
-        continue;
+      if (!modelInfo) {
+        // verify if is a valid hash by downloading info from civitai
+        try {
+          modelInfo = await downloadModelInfoByHash(
+            fileNameNoExt,
+            hash,
+            fileFolderPath,
+          );
+        } catch (error) {
+          console.log(error);
+        }
       }
 
       try {
@@ -116,7 +152,7 @@ export const readdirModelsIpc = async (
         }
       }
 
-      modelsHashMap[fileNameNoExt] = {
+      modelsHashMap[files[i]] = {
         hash,
         name: fileNameNoExt,
         path: fileFolderPath,
@@ -133,7 +169,7 @@ export const readdirModelsIpc = async (
       try {
         modelInfo = await downloadModelInfoByHash(
           fileNameNoExt,
-          modelsHashMap[fileNameNoExt].hash,
+          modelsHashMap[files[i]].hash,
           fileFolderPath,
         );
       } catch (error) {
@@ -177,23 +213,23 @@ export const readdirModelsIpc = async (
     }
 
     if (
-      modelsHashMap[fileNameNoExt].baseModel === '' ||
-      modelsHashMap[fileNameNoExt].baseModel === null
+      modelsHashMap[files[i]].baseModel === '' ||
+      modelsHashMap[files[i]].baseModel === null
     ) {
       if (modelInfo) {
         await db.run(
           `UPDATE models SET baseModel = $baseModel WHERE hash = $hash`,
           {
             $baseModel: modelInfo.baseModel,
-            $hash: modelsHashMap[fileNameNoExt].hash,
+            $hash: modelsHashMap[files[i]].hash,
           },
         );
       }
     }
 
     if (
-      !modelsHashMap[fileNameNoExt].modelId ||
-      !modelsHashMap[fileNameNoExt].modelVersionId
+      !modelsHashMap[files[i]].modelId ||
+      !modelsHashMap[files[i]].modelVersionId
     ) {
       if (modelInfo) {
         await db.run(
@@ -201,19 +237,19 @@ export const readdirModelsIpc = async (
           {
             $modelId: modelInfo.modelId,
             $modelVersionId: modelInfo.id,
-            $hash: modelsHashMap[fileNameNoExt].hash,
+            $hash: modelsHashMap[files[i]].hash,
           },
         );
       }
     }
 
-    if (!modelsHashMap[fileNameNoExt].description) {
+    if (!modelsHashMap[files[i]].description) {
       if (modelInfo) {
         await db.run(
           `UPDATE models SET description = $description WHERE hash = $hash`,
           {
             $description: modelInfo.description,
-            $hash: modelsHashMap[fileNameNoExt].hash,
+            $hash: modelsHashMap[files[i]].hash,
           },
         );
       }
