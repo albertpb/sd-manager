@@ -174,7 +174,7 @@ export default function Navbar() {
               </select>
             </div>
           ) : null}
-          <div className="form-control hidden xl:block">
+          <div className="form-control hidden xl:block relative">
             <input
               ref={searchRef}
               type="text"
@@ -190,6 +190,10 @@ export default function Navbar() {
                 dispatch(setNavbarSearchInputValue(e.target.value))
               }
             />
+            <div className="absolute h-full right-2 top-0 flex items-center">
+              <kbd className="kbd kbd-md mx-1">Ctrl</kbd>+
+              <kbd className="kbd kbd-md mx-1">F</kbd>
+            </div>
           </div>
           <Link
             className={classNames([
