@@ -219,7 +219,7 @@ export default function Navbar() {
         </div>
       </nav>
       <ConfirmDialog
-        msg="Are you sure to delete selected images ?, only images from destination folder will be deleted"
+        msg="Are you sure to delete selected images ?"
         isOpen={cofirmDialogIsOpen}
         onClose={() => setConfirmDialogIsOpen(false)}
         onConfirm={() => onDeleteImages()}

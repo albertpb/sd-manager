@@ -31,7 +31,7 @@ export type GlobalState = {
   filterCheckpoint: string;
   imagesLoading: boolean;
   navbarSearchInput: string;
-  imagesToDelete: Record<string, boolean>;
+  imagesToDelete: Record<string, ImageRow>;
 };
 
 const initialState: GlobalState = {

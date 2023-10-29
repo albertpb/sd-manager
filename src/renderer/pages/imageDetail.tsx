@@ -98,7 +98,7 @@ export default function ImageDetail() {
     if (imageData) {
       dispatch(
         setImagesToDelete({
-          [imageData.hash]: true,
+          [imageData.hash]: imageData,
         }),
       );
 
@@ -408,7 +408,7 @@ export default function ImageDetail() {
         </div>
       </div>
       <ConfirmDialog
-        msg="Are you sure to delete selected images ?, only images from destination folder will be deleted"
+        msg="Are you sure to delete selected images ?"
         isOpen={confirmDialogIsOpen}
         onClose={() => onCancelDelete()}
         onConfirm={() => doDelete()}

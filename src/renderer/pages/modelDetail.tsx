@@ -177,7 +177,7 @@ export default function ModelDetail() {
             dispatch(setImagesToDelete(imgs));
           } else {
             dispatch(
-              setImagesToDelete({ ...imagesToDelete, [item.hash]: true }),
+              setImagesToDelete({ ...imagesToDelete, [item.hash]: item }),
             );
           }
         } else {

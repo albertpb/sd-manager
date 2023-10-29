@@ -16,7 +16,6 @@ export type ImageRow = {
   sourcePath: string;
   name: string;
   fileName: string;
-  deleted: number;
 };
 
 export async function getImagesIpc(
@@ -27,7 +26,7 @@ export async function getImagesIpc(
 
   if (modelName) {
     return db.all(
-      `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE model = $modelName AND deleted = 0 ORDER BY rating DESC, rowNum DESC`,
+      `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE model = $modelName ORDER BY rating DESC, rowNum DESC`,
       {
         $modelName: modelName,
       },
@@ -35,7 +34,7 @@ export async function getImagesIpc(
   }
 
   return db.all(
-    `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE deleted = 0 ORDER BY rating DESC, rowNum DESC`,
+    `SELECT *, row_number() over (order by '') as rowNum FROM images ORDER BY rating DESC, rowNum DESC`,
   );
 }
 
@@ -64,16 +63,34 @@ export async function updateImageIpc(
 
 export async function removeImagesIpc(
   event: IpcMainInvokeEvent,
-  images: Record<string, boolean>,
+  images: Record<string, ImageRow>,
 ) {
   const db = await SqliteDB.getInstance().getdb();
-  const arr = Object.keys(images);
+  const imagesToDelete = Object.values(images);
 
-  for (let i = 0; i < arr.length; i++) {
-    const hash = arr[i];
-    await db.run(`UPDATE images SET deleted = 1 WHERE hash = $hash`, {
-      $hash: hash,
+  for (let i = 0; i < imagesToDelete.length; i++) {
+    await db.run(`DELETE FROM images WHERE hash = $hash`, {
+      $hash: imagesToDelete[i].hash,
     });
+
+    const pathParsed = path.parse(imagesToDelete[i].sourcePath);
+    try {
+      fs.unlinkSync(imagesToDelete[i].sourcePath);
+    } catch (error) {
+      console.log(error);
+    }
+    try {
+      fs.unlinkSync(`${pathParsed.dir}\\${pathParsed.name}.thumbnail.webp`);
+    } catch (error) {
+      console.log(error);
+    }
+    try {
+      fs.rmSync(`${pathParsed.dir}\\${pathParsed.name}`, {
+        recursive: true,
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
 

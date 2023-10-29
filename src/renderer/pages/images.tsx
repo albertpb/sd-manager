@@ -221,17 +221,17 @@ export default function Images() {
     return resultArr;
   }, []);
 
-  const onImageClick = (hash: string) => {
+  const onImageClick = (image: ImageRow) => {
     if (deleteActive) {
-      if (imagesToDelete[hash]) {
+      if (imagesToDelete[image.hash]) {
         const imgs = { ...imagesToDelete };
-        delete imgs[hash];
+        delete imgs[image.hash];
         dispatch(setImagesToDelete(imgs));
       } else {
-        dispatch(setImagesToDelete({ ...imagesToDelete, [hash]: true }));
+        dispatch(setImagesToDelete({ ...imagesToDelete, [image.hash]: image }));
       }
     } else {
-      navigate(`/image-detail/${hash}`);
+      navigate(`/image-detail/${image.hash}`);
     }
   };
 
@@ -278,7 +278,7 @@ export default function Images() {
               'opacity-50': imagesToDelete[item.hash],
             },
           ])}
-          onClick={() => onImageClick(item.hash)}
+          onClick={() => onImageClick(item)}
           aria-hidden="true"
         >
           <figure

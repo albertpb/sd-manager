@@ -52,7 +52,6 @@ export default class SqliteDB {
         "sourcePath" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "fileName" TEXT NOT NULL,
-        "deleted" BOOLEAN NOT NULL DEFAULT 0,
         PRIMARY KEY ("hash"),
         CONSTRAINT "model_fk" FOREIGN KEY ("model") REFERENCES "models" ("hash") ON DELETE CASCADE ON UPDATE CASCADE
       )`);
@@ -147,16 +146,16 @@ export default class SqliteDB {
       version.user_version = 7;
     }
 
-    if (version.user_version === 7) {
+    if (version.user_version === 7 || version.user_version === 8) {
       try {
-        await db.run(`DELETE FROM images`);
+        await db.run(`ALTER TABLE images DROP COLUMN deleted`);
       } catch (error) {
         console.log(error);
       }
 
-      await db.run(`PRAGMA user_version = 8`);
+      await db.run(`PRAGMA user_version = 9`);
 
-      version.user_version = 8;
+      version.user_version = 9;
     }
   }
 }

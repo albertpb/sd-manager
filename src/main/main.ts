@@ -158,7 +158,6 @@ ipcMain.handle('watchImagesFolder', async () => {
       sourcePath: detectedFile,
       name: fileNameNoExt,
       fileName: fileBaseName,
-      deleted: 0,
     };
 
     await db.run(
