@@ -164,6 +164,15 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
           } catch (error) {
             console.log(error);
           }
+        } else if (imagesRowsHashMap[imageHash].sourcePath !== files[i]) {
+          await db.run(
+            `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
+            {
+              $sourcePath: files[i],
+              $path: path.dirname(files[i]),
+              $hash: imageHash,
+            },
+          );
         }
 
         if (
