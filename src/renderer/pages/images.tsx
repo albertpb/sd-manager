@@ -27,7 +27,8 @@ export default function Images() {
 
   const virtualScrollId = 'images_virtualscroll';
 
-  const [rowNumber, setRowNumber] = useState<number>(3);
+  const [zoomLevel, setZoomLevel] = useState<number>(3);
+  const [showRating, setShowRating] = useState<boolean>(true);
   const [imageAnimated, setImageAnimated] = useState<boolean>(true);
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('ratingDesc');
@@ -158,8 +159,8 @@ export default function Images() {
     const windowWidth = window.innerWidth;
     setContainerHeight(windowHeight - 150);
 
-    const cardHeight = containerHeight / rowNumber - rowMargin;
-    const cardWidth = (cardHeight * 2) / rowNumber;
+    const cardHeight = containerHeight / zoomLevel - rowMargin;
+    const cardWidth = (cardHeight * 2) / 3;
 
     setHeight(cardHeight);
     setWidth(cardWidth);
@@ -168,7 +169,7 @@ export default function Images() {
     setPerChunk(
       Math.floor((windowWidth - windowHeight * 0.15) / cardWidth) || 1,
     );
-  }, [containerHeight, rowNumber]);
+  }, [containerHeight, zoomLevel]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -178,17 +179,35 @@ export default function Images() {
     [calcImagesValues],
   );
 
+  const onResize = useCallback(() => {
+    const windowHeight = window.innerHeight;
+
+    if (windowHeight > 1300) {
+      setZoomLevel(3);
+    } else if (windowHeight <= 1299 && windowHeight >= 900) {
+      setZoomLevel(2);
+    } else if (windowHeight <= 899) {
+      setZoomLevel(1);
+    }
+
+    calcImagesValues();
+  }, [calcImagesValues]);
+
+  useEffect(() => {
+    onResize();
+    // eslint-disable-next-line
+  }, []);
+
   useEffect(() => {
     sortFilterImages(sortBy);
   }, [images, sortFilterImages, sortBy]);
 
   useEffect(() => {
     calcImagesValues();
+    window.addEventListener('resize', onResize);
 
-    window.addEventListener('resize', calcImagesValues);
-
-    return () => window.removeEventListener('resize', calcImagesValues);
-  }, [containerRef, width, calcImagesValues]);
+    return () => window.removeEventListener('resize', onResize);
+  }, [containerRef, width, calcImagesValues, onResize]);
 
   const fuse = new Fuse(imagesList, {
     keys: ['model'],
@@ -235,11 +254,22 @@ export default function Images() {
     }
   };
 
-  const changeImageRow = () => {
-    if (rowNumber >= maxRows) {
-      setRowNumber(1);
+  const changeZoom = () => {
+    let newZoomLevel = zoomLevel;
+    if (zoomLevel >= maxRows) {
+      newZoomLevel = 1;
     } else {
-      setRowNumber(rowNumber + 1);
+      newZoomLevel += 1;
+    }
+    setZoomLevel(newZoomLevel);
+
+    const windowHeight = window.innerHeight;
+    if (windowHeight < 1300 && newZoomLevel >= 3) {
+      setShowRating(false);
+    } else if (windowHeight < 900 && newZoomLevel === 2) {
+      setShowRating(false);
+    } else {
+      setShowRating(true);
     }
   };
 
@@ -264,7 +294,7 @@ export default function Images() {
   const rowRenderer = (row: VirtualScrollData) => {
     const items = row.row.map(({ item }: Fuse.FuseResult<ImageRow>) => {
       const imageSrc =
-        rowNumber <= 2
+        zoomLevel <= 2
           ? `${item.path}\\${item.name}.png`
           : `${item.path}\\${item.name}.thumbnail.webp`;
 
@@ -287,25 +317,26 @@ export default function Images() {
               {
                 animated: imageAnimated,
               },
+              {
+                'max-w-fit': zoomLevel === 1,
+              },
             ])}
             style={{
               width: `${width}px`,
               height: `${height}px`,
             }}
           >
-            <div className="absolute top-2 right-2 z-20">
-              <Rating value={item.rating} />
-            </div>
+            {showRating && (
+              <div className="absolute top-2 right-2 z-20 sm:hidden md:hidden lg:block">
+                <Rating value={item.rating} />
+              </div>
+            )}
             <Image
               src={imageSrc}
               alt={`model_detail_model_image_${item.hash}`}
               height="100%"
               width="100%"
-              className={classNames({
-                'object-contain': rowNumber === 1,
-                'object-left': rowNumber === 1,
-                'object-cover': rowNumber >= 2,
-              })}
+              className="object-cover"
               draggable={false}
             />
             <div className="absolute bottom-0 left-0 w-full p-3 flex flex-col">
@@ -327,8 +358,11 @@ export default function Images() {
     <div ref={setRef} className="W-full h-full flex">
       <div className="w-fit h-full">
         <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
-          <li className="tooltip tooltip-right" data-tip={`rows ${rowNumber}`}>
-            <button type="button" onClick={() => changeImageRow()}>
+          <li
+            className="tooltip tooltip-right"
+            data-tip={`zoom level ${zoomLevel}`}
+          >
+            <button type="button" onClick={() => changeZoom()}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

@@ -9,9 +9,12 @@ type ModelCardProps = {
   height?: string;
   rating?: number;
   imageClassName?: any;
+  figureClassName?: any;
   type: string;
   loading?: boolean;
   needUpdate?: boolean;
+  className?: any;
+  showRating?: boolean;
 };
 
 export default function ModelCard({
@@ -21,9 +24,12 @@ export default function ModelCard({
   width = '480px',
   height = '320px',
   imageClassName = 'object-cover',
+  figureClassName = '',
+  className = '',
   type,
   loading = false,
   needUpdate = false,
+  showRating = true,
 }: ModelCardProps) {
   const loadingOverlay = (
     <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
@@ -36,6 +42,7 @@ export default function ModelCard({
     <div
       className={classNames([
         'relative overflow-hidden rounded-md p-0 m-2 cursor-pointer',
+        className,
       ])}
       style={{ width, height }}
     >
@@ -45,12 +52,10 @@ export default function ModelCard({
           'card__figure rounded-md overflow-hidden',
           { animate: !loading },
           { 'blur-sm': loading },
+          figureClassName,
         ])}
         style={{ width, height }}
       >
-        <div className="absolute top-2 right-2 z-20">
-          <Rating value={rating || 1} />
-        </div>
         <Image
           src={imagePath}
           alt={name}
@@ -58,12 +63,19 @@ export default function ModelCard({
           width="100%"
           className={classNames([imageClassName])}
         />
-        <div className="absolute top-0 left-0 w-full">
-          <div className="w-full h-full flex p-3 flex-col">
-            <div className="badge badge-accent mb-2">{type}</div>
-            {needUpdate ? (
-              <div className="badge badge-warning mb-2">Update Available</div>
-            ) : null}
+        <div className="absolute top-2 left-0 w-full z-20">
+          <div className="flex flex-row justify-between">
+            <div className="w-full h-full flex px-3 mt-1 flex-col">
+              <div className="badge badge-accent mb-2">{type}</div>
+              {needUpdate ? (
+                <div className="badge badge-warning mb-2">Update Available</div>
+              ) : null}
+            </div>
+            {showRating && (
+              <div className="sm:hidden md:hidden lg:block pr-2">
+                <Rating value={rating || 1} />
+              </div>
+            )}
           </div>
         </div>
         <div className="absolute bottom-0 left-0 w-full p-3 flex ">

@@ -47,7 +47,8 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
-  const [rowNumber, setRowNumber] = useState<number>(3);
+  const [zoomLevel, setZoomLevel] = useState<number>(3);
+  const [showRating, setShowRating] = useState<boolean>(true);
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
@@ -182,8 +183,8 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     const windowWidth = window.innerWidth;
     setContainerHeight(windowHeight - 150);
 
-    const cardHeight = containerHeight / rowNumber - rowMargin;
-    const cardWidth = (cardHeight * 2) / rowNumber;
+    const cardHeight = containerHeight / zoomLevel - rowMargin;
+    const cardWidth = (cardHeight * 2) / 3;
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
@@ -191,7 +192,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     setPerChunk(
       Math.floor((windowWidth - windowHeight * 0.15) / cardWidth) || 1,
     );
-  }, [containerHeight, rowNumber]);
+  }, [containerHeight, zoomLevel]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -201,13 +202,43 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     [calcImagesValues],
   );
 
-  const changeImageRow = () => {
-    if (rowNumber >= maxRows) {
-      setRowNumber(1);
+  const changeZoom = () => {
+    let newZoomLevel = zoomLevel;
+    if (zoomLevel >= maxRows) {
+      newZoomLevel = 1;
     } else {
-      setRowNumber(rowNumber + 1);
+      newZoomLevel += 1;
+    }
+    setZoomLevel(newZoomLevel);
+
+    const windowHeight = window.innerHeight;
+    if (windowHeight < 1300 && newZoomLevel >= 3) {
+      setShowRating(false);
+    } else if (windowHeight < 900 && newZoomLevel === 2) {
+      setShowRating(false);
+    } else {
+      setShowRating(true);
     }
   };
+
+  const onResize = useCallback(() => {
+    const windowHeight = window.innerHeight;
+
+    if (windowHeight > 1300) {
+      setZoomLevel(3);
+    } else if (windowHeight <= 1299 && windowHeight >= 900) {
+      setZoomLevel(2);
+    } else if (windowHeight <= 899) {
+      setZoomLevel(1);
+    }
+
+    calcImagesValues();
+  }, [calcImagesValues]);
+
+  useEffect(() => {
+    onResize();
+    // eslint-disable-next-line
+  }, []);
 
   useEffect(() => {
     sortFilterModels(filterBy, sortBy);
@@ -215,11 +246,10 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
   useEffect(() => {
     calcImagesValues();
+    window.addEventListener('resize', onResize);
 
-    window.addEventListener('resize', calcImagesValues);
-
-    return () => window.removeEventListener('resize', calcImagesValues);
-  }, [containerRef, width, calcImagesValues]);
+    return () => window.removeEventListener('resize', onResize);
+  }, [containerRef, width, calcImagesValues, onResize]);
 
   const checkUpdates = async () => {
     setModels([]);
@@ -307,11 +337,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
             width={`${width}px`}
             height={`${height}px`}
             type={type}
-            imageClassName={{
-              'object-contain': rowNumber === 1,
-              'object-left': rowNumber === 1,
-              'object-cover': rowNumber >= 2,
+            imageClassName="object-cover"
+            className={{
+              'max-w-fit': zoomLevel === 1,
             }}
+            showRating={showRating}
           />
         </div>
       );
@@ -346,11 +376,14 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
               </svg>
             </button>
           </li>
-          <li className="tooltip tooltip-right" data-tip={`rows ${rowNumber}`}>
+          <li
+            className="tooltip tooltip-right"
+            data-tip={`zoom level ${zoomLevel}`}
+          >
             <button
               disabled={modelsState.checkingUpdates}
               type="button"
-              onClick={() => changeImageRow()}
+              onClick={() => changeZoom()}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
