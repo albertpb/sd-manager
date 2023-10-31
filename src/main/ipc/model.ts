@@ -5,12 +5,12 @@ import {
   checkFileExists,
   downloadImage,
   downloadModelInfoByHash,
-  calculateHashFile,
   checkFolderExists,
   readModelInfoFile,
   getModelInfo,
   sleep,
   getAllFiles,
+  hashFilesInBackground,
 } from '../util';
 import SqliteDB from '../db';
 import { settingsDB } from './settings';
@@ -51,6 +51,16 @@ export const removeModelsNotFound = async (files: string[], type: string) => {
   }
 };
 
+const notifyProgressModel = (
+  browserWindow: BrowserWindow | null,
+  msg: string,
+  progress: number,
+) => {
+  if (browserWindow !== null) {
+    browserWindow.webContents.send('models-progress', msg, progress);
+  }
+};
+
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
   event: IpcMainInvokeEvent,
@@ -80,17 +90,20 @@ export const readdirModelsIpc = async (
 
   await removeModelsNotFound(files, modelType);
 
+  const filesHashes = await hashFilesInBackground(
+    files.filter((f) => !modelsHashMap[f]),
+    (progress) =>
+      notifyProgressModel(browserWindow, `Hashing models...`, progress),
+  );
+
   for (let i = 0; i < files.length; i++) {
     const parsedFile = path.parse(files[i]);
     const baseName = parsedFile.base;
     const fileNameNoExt = parsedFile.name;
     const fileFolderPath = parsedFile.dir;
 
-    if (browserWindow !== null) {
-      const progress = ((i + 1) / files.length) * 100;
-      const msg = `${baseName}`;
-      browserWindow.webContents.send('models-progress', msg, progress);
-    }
+    const progress = ((i + 1) / files.length) * 100;
+    notifyProgressModel(browserWindow, `${baseName}`, progress);
 
     const modelInfoExists = await checkFileExists(
       `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
@@ -108,7 +121,7 @@ export const readdirModelsIpc = async (
 
     if (!modelsHashMap[files[i]]) {
       console.log('hashing', files[i]);
-      const hash = await calculateHashFile(`${files[i]}`);
+      const hash = filesHashes[files[i]];
 
       if (!modelInfo) {
         // verify if is a valid hash by downloading info from civitai

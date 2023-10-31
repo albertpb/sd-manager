@@ -1,10 +1,11 @@
 /* eslint import/prefer-default-export: off */
-import { Worker } from 'worker_threads';
-import { URL } from 'url';
+import os from 'os';
+import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
+import { Worker, isMainThread } from 'worker_threads';
+import { URL } from 'url';
+import { createBLAKE3 } from 'hash-wasm';
 import { ModelCivitaiInfo, ModelInfo } from './interfaces';
 
 export function resolveHtmlPath(htmlFileName: string) {
@@ -31,12 +32,9 @@ export function checkFolderExists(folder: string) {
     .catch(() => false);
 }
 
-export function calculateHashFile(
-  filePath: string,
-  algorithm = 'sha256',
-): Promise<string> {
+export function calculateHashFile(filePath: string): Promise<string> {
   return new Promise(async (resolve, reject) => {
-    const shasum = crypto.createHash(algorithm);
+    const hashsum = await createBLAKE3();
 
     const fileExists = await checkFileExists(filePath);
     if (!fileExists) {
@@ -47,11 +45,11 @@ export function calculateHashFile(
     try {
       const stream = fs.createReadStream(filePath);
       stream.on('data', (data) => {
-        shasum.update(data);
+        hashsum.update(data);
       });
 
       stream.on('end', () => {
-        const hash = shasum.digest('hex');
+        const hash = hashsum.digest('hex');
         return resolve(hash);
       });
     } catch (error) {
@@ -63,27 +61,25 @@ export function calculateHashFile(
 
 export function calculateHashFileOnWorker(
   filePath: string,
-  algorithm = 'sha256',
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      path.resolve(__dirname, './tasks/calculateHash.js'),
-      {
-        workerData: {
-          filePath,
-          algorithm,
-        },
-      },
-    );
+): Promise<string> | null {
+  if (isMainThread) {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(
+        path.resolve(__dirname, './tasks/calculateHash.js'),
+      );
 
-    worker.on('message', resolve);
-    worker.on('error', reject);
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`));
-      }
+      worker.on('message', (message) => {
+        if (message.type === 'hashResult') {
+          resolve(message.hash);
+        } else if (message.type === 'error') {
+          reject(message.message);
+        }
+      });
+
+      worker.postMessage({ type: 'hash', filePath });
     });
-  });
+  }
+  return null;
 }
 
 export async function downloadModelInfoByHash(
@@ -243,4 +239,58 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
   });
 
   return arrayOfFiles;
+}
+
+export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunkedArray: T[][] = [];
+
+  for (let i = 0; i < array.length; i += chunkSize) {
+    const chunk = array.slice(i, i + chunkSize);
+    chunkedArray.push(chunk);
+  }
+
+  return chunkedArray;
+}
+
+export async function hashFilesInBackground(
+  files: string[],
+  progressCb?: (progress: number) => any,
+) {
+  if (progressCb) {
+    progressCb(0);
+  }
+
+  const filesHashes: Record<string, string> = {};
+  const filesChunks = chunkArray(files, os.cpus().length);
+
+  for (let i = 0; i < filesChunks.length; i++) {
+    const promises: Promise<Record<string, string>>[] = [];
+    for (let j = 0; j < filesChunks[i].length; j++) {
+      promises.push(
+        (async () => {
+          const hash = await calculateHashFileOnWorker(filesChunks[i][j]);
+          if (hash !== null) {
+            return {
+              [filesChunks[i][j]]: hash,
+            };
+          }
+          return {
+            [filesChunks[i][j]]: '',
+          };
+        })(),
+      );
+    }
+    const hashes = await Promise.all(promises);
+
+    for (let j = 0; j < hashes.length; j++) {
+      Object.assign(filesHashes, hashes[j]);
+    }
+
+    const progress = ((i + 1) / filesChunks.length) * 100;
+    if (progressCb) {
+      progressCb(progress);
+    }
+  }
+
+  return filesHashes;
 }

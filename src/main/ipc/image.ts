@@ -3,7 +3,7 @@ import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import path from 'path';
 import sharp from 'sharp';
 import SqliteDB from '../db';
-import { calculateHashFile, checkFileExists, getAllFiles } from '../util';
+import { checkFileExists, getAllFiles, hashFilesInBackground } from '../util';
 import { extractMetadata, parseImageSdMeta } from '../exif';
 
 export type ImageRow = {
@@ -94,6 +94,16 @@ export async function removeImagesIpc(
   }
 }
 
+const notifyProgressImage = (
+  browserWindow: BrowserWindow | null,
+  msg: string,
+  progress: number,
+) => {
+  if (browserWindow !== null) {
+    browserWindow.webContents.send('images-progress', msg, progress);
+  }
+};
+
 export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
   const db = await SqliteDB.getInstance().getdb();
 
@@ -102,9 +112,9 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
   );
 
   const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
-  const imagesRowsHashMap = imagesRows.reduce(
+  const imagesRowsPathMap = imagesRows.reduce(
     (acc: Record<string, ImageRow>, row) => {
-      acc[row.hash] = row;
+      acc[row.sourcePath] = row;
       return acc;
     },
     {},
@@ -117,25 +127,28 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
       return acc;
     }, []);
 
+  const filesHashes = await hashFilesInBackground(
+    files.filter((f) => !imagesRowsPathMap[f]),
+    (progress) =>
+      notifyProgressImage(browserWindow, `Hashing images...`, progress),
+  );
+
   for (let i = 0; i < files.length; i++) {
     const parsedFilePath = path.parse(files[i]);
     const ext = parsedFilePath.ext;
     const file = fs.readFileSync(files[i]);
     const exif = extractMetadata(file);
 
-    if (browserWindow !== null) {
-      const progress = ((i + 1) / files.length) * 100;
-      const msg = `${files[i]}`;
-      browserWindow.webContents.send('images-progress', msg, progress);
-    }
+    const progress = ((i + 1) / files.length) * 100;
+    notifyProgressImage(browserWindow, `${files[i]}`, progress);
 
     if (ext === '.png') {
       const metadata = parseImageSdMeta(exif);
 
       if (metadata && metadata.model) {
-        const imageHash = await calculateHashFile(files[i]);
+        const imageHash = filesHashes[files[i]];
 
-        if (!imagesRowsHashMap[imageHash]) {
+        if (!imagesRowsPathMap[files[i]]) {
           const imageFile = fs.readFileSync(files[i]);
           const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
           const thumbnailExists = await checkFileExists(thumbnailDestPath);
@@ -161,23 +174,25 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
                 $fileName: parsedFilePath.base,
               },
             );
-          } catch (error) {
-            console.log(error);
+          } catch (error: any) {
+            if (error.errno === 19) {
+              await db.run(
+                `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
+                {
+                  $sourcePath: files[i],
+                  $path: path.dirname(files[i]),
+                  $hash: imageHash,
+                },
+              );
+            } else {
+              console.log(error);
+            }
           }
-        } else if (imagesRowsHashMap[imageHash].sourcePath !== files[i]) {
-          await db.run(
-            `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
-            {
-              $sourcePath: files[i],
-              $path: path.dirname(files[i]),
-              $hash: imageHash,
-            },
-          );
         }
 
         if (
-          imagesRowsHashMap[imageHash] &&
-          imagesRowsHashMap[imageHash].model === 'unknown'
+          imagesRowsPathMap[files[i]] &&
+          imagesRowsPathMap[files[i]].model === 'unknown'
         ) {
           try {
             await db.run(
