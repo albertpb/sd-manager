@@ -150,18 +150,20 @@ export const readdirModelsIpc = async (
             $modelVersionId: modelInfo?.id || null,
           },
         );
-      } catch (error) {
+      } catch (error: any) {
         console.log(files[i], modelType, hash);
         console.log(error);
 
-        if (browserWindow !== null) {
-          // await deleteModelFiles(fileFolderPath, fileNameNoExt);
+        if (error.errno === 19) {
+          if (browserWindow !== null) {
+            // await deleteModelFiles(fileFolderPath, fileNameNoExt);
 
-          browserWindow.webContents.send(
-            'duplicates-detected',
-            'Detected model duplicated',
-            fileNameNoExt,
-          );
+            browserWindow.webContents.send(
+              'duplicates-detected',
+              'Detected duplicated model',
+              fileNameNoExt,
+            );
+          }
         }
       }
 
