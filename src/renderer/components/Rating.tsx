@@ -16,7 +16,7 @@ export default function Rating({
         name="rating-2"
         className="mask mask-star-2 bg-orange-400"
         checked={value === 1}
-        aria-checked={value === 1}
+        aria-hidden
         onClick={() => onClick && onClick(1)}
         onChange={() => {}}
       />
@@ -25,7 +25,7 @@ export default function Rating({
         name="rating-2"
         className="mask mask-star-2 bg-orange-400"
         checked={value === 2}
-        aria-checked={value === 2}
+        aria-hidden
         onClick={() => onClick && onClick(2)}
         onChange={() => {}}
       />
@@ -34,7 +34,7 @@ export default function Rating({
         name="rating-2"
         className="mask mask-star-2 bg-orange-400"
         checked={value === 3}
-        aria-checked={value === 3}
+        aria-hidden
         onClick={() => onClick && onClick(3)}
         onChange={() => {}}
       />
@@ -43,7 +43,7 @@ export default function Rating({
         name="rating-2"
         className="mask mask-star-2 bg-orange-400"
         checked={value === 4}
-        aria-checked={value === 4}
+        aria-hidden
         onClick={() => onClick && onClick(4)}
         onChange={() => {}}
       />
@@ -52,7 +52,7 @@ export default function Rating({
         name="rating-2"
         className="mask mask-star-2 bg-orange-400"
         checked={value === 5}
-        aria-checked={value === 5}
+        aria-hidden
         onClick={() => onClick && onClick(5)}
         onChange={() => {}}
       />
