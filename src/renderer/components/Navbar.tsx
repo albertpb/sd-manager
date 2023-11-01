@@ -146,7 +146,10 @@ export default function Navbar() {
               {tabsList}
             </ul>
           </div>
-          <button className="btn btn-ghost normal-case text-xl" type="button">
+          <button
+            className="btn btn-ghost hidden xl:block normal-case text-xl"
+            type="button"
+          >
             SD Manager
           </button>
           <div className="hidden xl:flex">
@@ -174,7 +177,7 @@ export default function Navbar() {
               </select>
             </div>
           ) : null}
-          <div className="form-control hidden xl:block relative">
+          <div className="form-control relative">
             <input
               ref={searchRef}
               type="text"
