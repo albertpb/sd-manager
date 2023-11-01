@@ -670,7 +670,7 @@ export default function Images() {
           </li>
         </ul>
       </div>
-      <div className="pt-10 pl-10" style={{ width: `calc(100% - 68px)` }}>
+      <div className="px-10 py-10" style={{ width: `calc(100% - 68px)` }}>
         <VirtualScroll
           id={virtualScrollId}
           saveState
