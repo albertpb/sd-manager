@@ -1,12 +1,11 @@
 /* eslint import/prefer-default-export: off */
-import os from 'os';
 import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
 import { Worker, isMainThread } from 'worker_threads';
 import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
-import { ModelCivitaiInfo, ModelInfo } from './interfaces';
+import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -76,7 +75,49 @@ export function calculateHashFileOnWorker(
         }
       });
 
-      worker.postMessage({ type: 'hash', filePath });
+      worker.postMessage(filePath);
+    });
+  }
+  return null;
+}
+
+export async function makeThumbnailOnWorker(
+  filePath: string,
+  thumbnailDestPath: string,
+): Promise<null> {
+  if (isMainThread) {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(
+        path.resolve(__dirname, './tasks/thumbnails.js'),
+      );
+
+      worker.on('message', (message) => {
+        if (message === 'done') {
+          resolve(null);
+        } else {
+          reject();
+        }
+      });
+
+      worker.postMessage({ imageFile: filePath, thumbnailDestPath });
+    });
+  }
+  return null;
+}
+
+export async function parseMetadataOnWorker(
+  filePath: string,
+): Promise<Record<string, ImageMetaData> | null> {
+  if (isMainThread) {
+    return new Promise((resolve) => {
+      const worker = new Worker(
+        path.resolve(__dirname, './tasks/imageMetadata.js'),
+      );
+
+      worker.on('message', (message) => {
+        resolve(message);
+      });
+      worker.postMessage(filePath);
     });
   }
   return null;
@@ -140,24 +181,6 @@ export async function downloadImage(
 export async function readModelInfoFile(filePath: string) {
   const file = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
   return JSON.parse(file) as ModelCivitaiInfo;
-}
-
-export function splitOutsideQuotes(input: string): string[] {
-  const regex = /([ 0-9a-zA-Z]+: "[^"]+")/g;
-  const parts = input.match(regex);
-  let arr: string[] = [];
-  if (parts !== null) {
-    arr = arr.concat(parts.map((part) => part.trim()));
-  }
-  const cleanTxt = input
-    .replace(regex, '')
-    .split(',')
-    .reduce((acc: string[], part) => {
-      const p = part.trim();
-      if (p !== '') acc.push(p);
-      return acc;
-    }, []);
-  return arr.concat(cleanTxt);
 }
 
 export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
@@ -233,7 +256,7 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
   files.forEach((file) => {
     if (file.isDirectory()) {
       arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
-    } else {
+    } else if (file.isFile()) {
       arrayOfFiles.push(`${file.path}\\${file.name}`);
     }
   });
@@ -254,6 +277,7 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 
 export async function hashFilesInBackground(
   files: string[],
+  threads: number,
   progressCb?: (progress: number) => any,
 ) {
   if (progressCb) {
@@ -261,7 +285,7 @@ export async function hashFilesInBackground(
   }
 
   const filesHashes: Record<string, string> = {};
-  const filesChunks = chunkArray(files, os.cpus().length);
+  const filesChunks = chunkArray(files, threads);
 
   for (let i = 0; i < filesChunks.length; i++) {
     const promises: Promise<Record<string, string>>[] = [];
@@ -293,4 +317,62 @@ export async function hashFilesInBackground(
   }
 
   return filesHashes;
+}
+
+export async function makeThumbnails(
+  files: [string, string][],
+  threads: number,
+  progressCb?: (progress: number) => any,
+) {
+  if (progressCb) {
+    progressCb(0);
+  }
+
+  const filesChunks = chunkArray(files, threads);
+  for (let i = 0; i < filesChunks.length; i++) {
+    const promises: Promise<null>[] = [];
+    for (let j = 0; j < filesChunks[i].length; j++) {
+      promises.push(
+        makeThumbnailOnWorker(filesChunks[i][j][0], filesChunks[i][j][1]),
+      );
+    }
+    await Promise.all(promises);
+
+    const progress = ((i + 1) / filesChunks.length) * 100;
+    if (progressCb) {
+      progressCb(progress);
+    }
+  }
+}
+
+export async function parseImagesMetadata(
+  files: string[],
+  threads: number,
+  progressCb?: (progress: number) => any,
+) {
+  if (progressCb) {
+    progressCb(0);
+  }
+
+  const filesChunks = chunkArray(files, threads);
+  const filesMetadata: Record<string, ImageMetaData> = {};
+  for (let i = 0; i < filesChunks.length; i++) {
+    const promises: Promise<Record<string, ImageMetaData> | null>[] = [];
+    for (let j = 0; j < filesChunks[i].length; j++) {
+      promises.push(parseMetadataOnWorker(filesChunks[i][j]));
+    }
+    const response = await Promise.all(promises);
+    for (let j = 0; j < response.length; j++) {
+      if (response[j] !== null) {
+        Object.assign(filesMetadata, response[j]);
+      }
+    }
+
+    const progress = ((i + 1) / filesChunks.length) * 100;
+    if (progressCb) {
+      progressCb(progress);
+    }
+  }
+
+  return filesMetadata;
 }

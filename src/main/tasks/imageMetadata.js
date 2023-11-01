@@ -1,25 +1,10 @@
-import { ImageMetaData } from './interfaces';
+// worker.js
 
-export function splitOutsideQuotes(input: string): string[] {
-  const regex = /([ 0-9a-zA-Z]+: "[^"]+")/g;
-  const parts = input.match(regex);
-  let arr: string[] = [];
-  if (parts !== null) {
-    arr = arr.concat(parts.map((part) => part.trim()));
-  }
-  const cleanTxt = input
-    .replace(regex, '')
-    .split(',')
-    .reduce((acc: string[], part) => {
-      const p = part.trim();
-      if (p !== '') acc.push(p);
-      return acc;
-    }, []);
-  return arr.concat(cleanTxt);
-}
+const fs = require('fs');
+const { parentPort } = require('worker_threads');
 
-export function extractMetadata(pngData: Buffer) {
-  const metadata: Record<string, any> = {};
+function extractMetadata(pngData) {
+  const metadata = {};
 
   // Find the position of the first chunk
   let offset = 8;
@@ -60,25 +45,38 @@ export function extractMetadata(pngData: Buffer) {
   return metadata;
 }
 
-export function parseAutomatic1111Meta(
-  parameters: string,
-): ImageMetaData | null {
+function splitOutsideQuotes(input) {
+  const regex = /([ 0-9a-zA-Z]+: "[^"]+")/g;
+  const parts = input.match(regex);
+  let arr = [];
+  if (parts !== null) {
+    arr = arr.concat(parts.map((part) => part.trim()));
+  }
+  const cleanTxt = input
+    .replace(regex, '')
+    .split(',')
+    .reduce((acc, part) => {
+      const p = part.trim();
+      if (p !== '') acc.push(p);
+      return acc;
+    }, []);
+  return arr.concat(cleanTxt);
+}
+
+function parseAutomatic1111Meta(parameters) {
   const texts = parameters.split(/\r?\n/);
   if (texts.length >= 3) {
     const positivePrompt = texts[0];
     const negativePrompt = texts[1].split(': ')[1];
     const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
 
-    const data = keyValuePairs.reduce(
-      (acc: Record<string, string>, pair: string) => {
-        const [key, value] = pair.split(': ');
-        acc[key.replace(' ', '_')] = value;
-        return acc;
-      },
-      {},
-    );
+    const data = keyValuePairs.reduce((acc, pair) => {
+      const [key, value] = pair.split(': ');
+      acc[key.replace(' ', '_')] = value;
+      return acc;
+    }, {});
 
-    const params: ImageMetaData = {
+    const params = {
       positivePrompt,
       negativePrompt,
       cfg: data.CFG_scale,
@@ -95,10 +93,10 @@ export function parseAutomatic1111Meta(
   return null;
 }
 
-export function parseComfyUiMeta(workflow: string): ImageMetaData {
+function parseComfyUiMeta(workflow) {
   const parsed = JSON.parse(workflow);
 
-  const params: ImageMetaData = {
+  const params = {
     positivePrompt: '',
     negativePrompt: '',
     cfg: '',
@@ -112,7 +110,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 
   if (parsed.nodes && Array.isArray(parsed.nodes)) {
     let KSamplerNode = parsed.nodes.find(
-      (node: Record<string, any>) => node.type === 'KSamplerAdvanced',
+      (node) => node.type === 'KSamplerAdvanced',
     );
 
     if (KSamplerNode) {
@@ -122,9 +120,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
       params.scheduler = `${KSamplerNode.widgets_values[6]}`;
       params.sampler = `${KSamplerNode.widgets_values[5]}`;
     } else {
-      KSamplerNode = parsed.nodes.find(
-        (node: Record<string, any>) => node.type === 'KSampler',
-      );
+      KSamplerNode = parsed.nodes.find((node) => node.type === 'KSampler');
 
       if (KSamplerNode) {
         params.seed = KSamplerNode.widgets_values[0];
@@ -150,7 +146,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
       }
 
       for (let i = 0; i < parsed.nodes.length; i++) {
-        const node: Record<string, any> = parsed.nodes[i];
+        const node = parsed.nodes[i];
 
         if (node.type === 'CLIPTextEncode') {
           if (node.outputs[0] && node.outputs[0].links[0]) {
@@ -175,10 +171,10 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
   return params;
 }
 
-export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
+const parseInvokeAIMeta = (invokeaiMetadata) => {
   const parsed = JSON.parse(invokeaiMetadata);
 
-  const params: ImageMetaData = {
+  const params = {
     positivePrompt: parsed.positive_prompt,
     negativePrompt: parsed.negative_prompt,
     cfg: parsed.cfg_scale,
@@ -193,8 +189,8 @@ export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
   return params;
 };
 
-export const parseImageSdMeta = (exif: Record<string, any>) => {
-  let metadata: ImageMetaData = {
+const parseImageSdMeta = (exif) => {
+  let metadata = {
     cfg: '',
     generatedBy: '',
     model: 'unknown',
@@ -219,3 +215,16 @@ export const parseImageSdMeta = (exif: Record<string, any>) => {
 
   return metadata;
 };
+
+function parseImage(filePath) {
+  const file = fs.readFileSync(filePath);
+  const exif = extractMetadata(file);
+  const metadata = parseImageSdMeta(exif);
+  parentPort.postMessage({ [filePath]: metadata });
+  parentPort.close();
+}
+
+// Listen for messages from the main thread
+parentPort.on('message', async (filePath) => {
+  parseImage(filePath);
+});

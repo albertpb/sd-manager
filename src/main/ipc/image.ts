@@ -1,10 +1,14 @@
 import fs from 'fs';
-import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
+import os from 'os';
 import path from 'path';
-import sharp from 'sharp';
+import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import SqliteDB from '../db';
-import { checkFileExists, getAllFiles, hashFilesInBackground } from '../util';
-import { extractMetadata, parseImageSdMeta } from '../exif';
+import {
+  getAllFiles,
+  hashFilesInBackground,
+  makeThumbnails,
+  parseImagesMetadata,
+} from '../util';
 
 export type ImageRow = {
   rowNum?: number;
@@ -127,87 +131,92 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
       return acc;
     }, []);
 
+  const filesMetadata = await parseImagesMetadata(
+    files.filter(
+      (f) =>
+        !imagesRowsPathMap[f] ||
+        (imagesRowsPathMap[f] && imagesRowsPathMap[f].model === 'unknown'),
+    ),
+    os.cpus().length,
+    (progress) =>
+      notifyProgressImage(browserWindow, `Parsing images...`, progress),
+  );
+
   const filesHashes = await hashFilesInBackground(
     files.filter((f) => !imagesRowsPathMap[f]),
+    os.cpus().length * 2,
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
   );
 
+  const filesToThumbnail: [string, string][] = [];
+
   for (let i = 0; i < files.length; i++) {
     const parsedFilePath = path.parse(files[i]);
-    const ext = parsedFilePath.ext;
-    const file = fs.readFileSync(files[i]);
-    const exif = extractMetadata(file);
 
     const progress = ((i + 1) / files.length) * 100;
     notifyProgressImage(browserWindow, `${files[i]}`, progress);
 
-    if (ext === '.png') {
-      const metadata = parseImageSdMeta(exif);
+    const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
+    filesToThumbnail.push([files[i], thumbnailDestPath]);
 
-      if (metadata && metadata.model) {
-        const imageHash = filesHashes[files[i]];
+    const metadata = filesMetadata[files[i]];
 
-        if (!imagesRowsPathMap[files[i]]) {
-          const imageFile = fs.readFileSync(files[i]);
-          const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
-          const thumbnailExists = await checkFileExists(thumbnailDestPath);
-          if (!thumbnailExists) {
-            await sharp(imageFile)
-              .resize({ height: 400 })
-              .withMetadata()
-              .toFormat('webp')
-              .toFile(thumbnailDestPath);
-          }
+    if (metadata && metadata.model) {
+      const imageHash = filesHashes[files[i]];
 
-          try {
+      if (!imagesRowsPathMap[files[i]]) {
+        try {
+          await db.run(
+            `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+            {
+              $hash: imageHash,
+              $path: parsedFilePath.dir,
+              $rating: 1,
+              $model: metadata.model,
+              $generatedBy: metadata.generatedBy,
+              $sourcePath: files[i],
+              $name: parsedFilePath.name,
+              $fileName: parsedFilePath.base,
+            },
+          );
+        } catch (error: any) {
+          if (error.errno === 19) {
             await db.run(
-              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+              `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
               {
-                $hash: imageHash,
-                $path: parsedFilePath.dir,
-                $rating: 1,
-                $model: metadata.model,
-                $generatedBy: metadata.generatedBy,
                 $sourcePath: files[i],
-                $name: parsedFilePath.name,
-                $fileName: parsedFilePath.base,
-              },
-            );
-          } catch (error: any) {
-            if (error.errno === 19) {
-              await db.run(
-                `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
-                {
-                  $sourcePath: files[i],
-                  $path: path.dirname(files[i]),
-                  $hash: imageHash,
-                },
-              );
-            } else {
-              console.log(error);
-            }
-          }
-        }
-
-        if (
-          imagesRowsPathMap[files[i]] &&
-          imagesRowsPathMap[files[i]].model === 'unknown'
-        ) {
-          try {
-            await db.run(
-              `UPDATE images SET model = $model, generatedBy = $generatedBy WHERE hash = $hash`,
-              {
+                $path: path.dirname(files[i]),
                 $hash: imageHash,
-                $model: metadata.model,
-                $generatedBy: metadata.generatedBy,
               },
             );
-          } catch (error) {
+          } else {
             console.log(error);
           }
         }
       }
+
+      if (
+        imagesRowsPathMap[files[i]] &&
+        imagesRowsPathMap[files[i]].model === 'unknown'
+      ) {
+        try {
+          await db.run(
+            `UPDATE images SET model = $model, generatedBy = $generatedBy WHERE hash = $hash`,
+            {
+              $hash: imageHash,
+              $model: metadata.model,
+              $generatedBy: metadata.generatedBy,
+            },
+          );
+        } catch (error) {
+          console.log(error);
+        }
+      }
     }
   }
+
+  await makeThumbnails(filesToThumbnail, os.cpus().length, (progress) =>
+    notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
+  );
 };

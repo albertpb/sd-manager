@@ -15,16 +15,16 @@ async function hashFile(filePath) {
   readStream.on('end', () => {
     const fileHash = hash.digest('hex');
     parentPort.postMessage({ type: 'hashResult', hash: fileHash });
+    parentPort.close();
   });
 
   readStream.on('error', (error) => {
     parentPort.postMessage({ type: 'error', message: error.message });
+    parentPort.close();
   });
 }
 
 // Listen for messages from the main thread
-parentPort.on('message', async (message) => {
-  if (message.type === 'hash') {
-    await hashFile(message.filePath);
-  }
+parentPort.on('message', async (filePath) => {
+  await hashFile(filePath);
 });

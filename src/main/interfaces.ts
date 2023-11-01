@@ -93,3 +93,15 @@ export type ModelInfo = {
   tags: string[];
   modelVersions: ModelCivitaiInfo[];
 };
+
+export type ImageMetaData = {
+  positivePrompt: string;
+  negativePrompt: string;
+  sampler: string;
+  steps: string;
+  seed: string;
+  cfg: string;
+  generatedBy: string;
+  model: string;
+  scheduler: string;
+};
