@@ -281,7 +281,8 @@ export default function Images() {
   };
 
   const updateImagesDb = async () => {
-    await dispatch(scanImages());
+    const watchFolders = await window.ipcHandler.watchFolder('read');
+    await dispatch(scanImages(watchFolders));
     await dispatch(readImages());
   };
 
