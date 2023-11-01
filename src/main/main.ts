@@ -18,11 +18,11 @@ import {
   protocol,
   net,
 } from 'electron';
-import chokidar, { FSWatcher } from 'chokidar';
 import fs from 'fs';
 import url from 'url';
 import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
+import { Worker } from 'worker_threads';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { calculateHashFile, checkFolderExists, resolveHtmlPath } from './util';
@@ -99,7 +99,6 @@ ipcMain.handle('saveImageFromClipboard', saveImageFromClipboardIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
 ipcMain.handle('watchFolder', watchFolderIpc);
 
-let watcherImagesFolder: FSWatcher | null = null;
 ipcMain.handle('watchImagesFolder', async () => {
   const db = await SqliteDB.getInstance().getdb();
 
@@ -107,20 +106,11 @@ ipcMain.handle('watchImagesFolder', async () => {
     `SELECT * FROM watch_folders`,
   );
 
-  if (watcherImagesFolder !== null) {
-    watcherImagesFolder.close();
-  }
+  const worker = new Worker(path.resolve(__dirname, './tasks/watcher.js'));
 
-  watcherImagesFolder = chokidar.watch(
-    foldersToWatch.map((f) => f.path),
-    {
-      persistent: true,
-      ignoreInitial: true,
-      awaitWriteFinish: true,
-    },
-  );
+  worker.postMessage(foldersToWatch);
 
-  watcherImagesFolder.on('add', async (detectedFile: string) => {
+  worker.on('message', async (detectedFile: string) => {
     console.log('detedted file ', detectedFile);
 
     const filePathParse = path.parse(detectedFile);
@@ -265,10 +255,6 @@ const createWindow = async () => {
     await SqliteDB.getInstance()
       .getdb()
       .then((db) => db.close());
-
-    if (watcherImagesFolder) {
-      watcherImagesFolder.close();
-    }
   });
 
   const menuBuilder = new MenuBuilder(mainWindow);
