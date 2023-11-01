@@ -1,7 +1,6 @@
 import { createId } from '@paralleldrive/cuid2';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
-import { ImageMetaData } from 'main/exif';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
 import { useCallback, useEffect, useState } from 'react';
@@ -20,6 +19,7 @@ import {
 } from 'renderer/redux/reducers/global';
 import { saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
+import { ImageMetaData } from 'main/interfaces';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -408,6 +408,7 @@ export default function ImageDetail() {
         </div>
       </div>
       <ConfirmDialog
+        id="delete-images"
         msg="Are you sure to delete selected images ?"
         isOpen={confirmDialogIsOpen}
         onClose={() => onCancelDelete()}

@@ -4,7 +4,7 @@ import SqliteDB from '../db';
 export const watchFolderIpc = async (
   event: IpcMainInvokeEvent,
   action: string,
-  payload: string,
+  payload: any,
 ) => {
   const db = await SqliteDB.getInstance().getdb();
 
@@ -21,9 +21,51 @@ export const watchFolderIpc = async (
     }
 
     case 'delete': {
+      if (payload.removeImages) {
+        await db.run(`DELETE FROM images WHERE path LIKE $path`, {
+          $path: `${payload.path}%`,
+        });
+      }
+
       await db.run(`DELETE FROM watch_folders WHERE path = $path`, {
-        $path: payload,
+        $path: payload.path,
       });
+
+      break;
+    }
+
+    case 'edit': {
+      const imagesPaths = await db.all(
+        `SELECT hash, path, sourcePath FROM images WHERE path LIKE $path`,
+        {
+          $path: `${payload.currentPath}%`,
+        },
+      );
+
+      for (let i = 0; i < imagesPaths.length; i++) {
+        await db.run(
+          `UPDATE images SET path = $path, sourcePath = $sourcePath WHERE hash = $hash`,
+          {
+            $path: imagesPaths[i].path.replace(
+              payload.currentPath,
+              payload.newPath,
+            ),
+            $sourcePath: imagesPaths[i].sourcePath.replace(
+              payload.currentPath,
+              payload.newPath,
+            ),
+            $hash: imagesPaths[i].hash,
+          },
+        );
+      }
+
+      await db.run(
+        `UPDATE watch_folders SET path = $newPath WHERE path = $path`,
+        {
+          $newPath: payload.newPath,
+          $path: payload.currentPath,
+        },
+      );
       break;
     }
 

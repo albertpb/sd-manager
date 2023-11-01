@@ -113,9 +113,12 @@ const saveSettings = async (key: string, value: any) => {
   await window.ipcHandler.settings('save', key, value);
 };
 
-export const scanImages = createAsyncThunk('scanImages', async () => {
-  await window.ipcHandler.scanImages();
-});
+export const scanImages = createAsyncThunk(
+  'scanImages',
+  async (paths: string[]) => {
+    await window.ipcHandler.scanImages(paths);
+  },
+);
 
 export const deleteImages = createAsyncThunk(
   'deleteImages',

@@ -108,12 +108,12 @@ const notifyProgressImage = (
   }
 };
 
-export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
+export const scanImagesIpc = async (
+  browserWindow: BrowserWindow | null,
+  event: IpcMainInvokeEvent,
+  foldersToWatch: string[],
+) => {
   const db = await SqliteDB.getInstance().getdb();
-
-  const foldersToWatch: { path: string }[] = await db.all(
-    `SELECT * FROM watch_folders`,
-  );
 
   const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
   const imagesRowsPathMap = imagesRows.reduce(
@@ -124,12 +124,22 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
     {},
   );
 
-  const files = foldersToWatch
-    .map((f) => f.path)
+  const files = foldersToWatch.reduce((acc: string[], folder) => {
+    acc = acc.concat(getAllFiles(folder).filter((f) => f.endsWith('png')));
+    return acc;
+  }, []);
+
+  const thumbnailsFilesMap = foldersToWatch
     .reduce((acc: string[], folder) => {
-      acc = acc.concat(getAllFiles(folder).filter((f) => f.endsWith('png')));
+      acc = acc.concat(
+        getAllFiles(folder).filter((f) => f.endsWith('thumbnail.webp')),
+      );
       return acc;
-    }, []);
+    }, [])
+    .reduce((acc: Record<string, boolean>, f) => {
+      acc[f] = true;
+      return acc;
+    }, {});
 
   const filesMetadata = await parseImagesMetadata(
     files.filter(
@@ -144,9 +154,10 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
 
   const filesHashes = await hashFilesInBackground(
     files.filter((f) => !imagesRowsPathMap[f]),
-    os.cpus().length * 2,
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
+    'blake3',
+    os.cpus().length * 2,
   );
 
   const filesToThumbnail: [string, string][] = [];
@@ -158,7 +169,9 @@ export const scanImagesIpc = async (browserWindow: BrowserWindow | null) => {
     notifyProgressImage(browserWindow, `${files[i]}`, progress);
 
     const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
-    filesToThumbnail.push([files[i], thumbnailDestPath]);
+    if (!thumbnailsFilesMap[thumbnailDestPath]) {
+      filesToThumbnail.push([files[i], thumbnailDestPath]);
+    }
 
     const metadata = filesMetadata[files[i]];
 

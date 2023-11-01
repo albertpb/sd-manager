@@ -19,7 +19,7 @@ import {
   net,
 } from 'electron';
 import fs from 'fs';
-import url from 'url';
+import url, { pathToFileURL } from 'url';
 import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
 import { Worker } from 'worker_threads';
@@ -76,7 +76,9 @@ ipcMain.handle('getImage', getImageIpc);
 ipcMain.handle('getImages', getImagesIpc);
 ipcMain.handle('updateImage', updateImageIpc);
 ipcMain.handle('removeImages', removeImagesIpc);
-ipcMain.handle('scanImages', () => scanImagesIpc(mainWindow));
+ipcMain.handle('scanImages', (event, foldersToWatch: string[]) =>
+  scanImagesIpc(mainWindow, event, foldersToWatch),
+);
 ipcMain.handle('readModels', readModelsIpc);
 ipcMain.handle('updateModel', updateModelIpc);
 ipcMain.handle('checkModelsToUpdate', (event, type) =>
@@ -99,14 +101,16 @@ ipcMain.handle('saveImageFromClipboard', saveImageFromClipboardIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
 ipcMain.handle('watchFolder', watchFolderIpc);
 
+const worker = new Worker(
+  new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
+);
+
 ipcMain.handle('watchImagesFolder', async () => {
   const db = await SqliteDB.getInstance().getdb();
 
   const foldersToWatch: { path: string }[] = await db.all(
     `SELECT * FROM watch_folders`,
   );
-
-  const worker = new Worker(path.resolve(__dirname, './tasks/watcher.js'));
 
   worker.postMessage(foldersToWatch);
 

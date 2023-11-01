@@ -1,9 +1,10 @@
 /* eslint import/prefer-default-export: off */
 import fs from 'fs';
 import axios from 'axios';
+import os from 'os';
 import path from 'path';
 import { Worker, isMainThread } from 'worker_threads';
-import { URL } from 'url';
+import { URL, pathToFileURL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
 import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
 
@@ -60,11 +61,15 @@ export function calculateHashFile(filePath: string): Promise<string> {
 
 export function calculateHashFileOnWorker(
   filePath: string,
+  algorithm: 'blake3' | 'sha256' = 'blake3',
 ): Promise<string> | null {
   if (isMainThread) {
     return new Promise((resolve, reject) => {
       const worker = new Worker(
-        path.resolve(__dirname, './tasks/calculateHash.js'),
+        new URL(
+          './workers/calculateHash.js',
+          pathToFileURL(__filename).toString(),
+        ),
       );
 
       worker.on('message', (message) => {
@@ -75,7 +80,7 @@ export function calculateHashFileOnWorker(
         }
       });
 
-      worker.postMessage(filePath);
+      worker.postMessage({ filePath, algorithm });
     });
   }
   return null;
@@ -88,7 +93,10 @@ export async function makeThumbnailOnWorker(
   if (isMainThread) {
     return new Promise((resolve, reject) => {
       const worker = new Worker(
-        path.resolve(__dirname, './tasks/thumbnails.js'),
+        new URL(
+          './workers/thumbnails.js',
+          pathToFileURL(__filename).toString(),
+        ),
       );
 
       worker.on('message', (message) => {
@@ -111,7 +119,10 @@ export async function parseMetadataOnWorker(
   if (isMainThread) {
     return new Promise((resolve) => {
       const worker = new Worker(
-        path.resolve(__dirname, './tasks/imageMetadata.js'),
+        new URL(
+          './workers/imageMetadata.js',
+          pathToFileURL(__filename).toString(),
+        ),
       );
 
       worker.on('message', (message) => {
@@ -277,8 +288,9 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 
 export async function hashFilesInBackground(
   files: string[],
-  threads: number,
   progressCb?: (progress: number) => any,
+  algorithm: 'sha256' | 'blake3' = 'blake3',
+  threads: number = os.cpus().length,
 ) {
   if (progressCb) {
     progressCb(0);
@@ -292,7 +304,10 @@ export async function hashFilesInBackground(
     for (let j = 0; j < filesChunks[i].length; j++) {
       promises.push(
         (async () => {
-          const hash = await calculateHashFileOnWorker(filesChunks[i][j]);
+          const hash = await calculateHashFileOnWorker(
+            filesChunks[i][j],
+            algorithm,
+          );
           if (hash !== null) {
             return {
               [filesChunks[i][j]]: hash,

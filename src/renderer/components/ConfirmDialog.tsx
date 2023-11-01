@@ -1,21 +1,20 @@
-import { createId } from '@paralleldrive/cuid2';
 import classNames from 'classnames';
 
 interface ConfirmDialogProps {
+  id: string;
   isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
+  onClose: (id: string) => void;
+  onConfirm: (id: string) => void;
   msg: string;
 }
 
 export default function ConfirmDialog({
+  id,
   isOpen,
   onClose,
   onConfirm,
   msg,
 }: ConfirmDialogProps) {
-  const id = createId();
-
   return (
     <dialog
       id={id}
@@ -34,16 +33,16 @@ export default function ConfirmDialog({
             <button
               type="button"
               className="btn btn-primary mx-1"
-              onClick={() => onConfirm()}
+              onClick={() => onConfirm(id)}
             >
-              Confirm
+              Yes
             </button>
             <button
               type="button"
               className="btn mx-1"
-              onClick={() => onClose()}
+              onClick={() => onClose(id)}
             >
-              Close
+              No
             </button>
           </form>
         </div>

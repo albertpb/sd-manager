@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import {
   checkFileExists,
@@ -45,7 +44,7 @@ export const removeModelsNotFound = async (files: string[], type: string) => {
   for (let i = 0; i < models.length; i++) {
     if (!filesHashMap[models[i].path]) {
       await db.run(`DELETE FROM models WHERE path = $path AND type = $type`, {
-        $name: models[i].path,
+        $path: models[i].path,
         $type: type,
       });
     }
@@ -93,7 +92,6 @@ export const readdirModelsIpc = async (
 
   const filesHashes = await hashFilesInBackground(
     files.filter((f) => !modelsHashMap[f]),
-    os.cpus().length,
     (progress) =>
       notifyProgressModel(browserWindow, `Hashing models...`, progress),
   );

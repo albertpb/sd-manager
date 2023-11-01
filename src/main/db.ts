@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
+import { hashFilesInBackground } from './util';
 
 export default class SqliteDB {
   // eslint-disable-next-line no-use-before-define
@@ -156,6 +157,25 @@ export default class SqliteDB {
       await db.run(`PRAGMA user_version = 9`);
 
       version.user_version = 9;
+    }
+
+    if (version.user_version === 9) {
+      try {
+        const images = await db.all(`SELECT sourcePath FROM images`);
+        const imageFiles = images.map((img) => img.sourcePath);
+
+        await hashFilesInBackground(imageFiles, undefined, 'blake3');
+
+        const models = await db.all(`SELECT path FROM models`);
+        const modelsFiles = models.map((model) => model.path);
+        await hashFilesInBackground(modelsFiles, undefined, 'blake3');
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 10`);
+
+      version.user_version = 10;
     }
   }
 }

@@ -1,6 +1,7 @@
 import { IpcRendererEvent } from 'electron';
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { FullLoader } from 'renderer/components/FullLoader';
 import { init, readCheckpoints, readLoras } from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
@@ -52,16 +53,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
 
   if (!initialized) {
     return (
-      <div className="w-full flex flex-col justify-center items-center h-screen">
-        <div className="stats">
-          <div className="stat place-items-center">
-            <div className="stat-title">Hashing Files</div>
-            <div className="stat-value">{progress.toFixed(2)}%</div>
-            <div className="stat-desc">{msg}</div>
-          </div>
-        </div>
-        <progress className="progress w-56" value={progress} max="100" />
-      </div>
+      <FullLoader title="Hashing Files" progress={progress} message={msg} />
     );
   }
 
