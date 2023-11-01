@@ -5,11 +5,12 @@ import {
   setCheckpointsPath,
   setLorasPath,
   setScanModelsOnStart,
-  unInit,
   setTheme,
   readImages,
   scanImages,
   setNavbarDisabled,
+  readLoras,
+  readCheckpoints,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog from 'renderer/components/ConfirmDialog';
 import { FullLoader } from 'renderer/components/FullLoader';
@@ -30,14 +31,14 @@ export default function Settings() {
 
   const onSelectCheckpointsDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    dispatch(setCheckpointsPath(path as string));
-    dispatch(unInit());
+    await dispatch(setCheckpointsPath(path as string));
+    await readCheckpoints({ shouldImport: true });
   };
 
   const onSelectLorasDir = async () => {
     const path = await window.ipcHandler.selectDir();
     dispatch(setLorasPath(path as string));
-    dispatch(unInit());
+    await readLoras({ shouldImport: true });
   };
 
   const onSelectImagesDir = async () => {

@@ -22,7 +22,6 @@ export type ModelState = {
 };
 
 export type GlobalState = {
-  initialized: boolean;
   navbarDisabled: boolean;
   settings: SettingsState;
   checkpoint: ModelState;
@@ -35,7 +34,6 @@ export type GlobalState = {
 };
 
 const initialState: GlobalState = {
-  initialized: false,
   navbarDisabled: false,
   settings: {
     scanModelsOnStart: '0',
@@ -71,10 +69,17 @@ const readModelsAsync = async (
 
 export const readCheckpoints = createAsyncThunk(
   'read_checkpoints',
-  async (arg, { getState }) => {
+  async ({ shouldImport }: { shouldImport: boolean }, { getState }) => {
     const state = getState() as { global: GlobalState };
 
     if (state.global.settings.checkpointsPath !== null) {
+      if (shouldImport) {
+        await window.ipcHandler.readdirModels(
+          'checkpoint',
+          state.global.settings.checkpointsPath,
+        );
+      }
+
       const models = await readModelsAsync('checkpoint');
       return models;
     }
@@ -84,10 +89,17 @@ export const readCheckpoints = createAsyncThunk(
 
 export const readLoras = createAsyncThunk(
   'read_loras',
-  async (arg, { getState }) => {
+  async ({ shouldImport }: { shouldImport: boolean }, { getState }) => {
     const state = getState() as { global: GlobalState };
 
     if (state.global.settings.lorasPath !== null) {
+      if (shouldImport) {
+        await window.ipcHandler.readdirModels(
+          'lora',
+          state.global.settings.lorasPath,
+        );
+      }
+
       const models = await readModelsAsync('lora');
       return models;
     }
@@ -160,12 +172,6 @@ export const globalSlice = createSlice({
         state.settings.lorasPath = action.payload;
         saveSettings('lorasPath', action.payload);
       }
-    },
-    init: (state) => {
-      state.initialized = true;
-    },
-    unInit: (state) => {
-      state.initialized = false;
     },
     setScanModelsOnStart: (state, action) => {
       state.settings.scanModelsOnStart = action.payload;
@@ -329,8 +335,6 @@ export const globalSlice = createSlice({
 export const {
   setCheckpointsPath,
   setLorasPath,
-  init,
-  unInit,
   setNavbarSearchInputValue,
   setScanModelsOnStart,
   setImagesToDelete,

@@ -158,10 +158,17 @@ export const readdirModelsIpc = async (
           if (browserWindow !== null) {
             // await deleteModelFiles(fileFolderPath, fileNameNoExt);
 
+            const model = await db.get(
+              `SELECT name FROM models WHERE hash = $hash`,
+              {
+                $hash: hash,
+              },
+            );
+
             browserWindow.webContents.send(
               'duplicates-detected',
               'Detected duplicated model',
-              fileNameNoExt,
+              `${fileNameNoExt} collided with ${model.name}`,
             );
           }
         }

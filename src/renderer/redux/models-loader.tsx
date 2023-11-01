@@ -2,39 +2,38 @@ import { IpcRendererEvent } from 'electron';
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FullLoader } from 'renderer/components/FullLoader';
-import { init, readCheckpoints, readLoras } from './reducers/global';
+import { readCheckpoints, readLoras } from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
 export default function ModelsLoader({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
-  const initialized = useSelector(
-    (state: RootState) => state.global.initialized,
-  );
+
   const settings = useSelector((state: RootState) => state.global.settings);
+
+  const checkpointsLoading = useSelector(
+    (state: RootState) => state.global.checkpoint.loading,
+  );
+  const lorasLoading = useSelector(
+    (state: RootState) => state.global.lora.loading,
+  );
 
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     const load = async () => {
-      if (!initialized) {
-        if (settings.scanModelsOnStart) {
-          await window.ipcHandler.readdirModels(
-            'checkpoint',
-            settings.checkpointsPath,
-          );
-          await window.ipcHandler.readdirModels('lora', settings.lorasPath);
-        }
-        await dispatch(readCheckpoints());
-        await dispatch(readLoras());
-        window.ipcHandler.watchImagesFolder();
-        dispatch(init());
-      }
+      console.log(settings.scanModelsOnStart);
+      await dispatch(
+        readCheckpoints({ shouldImport: settings.scanModelsOnStart === '1' }),
+      );
+      await dispatch(
+        readLoras({ shouldImport: settings.scanModelsOnStart === '1' }),
+      );
+      window.ipcHandler.watchImagesFolder();
     };
     load();
   }, [
     dispatch,
-    initialized,
     settings.checkpointsPath,
     settings.lorasPath,
     settings.scanModelsOnStart,
@@ -51,7 +50,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     return () => remove();
   }, []);
 
-  if (!initialized) {
+  if (lorasLoading || checkpointsLoading) {
     return (
       <FullLoader title="Hashing Files" progress={progress} message={msg} />
     );
