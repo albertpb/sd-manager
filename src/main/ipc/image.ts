@@ -157,7 +157,7 @@ export const scanImagesIpc = async (
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
     'blake3',
-    os.cpus().length * 2,
+    os.cpus().length,
   );
 
   const filesToThumbnail: [string, string][] = [];

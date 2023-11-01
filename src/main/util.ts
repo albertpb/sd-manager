@@ -75,6 +75,7 @@ export function calculateHashFileOnWorker(
       worker.on('message', (message) => {
         if (message.type === 'hashResult') {
           resolve(message.hash);
+          worker.terminate();
         } else if (message.type === 'error') {
           reject(message.message);
         }
@@ -102,6 +103,7 @@ export async function makeThumbnailOnWorker(
       worker.on('message', (message) => {
         if (message === 'done') {
           resolve(null);
+          worker.terminate();
         } else {
           reject();
         }
@@ -127,6 +129,7 @@ export async function parseMetadataOnWorker(
 
       worker.on('message', (message) => {
         resolve(message);
+        worker.terminate();
       });
       worker.postMessage(filePath);
     });

@@ -7,7 +7,9 @@ const fs = require('fs');
 
 async function hashFileBlake3(filePath) {
   const hash = await hashWasm.createBLAKE3();
-  const readStream = fs.createReadStream(filePath);
+  const readStream = fs.createReadStream(filePath, {
+    highWaterMark: 256 * 1024,
+  });
 
   readStream.on('data', (data) => {
     hash.update(data);
