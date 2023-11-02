@@ -1,5 +1,5 @@
 import os from 'os';
-import { URL, pathToFileURL } from 'url';
+import path from 'path';
 import { Worker } from 'worker_threads';
 
 export default class HashWorkerManager {
@@ -16,10 +16,7 @@ export default class HashWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        new URL(
-          '../workers/calculateHash.js',
-          pathToFileURL(__filename).toString(),
-        ),
+        path.resolve(__dirname, '../workers/calculateHash.js'),
       );
       this.workers.push(worker);
     }

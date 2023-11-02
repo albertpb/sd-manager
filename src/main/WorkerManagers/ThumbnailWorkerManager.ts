@@ -1,5 +1,5 @@
 import os from 'os';
-import { URL, pathToFileURL } from 'url';
+import path from 'path';
 import { Worker } from 'worker_threads';
 
 export default class ThumbnailWorkerManager {
@@ -16,10 +16,7 @@ export default class ThumbnailWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        new URL(
-          '../workers/thumbnails.js',
-          pathToFileURL(__filename).toString(),
-        ),
+        path.resolve(__dirname, '../workers/thumbnails.js'),
       );
       this.workers.push(worker);
     }

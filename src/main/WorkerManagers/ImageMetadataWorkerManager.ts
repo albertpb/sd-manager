@@ -1,5 +1,5 @@
 import os from 'os';
-import { URL, pathToFileURL } from 'url';
+import path from 'path';
 import { Worker } from 'worker_threads';
 import { ImageMetaData } from '../interfaces';
 
@@ -17,10 +17,7 @@ export default class ImageMetadataWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        new URL(
-          '../workers/imageMetadata.js',
-          pathToFileURL(__filename).toString(),
-        ),
+        path.resolve(__dirname, '../workers/imageMetadata.js'),
       );
       this.workers.push(worker);
     }

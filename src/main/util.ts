@@ -248,7 +248,7 @@ export async function hashFilesInBackground(
   algorithm: 'sha256' | 'blake3' = 'blake3',
 ) {
   if (progressCb) {
-    progressCb(0);
+    progressCb(0.1);
   }
 
   const filesHashes: Record<string, string> = {};
@@ -294,7 +294,7 @@ export async function makeThumbnails(
   progressCb?: (progress: number) => any,
 ) {
   if (progressCb) {
-    progressCb(0);
+    progressCb(0.1);
   }
 
   const filesChunks = chunkArray(
@@ -322,7 +322,7 @@ export async function parseImagesMetadata(
   progressCb?: (progress: number) => any,
 ) {
   if (progressCb) {
-    progressCb(0);
+    progressCb(0.1);
   }
 
   const filesChunks = chunkArray(
