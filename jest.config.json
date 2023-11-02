@@ -1,4 +1,5 @@
 {
+  "preset": "ts-jest",
   "moduleDirectories": ["node_modules", "release/app/node_modules", "src"],
   "moduleFileExtensions": ["js", "jsx", "ts", "tsx", "json"],
   "moduleNameMapper": {
@@ -10,7 +11,7 @@
   "testEnvironmentOptions": {
     "url": "http://localhost/"
   },
-  "testPathIgnorePatterns": ["release/app/dist", ".erb/dll"],
+  "testPathIgnorePatterns": ["release/app/dist", ".erb/dll", "node_modules"],
   "transform": {
     "\\.(ts|tsx|js|jsx)$": "ts-jest"
   }

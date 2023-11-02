@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "es2021",
+    "target": "ESNext",
     "module": "CommonJS",
-    "lib": ["dom", "es2021"],
+    "lib": ["dom", "ESNext"],
     "jsx": "react-jsx",
     "strict": true,
     "sourceMap": true,
