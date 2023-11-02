@@ -330,7 +330,7 @@ export default function Images() {
           >
             {showRating && (
               <div className="absolute top-2 right-2 z-20 sm:hidden md:hidden lg:block">
-                <Rating value={item.rating} />
+                <Rating id={item.hash} value={item.rating} />
               </div>
             )}
             <Image
@@ -487,6 +487,7 @@ export default function Images() {
                 className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-fit"
               >
                 <Rating
+                  id="images-rating-selector"
                   value={filterByRating}
                   onClick={(rating) => filterImagesByRating(rating)}
                   hidden={filterByRating === 0}

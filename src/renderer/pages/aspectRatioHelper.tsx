@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+/*
 const aspectRatios = [
   {
     label: 'wide (16:9)',
@@ -22,6 +23,7 @@ const aspectRatios = [
     ratioHeight: 2,
   },
 ];
+*/
 
 export default function AspectRatioHelper() {
   const [ratioWidth, setRatioWidth] = useState<number>(16);

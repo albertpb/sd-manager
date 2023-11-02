@@ -29,13 +29,6 @@ export const tabs = {
     label: 'Png Info',
     path: 'image-metadata',
   },
-  /*
-    testing: {
-    id: 'testing',
-    label: 'testing',
-    path: 'testing',
-  },
-  */
 };
 export type Tabs = keyof typeof tabs | null;
 

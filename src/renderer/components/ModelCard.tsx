@@ -3,6 +3,7 @@ import Image from './Image';
 import Rating from './Rating';
 
 type ModelCardProps = {
+  id: string;
   imagePath: string;
   name: string;
   width?: string;
@@ -18,6 +19,7 @@ type ModelCardProps = {
 };
 
 export default function ModelCard({
+  id,
   imagePath,
   name,
   rating,
@@ -73,7 +75,7 @@ export default function ModelCard({
             </div>
             {showRating && (
               <div className="sm:hidden md:hidden lg:block pr-2">
-                <Rating value={rating || 1} />
+                <Rating id={`model-card-rating-${id}`} value={rating || 1} />
               </div>
             )}
           </div>

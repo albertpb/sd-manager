@@ -1,4 +1,4 @@
-import { ImageMetaData } from 'main/exif';
+import { ImageMetaData } from '../../main/interfaces';
 import CopyText from './CopyText';
 
 export default function ImageMegadata({

@@ -6,7 +6,12 @@ const useOnUnmount = (
 ) => {
   const isUnmounting = useRef(false);
 
-  useEffect(() => () => (isUnmounting.current = true), []);
+  useEffect(
+    () => () => {
+      isUnmounting.current = true;
+    },
+    [],
+  );
 
   useEffect(
     () => () => {
@@ -14,7 +19,8 @@ const useOnUnmount = (
         callback();
       }
     },
-    dependencies,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dependencies],
   );
 };
 

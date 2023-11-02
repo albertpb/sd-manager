@@ -331,6 +331,7 @@ export default function ImageDetail() {
                 </Link>
                 <span className="ml-4">
                   <Rating
+                    id={`image-detail-${imageData.hash}`}
                     value={imageData.rating}
                     onClick={(value) => onRatingChange(value)}
                   />

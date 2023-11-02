@@ -309,7 +309,10 @@ export default function ModelDetail() {
               }}
             >
               <div className="absolute top-2 right-2 z-20">
-                <Rating value={item.rating} />
+                <Rating
+                  id={`model-detail-rating-${item.hash}`}
+                  value={item.rating}
+                />
               </div>
               <Image
                 src={item.path}
@@ -396,6 +399,7 @@ export default function ModelDetail() {
             <p className="text-2xl font-bold text-gray-300">{modelData.name}</p>
             <div className="ml-4 flex">
               <Rating
+                id={`model-detail-rating-2-${modelData.hash}`}
                 value={modelData.rating}
                 onClick={(value) => onRatingChange(value)}
               />
