@@ -13,7 +13,6 @@ import {
   hashFilesInBackground,
 } from '../util';
 import SqliteDB from '../db';
-import { settingsDB } from './settings';
 import { ModelCivitaiInfo } from '../interfaces';
 
 export type Model = {
@@ -78,11 +77,6 @@ export const readdirModelsIpc = async (
     }
     return acc;
   }, {});
-
-  const scanModelsOnStart = await settingsDB('read', 'scanModelsOnStart');
-  if (scanModelsOnStart?.value === '0') {
-    return modelsHashMap;
-  }
 
   const files = getAllFiles(folderPath).filter(
     (f) => f.endsWith('.safetensors') || f.endsWith('.ckpt'),

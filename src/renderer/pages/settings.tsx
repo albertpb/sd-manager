@@ -31,14 +31,14 @@ export default function Settings() {
 
   const onSelectCheckpointsDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    await dispatch(setCheckpointsPath(path as string));
-    await readCheckpoints({ shouldImport: true });
+    dispatch(setCheckpointsPath(path as string));
+    await dispatch(readCheckpoints({ shouldImport: true }));
   };
 
   const onSelectLorasDir = async () => {
     const path = await window.ipcHandler.selectDir();
     dispatch(setLorasPath(path as string));
-    await readLoras({ shouldImport: true });
+    await dispatch(readLoras({ shouldImport: true }));
   };
 
   const onSelectImagesDir = async () => {

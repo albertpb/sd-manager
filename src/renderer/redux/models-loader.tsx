@@ -22,7 +22,6 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
-      console.log(settings.scanModelsOnStart);
       await dispatch(
         readCheckpoints({ shouldImport: settings.scanModelsOnStart === '1' }),
       );
@@ -32,12 +31,7 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
       window.ipcHandler.watchImagesFolder();
     };
     load();
-  }, [
-    dispatch,
-    settings.checkpointsPath,
-    settings.lorasPath,
-    settings.scanModelsOnStart,
-  ]);
+  }, [dispatch, settings.scanModelsOnStart]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

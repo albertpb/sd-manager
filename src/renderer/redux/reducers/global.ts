@@ -71,7 +71,6 @@ export const readCheckpoints = createAsyncThunk(
   'read_checkpoints',
   async ({ shouldImport }: { shouldImport: boolean }, { getState }) => {
     const state = getState() as { global: GlobalState };
-
     if (state.global.settings.checkpointsPath !== null) {
       if (shouldImport) {
         await window.ipcHandler.readdirModels(
