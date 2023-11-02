@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import os from 'os';
 import path from 'path';
 import { Worker } from 'worker_threads';
@@ -16,7 +17,9 @@ export default class HashWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        path.resolve(__dirname, './workers/calculateHash.js'),
+        app.isPackaged
+          ? path.resolve(__dirname, './workers/calculateHash.js')
+          : path.resolve(__dirname, '../workers/calculateHash.js'),
       );
       this.workers.push(worker);
     }

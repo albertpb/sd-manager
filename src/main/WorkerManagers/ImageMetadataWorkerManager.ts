@@ -1,4 +1,5 @@
 import os from 'os';
+import { app } from 'electron';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { ImageMetaData } from '../interfaces';
@@ -17,7 +18,9 @@ export default class ImageMetadataWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        path.resolve(__dirname, './workers/imageMetadata.js'),
+        app.isPackaged
+          ? path.resolve(__dirname, './workers/imageMetadata.js')
+          : path.resolve(__dirname, '../workers/imageMetadata.js'),
       );
       this.workers.push(worker);
     }
