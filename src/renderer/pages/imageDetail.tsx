@@ -1,4 +1,3 @@
-import { createId } from '@paralleldrive/cuid2';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { Model } from 'main/ipc/model';
@@ -17,7 +16,7 @@ import {
   setImagesToDelete,
   updateImage,
 } from 'renderer/redux/reducers/global';
-import { saveMdDebounced } from 'renderer/utils';
+import { generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
 
@@ -153,7 +152,7 @@ export default function ImageDetail() {
         if (fileType === 'image/png') {
           const dest = `${imageData.path}\\${
             imageData.name
-          }\\${createId()}.png`;
+          }\\${generateRandomId(10)}.png`;
 
           try {
             await window.ipcHandler.saveImageMD(file.path, dest);
