@@ -16,6 +16,7 @@ import {
   setNavbarDisabled,
 } from 'renderer/redux/reducers/global';
 import { IpcRendererEvent } from 'electron';
+import { toast } from 'react-toastify';
 
 interface RowData {
   row: Fuse.FuseResult<Model>[];
@@ -58,10 +59,10 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
   const onModelCardClick = useCallback(
     (e: MouseEvent<HTMLDivElement>, hash: string) => {
+      const model = Object.values(modelsState.models).find(
+        (m) => m.hash === hash,
+      );
       if (e.ctrlKey) {
-        const model = Object.values(modelsState.models).find(
-          (m) => m.hash === hash,
-        );
         if (model) {
           window.ipcHandler.openLink(
             `https://civitai.com/models/${model.modelId}`,
@@ -70,7 +71,11 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
         }
       }
       if (!modelsState.checkingUpdates) {
-        navigate(`/model-detail/${hash}`);
+        if (model?.modelId) {
+          navigate(`/model-detail/${hash}`);
+        } else {
+          toast('Model has no data');
+        }
       }
     },
     [modelsState.checkingUpdates, navigate, modelsState.models],
