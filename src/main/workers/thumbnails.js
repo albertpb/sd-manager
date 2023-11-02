@@ -15,12 +15,16 @@ const processImage = async (imageFile, thumbnailDestPath) => {
     }
   } catch (error) {
     console.log(error);
+    throw error;
   }
 };
 
 // Listen for messages from the main thread
 parentPort.on('message', async ({ imageFile, thumbnailDestPath }) => {
-  await processImage(imageFile, thumbnailDestPath);
-  parentPort.postMessage({ type: 'result', message: null });
-  parentPort.close();
+  try {
+    await processImage(imageFile, thumbnailDestPath);
+    parentPort.postMessage({ type: 'result', message: null });
+  } catch (error) {
+    parentPort.postMessage({ type: 'error', message: error.message });
+  }
 });

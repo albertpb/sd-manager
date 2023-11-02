@@ -115,8 +115,6 @@ ipcMain.handle('watchImagesFolder', async () => {
   worker.postMessage(foldersToWatch);
 
   worker.on('message', async (detectedFile: string) => {
-    console.log('detedted file ', detectedFile);
-
     const filePathParse = path.parse(detectedFile);
     const fileBaseName = filePathParse.name;
     const ext = filePathParse.ext;

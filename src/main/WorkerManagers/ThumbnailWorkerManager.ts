@@ -47,7 +47,7 @@ export default class ThumbnailWorkerManager {
 
   public sendMessage(payload: any): Promise<null> {
     this.nextWorker();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const activeWorker = this.activeWorker;
       this.workers[activeWorker].postMessage(payload);
 
@@ -56,7 +56,7 @@ export default class ThumbnailWorkerManager {
         if (message.type === 'result') {
           resolve(message.message);
         } else if (message.type === 'error') {
-          reject(message.message);
+          resolve(null);
         }
       };
 

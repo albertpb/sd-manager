@@ -8,7 +8,6 @@ import SettingsLoader from './redux/settings-loader';
 import ModelsLoader from './redux/models-loader';
 import ModelDetail from './pages/modelDetail';
 import ImagesLoader from './redux/images-loader';
-import Testing from './pages/test';
 import ImageDetail from './pages/imageDetail';
 import AspectRatioHelper from './pages/aspectRatioHelper';
 import Notificator from './redux/notification';
@@ -40,7 +39,6 @@ export default function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/ar-helper" element={<AspectRatioHelper />} />
                     <Route path="/image-metadata" element={<ImageMetadata />} />
-                    <Route path="/testing" element={<Testing />} />
                   </Route>
                 </Routes>
               </ImagesLoader>
