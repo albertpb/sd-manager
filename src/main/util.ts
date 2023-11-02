@@ -1,12 +1,13 @@
 /* eslint import/prefer-default-export: off */
 import fs from 'fs';
 import axios from 'axios';
-import os from 'os';
 import path from 'path';
-import { Worker, isMainThread } from 'worker_threads';
-import { URL, pathToFileURL } from 'url';
+import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
 import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
+import HashWorkerManager from './WorkerManagers/HashWorkerManager';
+import ImageMetadataWorkerManager from './WorkerManagers/ImageMetadataWorkerManager';
+import ThumbnailWorkerManager from './WorkerManagers/ThumbnailWorkerManager';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -59,82 +60,34 @@ export function calculateHashFile(filePath: string): Promise<string> {
   });
 }
 
-export function calculateHashFileOnWorker(
+export async function calculateHashFileOnWorker(
   filePath: string,
   algorithm: 'blake3' | 'sha256' = 'blake3',
-): Promise<string> | null {
-  if (isMainThread) {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(
-        new URL(
-          './workers/calculateHash.js',
-          pathToFileURL(__filename).toString(),
-        ),
-      );
-
-      worker.on('message', (message) => {
-        if (message.type === 'hashResult') {
-          resolve(message.hash);
-          worker.terminate();
-        } else if (message.type === 'error') {
-          reject(message.message);
-        }
-      });
-
-      worker.postMessage({ filePath, algorithm });
-    });
-  }
-  return null;
+): Promise<string> {
+  const hash = await HashWorkerManager.getInstance().sendMessage({
+    filePath,
+    algorithm,
+  });
+  return hash;
 }
 
 export async function makeThumbnailOnWorker(
   filePath: string,
   thumbnailDestPath: string,
 ): Promise<null> {
-  if (isMainThread) {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(
-        new URL(
-          './workers/thumbnails.js',
-          pathToFileURL(__filename).toString(),
-        ),
-      );
-
-      worker.on('message', (message) => {
-        if (message === 'done') {
-          resolve(null);
-          worker.terminate();
-        } else {
-          reject();
-        }
-      });
-
-      worker.postMessage({ imageFile: filePath, thumbnailDestPath });
-    });
-  }
+  await ThumbnailWorkerManager.getInstance().sendMessage({
+    imageFile: filePath,
+    thumbnailDestPath,
+  });
   return null;
 }
 
 export async function parseMetadataOnWorker(
   filePath: string,
 ): Promise<Record<string, ImageMetaData> | null> {
-  if (isMainThread) {
-    return new Promise((resolve) => {
-      const worker = new Worker(
-        new URL(
-          './workers/imageMetadata.js',
-          pathToFileURL(__filename).toString(),
-        ),
-      );
-
-      worker.on('message', (message) => {
-        resolve(message);
-        worker.terminate();
-      });
-      worker.postMessage(filePath);
-    });
-  }
-  return null;
+  const metadata =
+    await ImageMetadataWorkerManager.getInstance().sendMessage(filePath);
+  return metadata;
 }
 
 export async function downloadModelInfoByHash(
@@ -293,14 +246,13 @@ export async function hashFilesInBackground(
   files: string[],
   progressCb?: (progress: number) => any,
   algorithm: 'sha256' | 'blake3' = 'blake3',
-  threads: number = os.cpus().length,
 ) {
   if (progressCb) {
     progressCb(0);
   }
 
   const filesHashes: Record<string, string> = {};
-  const filesChunks = chunkArray(files, threads);
+  const filesChunks = chunkArray(files, HashWorkerManager.getInstance().size());
 
   for (let i = 0; i < filesChunks.length; i++) {
     const promises: Promise<Record<string, string>>[] = [];
@@ -339,14 +291,16 @@ export async function hashFilesInBackground(
 
 export async function makeThumbnails(
   files: [string, string][],
-  threads: number,
   progressCb?: (progress: number) => any,
 ) {
   if (progressCb) {
     progressCb(0);
   }
 
-  const filesChunks = chunkArray(files, threads);
+  const filesChunks = chunkArray(
+    files,
+    ThumbnailWorkerManager.getInstance().size(),
+  );
   for (let i = 0; i < filesChunks.length; i++) {
     const promises: Promise<null>[] = [];
     for (let j = 0; j < filesChunks[i].length; j++) {
@@ -365,14 +319,16 @@ export async function makeThumbnails(
 
 export async function parseImagesMetadata(
   files: string[],
-  threads: number,
   progressCb?: (progress: number) => any,
 ) {
   if (progressCb) {
     progressCb(0);
   }
 
-  const filesChunks = chunkArray(files, threads);
+  const filesChunks = chunkArray(
+    files,
+    ImageMetadataWorkerManager.getInstance().size(),
+  );
   const filesMetadata: Record<string, ImageMetaData> = {};
   for (let i = 0; i < filesChunks.length; i++) {
     const promises: Promise<Record<string, ImageMetaData> | null>[] = [];

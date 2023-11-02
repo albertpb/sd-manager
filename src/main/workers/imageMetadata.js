@@ -220,8 +220,7 @@ function parseImage(filePath) {
   const file = fs.readFileSync(filePath);
   const exif = extractMetadata(file);
   const metadata = parseImageSdMeta(exif);
-  parentPort.postMessage({ [filePath]: metadata });
-  parentPort.close();
+  parentPort.postMessage({ type: 'result', message: { [filePath]: metadata } });
 }
 
 // Listen for messages from the main thread

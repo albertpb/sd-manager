@@ -9,6 +9,9 @@ export default class SqliteDB {
 
   private db: Database<sqlite3.Database, sqlite3.Statement> | undefined;
 
+  // eslint-disable-next-line
+  private constructor() {}
+
   public static getInstance(): SqliteDB {
     if (!SqliteDB.instance) {
       SqliteDB.instance = new SqliteDB();

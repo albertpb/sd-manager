@@ -1,5 +1,4 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import SqliteDB from '../db';
@@ -147,7 +146,6 @@ export const scanImagesIpc = async (
         !imagesRowsPathMap[f] ||
         (imagesRowsPathMap[f] && imagesRowsPathMap[f].model === 'unknown'),
     ),
-    os.cpus().length,
     (progress) =>
       notifyProgressImage(browserWindow, `Parsing images...`, progress),
   );
@@ -157,7 +155,6 @@ export const scanImagesIpc = async (
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
     'blake3',
-    os.cpus().length,
   );
 
   const filesToThumbnail: [string, string][] = [];
@@ -166,7 +163,7 @@ export const scanImagesIpc = async (
     const parsedFilePath = path.parse(files[i]);
 
     const progress = ((i + 1) / files.length) * 100;
-    notifyProgressImage(browserWindow, `${files[i]}`, progress);
+    notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
     const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
     if (!thumbnailsFilesMap[thumbnailDestPath]) {
@@ -229,7 +226,7 @@ export const scanImagesIpc = async (
     }
   }
 
-  await makeThumbnails(filesToThumbnail, os.cpus().length, (progress) =>
+  await makeThumbnails(filesToThumbnail, (progress) =>
     notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
   );
 };

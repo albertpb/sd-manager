@@ -21,6 +21,6 @@ const processImage = async (imageFile, thumbnailDestPath) => {
 // Listen for messages from the main thread
 parentPort.on('message', async ({ imageFile, thumbnailDestPath }) => {
   await processImage(imageFile, thumbnailDestPath);
-  parentPort.postMessage('done');
+  parentPort.postMessage({ type: 'result', message: null });
   parentPort.close();
 });

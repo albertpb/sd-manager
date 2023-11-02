@@ -17,13 +17,11 @@ async function hashFileBlake3(filePath) {
 
   readStream.on('end', () => {
     const fileHash = hash.digest('hex');
-    parentPort.postMessage({ type: 'hashResult', hash: fileHash });
-    parentPort.close();
+    parentPort.postMessage({ type: 'result', message: fileHash });
   });
 
   readStream.on('error', (error) => {
     parentPort.postMessage({ type: 'error', message: error.message });
-    parentPort.close();
   });
 }
 
@@ -37,13 +35,11 @@ async function hashSha256(filePath) {
 
   readStream.on('end', () => {
     const fileHash = hash.digest('hex');
-    parentPort.postMessage({ type: 'hashResult', hash: fileHash });
-    parentPort.close();
+    parentPort.postMessage({ type: 'result', message: fileHash });
   });
 
   readStream.on('error', (error) => {
     parentPort.postMessage({ type: 'error', message: error.message });
-    parentPort.close();
   });
 }
 
