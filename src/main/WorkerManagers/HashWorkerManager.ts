@@ -16,7 +16,7 @@ export default class HashWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        path.resolve(__dirname, '../workers/calculateHash.js'),
+        path.resolve(__dirname, './workers/calculateHash.js'),
       );
       this.workers.push(worker);
     }

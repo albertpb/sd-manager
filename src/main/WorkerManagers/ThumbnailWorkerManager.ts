@@ -16,7 +16,7 @@ export default class ThumbnailWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        path.resolve(__dirname, '../workers/thumbnails.js'),
+        path.resolve(__dirname, './workers/thumbnails.js'),
       );
       this.workers.push(worker);
     }

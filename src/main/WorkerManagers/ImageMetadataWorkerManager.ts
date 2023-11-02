@@ -17,7 +17,7 @@ export default class ImageMetadataWorkerManager {
   private constructor() {
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
-        path.resolve(__dirname, '../workers/imageMetadata.js'),
+        path.resolve(__dirname, './workers/imageMetadata.js'),
       );
       this.workers.push(worker);
     }
