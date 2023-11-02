@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FullLoader } from 'renderer/components/FullLoader';
 import { AppDispatch, RootState } from '.';
-import { readImages, setImages } from './reducers/global';
+import { readImages, scanImages, setImages } from './reducers/global';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -19,6 +19,9 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
+      const watchFolders: { path: string }[] =
+        await window.ipcHandler.watchFolder('read');
+      await dispatch(scanImages(watchFolders.map((f) => f.path)));
       await dispatch(readImages());
     };
 

@@ -52,7 +52,7 @@ export default function ModelCard({
       <figure
         className={classNames([
           'card__figure rounded-md overflow-hidden',
-          { animate: !loading },
+          { animated: !loading },
           { 'blur-sm': loading },
           figureClassName,
         ])}

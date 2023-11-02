@@ -31,7 +31,8 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
       window.ipcHandler.watchImagesFolder();
     };
     load();
-  }, [dispatch, settings.scanModelsOnStart]);
+    // eslint-disable-next-line
+  }, [dispatch]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

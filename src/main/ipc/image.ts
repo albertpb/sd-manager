@@ -123,29 +123,24 @@ export const scanImagesIpc = async (
     {},
   );
 
-  const files = foldersToWatch.reduce((acc: string[], folder) => {
-    acc = acc.concat(getAllFiles(folder).filter((f) => f.endsWith('png')));
+  const allFiles = foldersToWatch.reduce((acc: string[], folder) => {
+    acc = acc.concat(getAllFiles(folder));
     return acc;
   }, []);
 
-  const thumbnailsFilesMap = foldersToWatch
-    .reduce((acc: string[], folder) => {
-      acc = acc.concat(
-        getAllFiles(folder).filter((f) => f.endsWith('thumbnail.webp')),
-      );
-      return acc;
-    }, [])
+  const files = allFiles.filter(
+    (f) => f.endsWith('.png') && !imagesRowsPathMap[f],
+  );
+
+  const thumbnailsFilesMap = allFiles
+    .filter((f) => f.endsWith('thumbnail.webp'))
     .reduce((acc: Record<string, boolean>, f) => {
       acc[f] = true;
       return acc;
     }, {});
 
   const filesMetadata = await parseImagesMetadata(
-    files.filter(
-      (f) =>
-        !imagesRowsPathMap[f] ||
-        (imagesRowsPathMap[f] && imagesRowsPathMap[f].model === 'unknown'),
-    ),
+    files.filter((f) => !imagesRowsPathMap[f]),
     (progress) =>
       notifyProgressImage(browserWindow, `Parsing images...`, progress),
   );
@@ -188,35 +183,6 @@ export const scanImagesIpc = async (
               $sourcePath: files[i],
               $name: parsedFilePath.name,
               $fileName: parsedFilePath.base,
-            },
-          );
-        } catch (error: any) {
-          if (error.errno === 19) {
-            await db.run(
-              `UPDATE images SET sourcePath = $sourcePath, path = $path WHERE hash = $hash`,
-              {
-                $sourcePath: files[i],
-                $path: path.dirname(files[i]),
-                $hash: imageHash,
-              },
-            );
-          } else {
-            console.log(error);
-          }
-        }
-      }
-
-      if (
-        imagesRowsPathMap[files[i]] &&
-        imagesRowsPathMap[files[i]].model === 'unknown'
-      ) {
-        try {
-          await db.run(
-            `UPDATE images SET model = $model, generatedBy = $generatedBy WHERE hash = $hash`,
-            {
-              $hash: imageHash,
-              $model: metadata.model,
-              $generatedBy: metadata.generatedBy,
             },
           );
         } catch (error) {

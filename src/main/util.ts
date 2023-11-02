@@ -216,19 +216,24 @@ export function retryPromise<T>(
 }
 
 export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
-  const files = fs.readdirSync(dirPath, { withFileTypes: true });
+  const folderExists = fs.existsSync(dirPath);
 
-  arrayOfFiles = arrayOfFiles || [];
+  if (folderExists) {
+    const files = fs.readdirSync(dirPath, { withFileTypes: true });
 
-  files.forEach((file) => {
-    if (file.isDirectory()) {
-      arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
-    } else if (file.isFile()) {
-      arrayOfFiles.push(`${file.path}\\${file.name}`);
-    }
-  });
+    arrayOfFiles = arrayOfFiles || [];
 
-  return arrayOfFiles;
+    files.forEach((file) => {
+      if (file.isDirectory()) {
+        arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
+      } else if (file.isFile()) {
+        arrayOfFiles.push(`${file.path}\\${file.name}`);
+      }
+    });
+
+    return arrayOfFiles;
+  }
+  return [];
 }
 
 export function chunkArray<T>(array: T[], chunkSize: number): T[][] {

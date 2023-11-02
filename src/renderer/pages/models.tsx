@@ -329,6 +329,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
           aria-hidden="true"
         >
           <ModelCard
+            id={`model-card-models-${item.hash}`}
             loading={loading}
             needUpdate={needUpdate}
             name={item.name}
