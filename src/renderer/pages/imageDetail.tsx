@@ -80,15 +80,22 @@ export default function ImageDetail() {
 
   const goToNextOrPrevImage = useCallback(
     (next: boolean) => {
-      const index = images.findIndex((image) => image.hash === imageData?.hash);
-      if (index) {
-        const image = next ? images[index + 1] : images[index - 1];
+      const currentIndex = images.findIndex(
+        (image) => image.hash === imageData?.hash,
+      );
+      if (currentIndex !== -1) {
+        let index = next ? currentIndex + 1 : currentIndex - 1;
+        if (index > images.length - 1) {
+          index = 0;
+        } else if (index < 0) {
+          index = images.length - 1;
+        }
+        console.log(index);
+        const image = images[index];
         if (image.hash) {
           navigate(`/image-detail/${image.hash}`);
-          return;
         }
       }
-      navigate('/images');
     },
     [imageData, images, navigate],
   );
@@ -254,7 +261,7 @@ export default function ImageDetail() {
                 type="button"
                 className="tooltip tooltip-right"
                 data-tip="Go Next Image or press ← Key"
-                onClick={() => goToNextOrPrevImage(true)}
+                onClick={() => goToNextOrPrevImage(false)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -277,7 +284,7 @@ export default function ImageDetail() {
                 type="button"
                 className="tooltip tooltip-right"
                 data-tip="Go Next Image or press → Key"
-                onClick={() => goToNextOrPrevImage(false)}
+                onClick={() => goToNextOrPrevImage(true)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
