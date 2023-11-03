@@ -58,6 +58,7 @@ export default function ModelDetail() {
   const [userImagesList, setUserImagesList] = useState<ImageRow[]>([]);
   const [modelImagesList, setModelImagesList] = useState<string[]>([]);
 
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [width, setWidth] = useState(320);
@@ -117,29 +118,23 @@ export default function ModelDetail() {
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
-    let rowsToShow = 1;
 
-    if (windowWidth <= 1320) {
-      setShowHead(false);
-    } else {
-      setShowHead(true);
+    const descriptionHeight = descriptionRef.current?.clientHeight || 0;
+    let headHeight = showHead ? 380 : 0;
+
+    if (windowWidth < 1024) {
+      headHeight = 0;
     }
 
-    if (showHead) {
-      rowsToShow = 1;
-      setContainerHeight(windowHeight - 750);
-    } else {
-      rowsToShow = 2;
-      setContainerHeight(windowHeight - 350);
-    }
+    setContainerHeight(windowHeight - descriptionHeight - headHeight - 250);
 
-    const cardHeight = containerHeight / rowsToShow - margin;
+    const cardHeight = containerHeight / 1 - margin;
     const cardWidth = (cardHeight * 2) / 3 + margin;
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
     setPerChunk(Math.floor((windowWidth - windowWidth * 0.15) / cardWidth));
-  }, [showHead, containerHeight]);
+  }, [containerHeight, showHead]);
 
   useEffect(() => {
     calcImagesValues();
@@ -222,6 +217,7 @@ export default function ModelDetail() {
           key={`md_${imgSrc}_i`}
           onClick={() => revealInFolder(imgSrc)}
           aria-hidden="true"
+          className="cursor-pointer"
         >
           <figure
             key={`model_detail_model_image_${i}`}
@@ -336,20 +332,24 @@ export default function ModelDetail() {
     const responsive = {
       superLargeDesktop: {
         // the naming can be any, depends on you.
-        breakpoint: { max: 4000, min: 3000 },
-        items: 7,
-      },
-      desktop: {
-        breakpoint: { max: 3000, min: 1024 },
+        breakpoint: { max: 4000, min: 2150 },
         items: 5,
       },
-      tablet: {
-        breakpoint: { max: 1024, min: 464 },
+      desktop: {
+        breakpoint: { max: 2150, min: 1600 },
         items: 4,
       },
+      laptop: {
+        breakpoint: { max: 1600, min: 1240 },
+        items: 3,
+      },
+      tablet: {
+        breakpoint: { max: 1240, min: 860 },
+        items: 2,
+      },
       mobile: {
-        breakpoint: { max: 464, min: 0 },
-        items: 4,
+        breakpoint: { max: 860, min: 0 },
+        items: 1,
       },
     };
 
@@ -406,8 +406,8 @@ export default function ModelDetail() {
             </div>
           </div>
           <div
-            className={classNames('courtain', {
-              'courtain-hidden': !showHead,
+            className={classNames('courtain hidden lg:block', {
+              hidden: !showHead,
             })}
             style={{
               height: showHead ? '380px' : '0px',
@@ -427,7 +427,9 @@ export default function ModelDetail() {
               </div>
             </div>
           </div>
-          <div>{ReactHtmlParser(modelData.description || '')}</div>
+          <div ref={descriptionRef} className="pt-2">
+            {ReactHtmlParser(modelData.description || '')}
+          </div>
           {chunks.length > 0 ? (
             <div className="pt-4">
               <div className="flex items-center">
