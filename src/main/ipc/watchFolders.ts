@@ -1,6 +1,10 @@
 import { IpcMainInvokeEvent } from 'electron';
 import SqliteDB from '../db';
 
+export type WatchFolder = {
+  path: string;
+};
+
 export const watchFolderIpc = async (
   event: IpcMainInvokeEvent,
   action: string,

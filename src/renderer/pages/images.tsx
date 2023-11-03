@@ -36,6 +36,9 @@ export default function Images() {
   const [filterByRating, setFilterByRating] = useState<number>(0);
 
   const images = useSelector((state: RootState) => state.global.images);
+  const watchFolders = useSelector(
+    (state: RootState) => state.global.watchFolders,
+  );
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
   );
@@ -282,8 +285,7 @@ export default function Images() {
   };
 
   const updateImagesDb = async () => {
-    const watchFolders = await window.ipcHandler.watchFolder('read');
-    await dispatch(scanImages(watchFolders));
+    await dispatch(scanImages(watchFolders.map((f) => f.path)));
     await dispatch(readImages());
   };
 

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
+import { WatchFolder } from 'main/ipc/watchFolders';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
@@ -31,6 +32,7 @@ export type GlobalState = {
   imagesLoading: boolean;
   navbarSearchInput: string;
   imagesToDelete: Record<string, ImageRow>;
+  watchFolders: WatchFolder[];
 };
 
 const initialState: GlobalState = {
@@ -58,6 +60,7 @@ const initialState: GlobalState = {
   imagesLoading: false,
   imagesToDelete: {},
   navbarSearchInput: '',
+  watchFolders: [],
 };
 
 const readModelsAsync = async (
@@ -153,6 +156,14 @@ export const updateImage = createAsyncThunk(
   async (arg: { hash: string; field: keyof ImageRow; value: any }) => {
     await window.ipcHandler.updateImage(arg.hash, arg.field, arg.value);
     return arg;
+  },
+);
+
+export const loadWatchFolders = createAsyncThunk(
+  'loadWatchFolders',
+  async () => {
+    const watchFolders = await window.ipcHandler.watchFolder('read');
+    return watchFolders;
   },
 );
 
@@ -327,6 +338,10 @@ export const globalSlice = createSlice({
           [action.payload.field]: action.payload.value,
         };
       }
+    });
+
+    builder.addCase(loadWatchFolders.fulfilled, (state, action) => {
+      state.watchFolders = action.payload;
     });
   },
 });

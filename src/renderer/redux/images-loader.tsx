@@ -4,7 +4,12 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FullLoader } from 'renderer/components/FullLoader';
 import { AppDispatch, RootState } from '.';
-import { readImages, scanImages, setImages } from './reducers/global';
+import {
+  loadWatchFolders,
+  readImages,
+  scanImages,
+  setImages,
+} from './reducers/global';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -16,17 +21,25 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   );
 
   const images = useSelector((state: RootState) => state.global.images);
+  const watchFolders = useSelector(
+    (state: RootState) => state.global.watchFolders,
+  );
 
   useEffect(() => {
     const load = async () => {
-      const watchFolders: { path: string }[] =
-        await window.ipcHandler.watchFolder('read');
+      await dispatch(loadWatchFolders());
+    };
+    load();
+  }, [dispatch]);
+
+  useEffect(() => {
+    const load = async () => {
       await dispatch(scanImages(watchFolders.map((f) => f.path)));
       await dispatch(readImages());
     };
 
     load();
-  }, [dispatch]);
+  }, [dispatch, watchFolders]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

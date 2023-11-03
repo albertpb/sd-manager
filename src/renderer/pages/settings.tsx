@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import {
@@ -11,16 +11,20 @@ import {
   setNavbarDisabled,
   readLoras,
   readCheckpoints,
+  loadWatchFolders,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog from 'renderer/components/ConfirmDialog';
 import { FullLoader } from 'renderer/components/FullLoader';
 import themes from '../../../themes';
 
 export default function Settings() {
-  const { settings } = useSelector((state: RootState) => state.global);
   const dispatch = useDispatch<AppDispatch>();
 
-  const [watchFolders, setWatchFolders] = useState<string[]>([]);
+  const settings = useSelector((state: RootState) => state.global.settings);
+  const watchFolders = useSelector(
+    (state: RootState) => state.global.watchFolders,
+  );
+
   const [confirmIsOpen, setConfirmIsOpen] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
   const [confirmDialogId, setConfirmDialogId] = useState<string>('');
@@ -46,14 +50,14 @@ export default function Settings() {
     if (path) {
       await window.ipcHandler.watchFolder('add', path);
       await window.ipcHandler.watchImagesFolder();
-      setWatchFolders([...watchFolders, path]);
+      await dispatch(loadWatchFolders());
       await dispatch(scanImages([path]));
       await dispatch(readImages());
     }
   };
 
   const updateImagesDb = async () => {
-    await dispatch(scanImages(watchFolders));
+    await dispatch(scanImages(watchFolders.map((wf) => wf.path)));
     await dispatch(readImages());
   };
 
@@ -84,14 +88,9 @@ export default function Settings() {
       path: watchFolder,
       removeImages,
     });
-    const arr = [...watchFolders];
-    const index = arr.findIndex((folder) => folder === watchFolder);
-    if (index !== -1) {
-      arr.splice(index, 1);
-      setWatchFolders(arr);
-    }
+    await dispatch(loadWatchFolders());
     window.ipcHandler.watchImagesFolder();
-    dispatch(readImages());
+    await dispatch(readImages());
     setLoading({ loading: false, title: '' });
     dispatch(setNavbarDisabled(false));
   };
@@ -124,15 +123,6 @@ export default function Settings() {
       dispatch(setNavbarDisabled(false));
     }
   };
-
-  useEffect(() => {
-    const getFoldersToWatch = async () => {
-      const wf: { path: string }[] =
-        await window.ipcHandler.watchFolder('read');
-      setWatchFolders(wf.map((f) => f.path));
-    };
-    getFoldersToWatch();
-  }, []);
 
   if (loading.loading) {
     return <FullLoader title="Loading..." />;
@@ -253,8 +243,29 @@ export default function Settings() {
             <tbody>
               {watchFolders.map((watchFolder) => {
                 return (
-                  <tr key={`setting_watchfolder_${watchFolder}`}>
-                    <td>{watchFolder}</td>
+                  <tr key={`setting_watchfolder_${watchFolder.path}`}>
+                    <td>
+                      <div className="flex flex-row items-center justify-between">
+                        <p>{watchFolder.path}</p>
+                        <span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-6 h-6 cursor-pointer mx-2"
+                            onClick={() => editWatchFolder(watchFolder.path)}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                            />
+                          </svg>
+                        </span>
+                      </div>
+                    </td>
                     <td className="flex justify-end">
                       <div className="flex flex-row">
                         <svg
@@ -263,23 +274,10 @@ export default function Settings() {
                           viewBox="0 0 24 24"
                           strokeWidth={1.5}
                           stroke="currentColor"
-                          className="w-6 h-6 cursor-pointer mx-2"
-                          onClick={() => editWatchFolder(watchFolder)}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                          />
-                        </svg>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
                           className="w-6 h-6 text-red-500 cursor-pointer mx-2"
-                          onClick={() => confirmRemoveWatchFolder(watchFolder)}
+                          onClick={() =>
+                            confirmRemoveWatchFolder(watchFolder.path)
+                          }
                         >
                           <path
                             strokeLinecap="round"
