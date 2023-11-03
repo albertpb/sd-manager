@@ -90,7 +90,6 @@ export default function ImageDetail() {
         } else if (index < 0) {
           index = images.length - 1;
         }
-        console.log(index);
         const image = images[index];
         if (image.hash) {
           navigate(`/image-detail/${image.hash}`);
@@ -359,10 +358,7 @@ export default function ImageDetail() {
               </button>
             </div>
             <div className="flex w-full my-4">
-              <ImageZoom
-                src={`sd:///${imageData.sourcePath}`}
-                alt={imageData.name}
-              />
+              <ImageZoom src={imageData.sourcePath} alt={imageData.name} />
             </div>
             <div className="w-full mt-6 pt-5 pb-10 relative">
               <div className="absolute top-0 right-0 z-40">

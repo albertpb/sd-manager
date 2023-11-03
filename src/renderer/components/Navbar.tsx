@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from 'renderer/redux';
 import { createSelector } from '@reduxjs/toolkit';
 import {
   deleteImages,
+  readImages,
   setFilterCheckpoint,
   setNavbarSearchInputValue,
 } from 'renderer/redux/reducers/global';
@@ -62,8 +63,9 @@ export default function Navbar() {
     };
   }, [location.pathname]);
 
-  const onDeleteImages = () => {
-    dispatch(deleteImages());
+  const onDeleteImages = async () => {
+    await dispatch(deleteImages());
+    await dispatch(readImages());
   };
 
   const changeFilterCheckpoint = (checkpointName: string) => {

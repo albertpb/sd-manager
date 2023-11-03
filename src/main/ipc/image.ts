@@ -186,7 +186,21 @@ export const scanImagesIpc = async (
             },
           );
         } catch (error) {
-          console.log(error);
+          console.log(error, 'updating');
+          try {
+            await db.run(
+              `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
+              {
+                $sourcePath: files[i],
+                $path: parsedFilePath.dir,
+                $name: parsedFilePath.name,
+                $fileName: parsedFilePath.base,
+                $hash: imageHash,
+              },
+            );
+          } catch (e) {
+            console.log(e);
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ type ModelCardProps = {
   needUpdate?: boolean;
   className?: any;
   showRating?: boolean;
+  onDragPath?: string;
 };
 
 export default function ModelCard({
@@ -32,6 +33,7 @@ export default function ModelCard({
   loading = false,
   needUpdate = false,
   showRating = true,
+  onDragPath,
 }: ModelCardProps) {
   const loadingOverlay = (
     <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
@@ -64,6 +66,7 @@ export default function ModelCard({
           height="100%"
           width="100%"
           className={classNames([imageClassName])}
+          onDragPath={onDragPath}
         />
         <div className="absolute top-2 left-0 w-full z-20">
           <div className="flex flex-row justify-between">

@@ -17,6 +17,7 @@ import {
   dialog,
   protocol,
   net,
+  IpcMainInvokeEvent,
 } from 'electron';
 import fs from 'fs';
 import url, { pathToFileURL } from 'url';
@@ -104,6 +105,13 @@ ipcMain.handle('watchFolder', watchFolderIpc);
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
 );
+
+ipcMain.on('ondragstart', (event: IpcMainInvokeEvent, filePath: string) => {
+  event.sender.startDrag({
+    file: filePath,
+    icon: path.join(__dirname, 'assets', 'dragAndDropIcon.png'),
+  });
+});
 
 ipcMain.handle('watchImagesFolder', async () => {
   const db = await SqliteDB.getInstance().getdb();

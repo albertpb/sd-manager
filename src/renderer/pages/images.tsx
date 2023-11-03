@@ -335,11 +335,11 @@ export default function Images() {
             )}
             <Image
               src={imageSrc}
+              onDragPath={item.sourcePath}
               alt={`model_detail_model_image_${item.hash}`}
               height="100%"
               width="100%"
               className="object-cover"
-              draggable={false}
             />
             {showModelName && (
               <div className="absolute bottom-0 left-0 w-full p-3 flex flex-col">

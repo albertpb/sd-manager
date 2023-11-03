@@ -23,6 +23,7 @@ declare global {
       modelToUpdate: (
         cb: (event: IpcRendererEvent, ...args: any[]) => void,
       ) => () => void;
+      startDrag: (fileName: string) => void;
     };
   }
 }

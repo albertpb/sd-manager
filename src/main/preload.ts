@@ -71,4 +71,7 @@ contextBridge.exposeInMainWorld('ipcOn', {
     ipcRenderer.on('model-need-update', cb);
     return () => ipcRenderer.removeListener('model-need-update', cb);
   },
+  startDrag: (fileName: string) => {
+    ipcRenderer.send('ondragstart', fileName);
+  },
 });

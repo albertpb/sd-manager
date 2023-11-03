@@ -233,6 +233,7 @@ export default function ModelDetail() {
               height="100%"
               width="100%"
               className="object-cover"
+              onDragPath={imgSrc}
             />
           </figure>
         </div>
@@ -316,6 +317,7 @@ export default function ModelDetail() {
                 height="100%"
                 width="100%"
                 className="object-cover"
+                onDragPath={item.path}
               />
             </figure>
           </div>

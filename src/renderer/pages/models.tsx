@@ -348,6 +348,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
               'max-w-fit': zoomLevel === 1,
             }}
             showRating={showRating}
+            onDragPath={imagePath}
           />
         </div>
       );
