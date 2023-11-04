@@ -60,39 +60,39 @@ export function extractMetadata(pngData: Buffer) {
   return metadata;
 }
 
-export function parseAutomatic1111Meta(
-  parameters: string,
-): ImageMetaData | null {
+export function parseAutomatic1111Meta(parameters: string): ImageMetaData {
   const texts = parameters.split(/\r?\n/);
-  if (texts.length >= 3) {
-    const positivePrompt = texts[0];
-    const negativePrompt = texts[1].split(': ')[1];
-    const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
 
-    const data = keyValuePairs.reduce(
-      (acc: Record<string, string>, pair: string) => {
-        const [key, value] = pair.split(': ');
-        acc[key.replace(' ', '_')] = value;
-        return acc;
-      },
-      {},
-    );
-
-    const params: ImageMetaData = {
-      positivePrompt,
-      negativePrompt,
-      cfg: data.CFG_scale,
-      seed: data.Seed,
-      steps: data.Steps,
-      model: data.Model,
-      sampler: data.Sampler,
-      scheduler: data.Scheduler,
-      generatedBy: 'automatic1111',
-    };
-
-    return params;
+  if (parameters.startsWith('Negative prompt')) {
+    texts.unshift('Positive prompt:');
   }
-  return null;
+
+  const positivePrompt = texts[0];
+  const negativePrompt = texts[1].split(': ')[1];
+  const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
+
+  const data = keyValuePairs.reduce(
+    (acc: Record<string, string>, pair: string) => {
+      const [key, value] = pair.split(': ');
+      acc[key.replace(' ', '_')] = value;
+      return acc;
+    },
+    {},
+  );
+
+  const params: ImageMetaData = {
+    positivePrompt,
+    negativePrompt,
+    cfg: data.CFG_scale,
+    seed: data.Seed,
+    steps: data.Steps,
+    model: data.Model,
+    sampler: data.Sampler,
+    scheduler: data.Scheduler,
+    generatedBy: 'automatic1111',
+  };
+
+  return params;
 }
 
 export function parseComfyUiMeta(workflow: string): ImageMetaData {

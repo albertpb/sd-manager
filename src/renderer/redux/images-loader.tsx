@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { FullLoader } from 'renderer/components/FullLoader';
 import { AppDispatch, RootState } from '.';
 import {
+  loadTags,
   loadWatchFolders,
   readImages,
   scanImages,
@@ -28,6 +29,7 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   useEffect(() => {
     const load = async () => {
       await dispatch(loadWatchFolders());
+      await dispatch(loadTags());
     };
     load();
   }, [dispatch]);

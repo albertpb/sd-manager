@@ -1,13 +1,17 @@
+import { createId } from '@paralleldrive/cuid2';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
 import { WatchFolder } from 'main/ipc/watchFolders';
+import { Tag } from 'main/ipc/tag';
+import { getTextColorFromBackgroundColor } from 'renderer/utils';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
   checkpointsPath: string | null;
   lorasPath: string | null;
   theme: string | null;
+  activeTag: string | null;
 };
 
 export type UpdateState = {
@@ -33,6 +37,7 @@ export type GlobalState = {
   navbarSearchInput: string;
   imagesToDelete: Record<string, ImageRow>;
   watchFolders: WatchFolder[];
+  tags: Tag[];
 };
 
 const initialState: GlobalState = {
@@ -42,6 +47,7 @@ const initialState: GlobalState = {
     checkpointsPath: null,
     lorasPath: null,
     theme: 'default',
+    activeTag: null,
   },
   checkpoint: {
     models: {},
@@ -61,6 +67,7 @@ const initialState: GlobalState = {
   imagesToDelete: {},
   navbarSearchInput: '',
   watchFolders: [],
+  tags: [],
 };
 
 const readModelsAsync = async (
@@ -167,6 +174,60 @@ export const loadWatchFolders = createAsyncThunk(
   },
 );
 
+export const loadTags = createAsyncThunk('loadTags', async () => {
+  const tags = await window.ipcHandler.tag('read');
+  return tags;
+});
+
+export const createTag = createAsyncThunk(
+  'createTag',
+  async ({ label, bgColor }: { label: string; bgColor: string }) => {
+    const payload = {
+      id: createId(),
+      label,
+      color: getTextColorFromBackgroundColor(bgColor),
+      bgColor,
+    };
+    await window.ipcHandler.tag('add', payload);
+    return payload;
+  },
+);
+
+export const deleteTag = createAsyncThunk('deleteTag', async (arg: string) => {
+  await window.ipcHandler.tag('delete', { id: arg });
+  return arg;
+});
+
+export const editTag = createAsyncThunk(
+  'editTag',
+  async ({
+    label,
+    bgColor,
+    id,
+  }: {
+    label: string;
+    bgColor: string;
+    id: string;
+  }) => {
+    const payload = {
+      label,
+      bgColor,
+      color: getTextColorFromBackgroundColor(bgColor),
+      id,
+    };
+    await window.ipcHandler.tag('edit', payload);
+    return payload;
+  },
+);
+
+export const tagImage = createAsyncThunk(
+  'tagImage',
+  async ({ tagId, imageHash }: { tagId: string; imageHash: string }) => {
+    await window.ipcHandler.tagImage(tagId, imageHash);
+    return { tagId, imageHash };
+  },
+);
+
 export const globalSlice = createSlice({
   name: 'Global',
   initialState,
@@ -198,6 +259,10 @@ export const globalSlice = createSlice({
     setTheme: (state, action) => {
       state.settings.theme = action.payload;
       saveSettings('theme', action.payload);
+    },
+    setActiveTag: (state, action) => {
+      state.settings.activeTag = action.payload;
+      saveSettings('activeTag', action.payload);
     },
     setFilterCheckpoint: (state, action) => {
       state.filterCheckpoint = action.payload;
@@ -343,6 +408,49 @@ export const globalSlice = createSlice({
     builder.addCase(loadWatchFolders.fulfilled, (state, action) => {
       state.watchFolders = action.payload;
     });
+
+    builder.addCase(loadTags.fulfilled, (state, action) => {
+      state.tags = action.payload;
+    });
+
+    builder.addCase(createTag.fulfilled, (state, action) => {
+      state.tags.push(action.payload);
+      state.settings.activeTag = action.payload.id;
+    });
+
+    builder.addCase(deleteTag.fulfilled, (state, action) => {
+      const index = state.tags.findIndex((tag) => tag.id === action.payload);
+      if (index !== -1) {
+        state.tags.splice(index, 1);
+      }
+      if (state.settings.activeTag === action.payload) {
+        if (state.tags.length > 0) {
+          state.settings.activeTag = state.tags[state.tags.length - 1].id;
+        }
+      }
+    });
+
+    builder.addCase(editTag.fulfilled, (state, action) => {
+      const index = state.tags.findIndex((t) => t.id === action.payload.id);
+      if (index !== -1) {
+        state.tags[index] = action.payload;
+      }
+    });
+
+    builder.addCase(tagImage.fulfilled, (state, action) => {
+      const image = state.images.find(
+        (img) => img.hash === action.payload.imageHash,
+      );
+      if (image) {
+        if (image.tags[action.payload.tagId]) {
+          const tags = { ...image.tags };
+          delete tags[action.payload.tagId];
+          image.tags = tags;
+        } else {
+          image.tags[action.payload.tagId] = action.payload.tagId;
+        }
+      }
+    });
   },
 });
 
@@ -360,4 +468,5 @@ export const {
   setModelsToUpdate,
   setCheckingModelsUpdate,
   setNavbarDisabled,
+  setActiveTag,
 } = globalSlice.actions;

@@ -48,6 +48,7 @@ import {
   getImagesIpc,
   scanImagesIpc,
   updateImageIpc,
+  tagImageIpc,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
@@ -59,6 +60,7 @@ import {
 } from './ipc/saveMD';
 import { readImageMetadata } from './ipc/metadata';
 import { watchFolderIpc } from './ipc/watchFolders';
+import { tagIpc } from './ipc/tag';
 
 class AppUpdater {
   constructor() {
@@ -101,6 +103,8 @@ ipcMain.handle('saveImageMD', saveImageMDIpc);
 ipcMain.handle('saveImageFromClipboard', saveImageFromClipboardIpc);
 ipcMain.handle('readImageMetadata', readImageMetadata);
 ipcMain.handle('watchFolder', watchFolderIpc);
+ipcMain.handle('tag', tagIpc);
+ipcMain.handle('tagImage', tagImageIpc);
 
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
@@ -149,6 +153,13 @@ ipcMain.handle('watchImagesFolder', async () => {
 
     const hash = await calculateHashFile(detectedFile);
 
+    const activeTag = await db.get(
+      `SELECT value from settings WHERE key = $key`,
+      {
+        $key: 'activeTag',
+      },
+    );
+
     const imagesData: ImageRow = {
       hash,
       path: imagesFolder,
@@ -158,6 +169,11 @@ ipcMain.handle('watchImagesFolder', async () => {
       sourcePath: detectedFile,
       name: fileNameNoExt,
       fileName: fileBaseName,
+      tags: activeTag
+        ? {
+            [activeTag.value]: activeTag.value,
+          }
+        : {},
     };
 
     await db.run(
@@ -173,6 +189,20 @@ ipcMain.handle('watchImagesFolder', async () => {
         $fileName: imagesData.fileName,
       },
     );
+
+    if (activeTag) {
+      try {
+        await db.run(
+          `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+          {
+            $tagId: activeTag.value,
+            $imageHash: imagesData.hash,
+          },
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    }
 
     if (mainWindow !== null) {
       mainWindow.webContents.send('detected-add-image', imagesData);

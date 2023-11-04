@@ -180,5 +180,49 @@ export default class SqliteDB {
 
       version.user_version = 10;
     }
+
+    if (version.user_version === 10) {
+      try {
+        // remove images model foreign key
+        await db.run(`CREATE TABLE temp_1 (
+          "hash" TEXT NOT NULL,
+          "path" TEXT NOT NULL,
+          "rating" INTEGER NOT NULL DEFAULT 1,
+          "model" TEXT NOT NULL,
+          "generatedBy" TEXT NOT NULL,
+          "sourcePath" TEXT NOT NULL,
+          "name" TEXT NOT NULL,
+          "fileName" TEXT NOT NULL,
+          PRIMARY KEY ("hash")
+        )`);
+        await db.run(
+          `INSERT INTO temp_1 (hash, path, rating, model, generatedBy, sourcePath, name, fileName) SELECT hash, path, rating, model, generatedBy, sourcePath, name, fileName FROM images`,
+        );
+        await db.run(`DROP TABLE images`);
+        await db.run(`ALTER TABLE temp_1 RENAME TO images`);
+
+        await db.run(`CREATE TABLE tags (
+          id TEXT NOT NULL,
+          label TEXT NOT NULL,
+          color TEXT NOT NULL,
+          bgColor TEXT NOT NULL,
+          PRIMARY KEY (id)
+        )`);
+
+        await db.run(`CREATE TABLE images_tags (
+          tagId TEXT NOT NULL,
+          imageHash TEXT NOT NULL,
+          PRIMARY KEY (imageHash, tagId),
+          FOREIGN KEY (imageHash) REFERENCES images(hash) ON DELETE CASCADE,
+          FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE
+        )`);
+      } catch (error) {
+        console.log(error);
+      }
+
+      await db.run(`PRAGMA user_version = 11`);
+
+      version.user_version = 11;
+    }
   }
 }

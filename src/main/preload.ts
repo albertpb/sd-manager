@@ -31,6 +31,8 @@ const channels = [
   'readImageMetadata',
   'checkModelsToUpdate',
   'watchFolder',
+  'tag',
+  'tagImage',
 ] as const;
 export type Channels = (typeof channels)[number];
 

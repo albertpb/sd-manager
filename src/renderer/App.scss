@@ -73,3 +73,24 @@
 .navbar {
   height: 68px;
 }
+
+input[type='color'] {
+  width: 25px;
+  height: 25px;
+  border-color: #fafafa;
+  border-width: 2px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}

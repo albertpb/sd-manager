@@ -41,3 +41,18 @@ export function generateRandomId(length: number) {
 
   return randomId;
 }
+
+export function getTextColorFromBackgroundColor(bgColorHex: string): string {
+  // Convert the hex color to RGB values.
+  const r = parseInt(bgColorHex.slice(1, 3), 16);
+  const g = parseInt(bgColorHex.slice(3, 5), 16);
+  const b = parseInt(bgColorHex.slice(5, 7), 16);
+
+  // Calculate the relative luminance.
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  // Determine the text color based on luminance.
+  const textColorHex = luminance > 128 ? '#000000' : '#FFFFFF';
+
+  return textColorHex;
+}

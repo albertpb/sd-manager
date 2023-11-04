@@ -411,7 +411,7 @@ export default function ImageDetail() {
         </div>
       </div>
       <ConfirmDialog
-        id="delete-images"
+        response={{ type: 'delete-images', value: '' }}
         msg="Are you sure to delete selected images ?"
         isOpen={confirmDialogIsOpen}
         onClose={() => onCancelDelete()}

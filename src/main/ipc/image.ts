@@ -19,6 +19,7 @@ export type ImageRow = {
   sourcePath: string;
   name: string;
   fileName: string;
+  tags: Record<string, string>;
 };
 
 export async function getImagesIpc(
@@ -27,28 +28,53 @@ export async function getImagesIpc(
 ) {
   const db = await SqliteDB.getInstance().getdb();
 
+  let images;
   if (modelName) {
-    return db.all(
-      `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE model = $modelName ORDER BY rating DESC, rowNum DESC`,
+    images = await db.all(
+      `SELECT row_number() over (order by '') as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.model = $modelName GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
       {
         $modelName: modelName,
       },
     );
+  } else {
+    images = await db.all(
+      `SELECT row_number() over (order by '') as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
+    );
   }
 
-  return db.all(
-    `SELECT *, row_number() over (order by '') as rowNum FROM images ORDER BY rating DESC, rowNum DESC`,
+  images.forEach(
+    (image: ImageRow & { tags: string | Record<string, string> }) => {
+      image.tags =
+        typeof image.tags === 'string'
+          ? image.tags.split(',').reduce((acc: Record<string, string>, tag) => {
+              acc[tag] = tag;
+              return acc;
+            }, {})
+          : {};
+    },
   );
+  return images;
 }
 
 export async function getImageIpc(event: IpcMainInvokeEvent, hash: string) {
   const db = await SqliteDB.getInstance().getdb();
-  return db.get(
-    `SELECT *, row_number() over (order by '') as rowNum FROM images WHERE hash = $hash ORDER BY rating DESC, rowNum DESC`,
+  const image = await db.get(
+    `SELECT images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.hash = $hash GROUP BY images.hash`,
     {
       $hash: hash,
     },
   );
+
+  image.tags =
+    typeof image.tags === 'string'
+      ? image.tags
+          .split(',')
+          .reduce((acc: Record<string, string>, tag: string) => {
+            acc[tag] = tag;
+            return acc;
+          }, {})
+      : {};
+  return image;
 }
 
 export async function updateImageIpc(
@@ -209,4 +235,50 @@ export const scanImagesIpc = async (
   await makeThumbnails(filesToThumbnail, (progress) =>
     notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
   );
+};
+
+export const tagImageIpc = async (
+  event: IpcMainInvokeEvent,
+  tagId: string,
+  imageHash: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const tagExists = await db.get(`SELECT id FROM tags WHERE id = $id`, {
+      $id: tagId,
+    });
+
+    if (tagExists) {
+      const imageIsTagged = await db.get(
+        `SELECT tagId FROM images_tags WHERE tagId = $tagId AND imageHash = $imageHash`,
+        {
+          $tagId: tagId,
+          $imageHash: imageHash,
+        },
+      );
+
+      if (!imageIsTagged) {
+        await db.run(
+          `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+          {
+            $tagId: tagId,
+            $imageHash: imageHash,
+          },
+        );
+      } else {
+        await db.run(
+          `DELETE FROM images_tags WHERE tagId = $tagId AND imageHash = $imageHash`,
+          {
+            $tagId: tagId,
+            $imageHash: imageHash,
+          },
+        );
+      }
+    } else {
+      throw Error('tag not exits');
+    }
+  } catch (error) {
+    console.log(error);
+  }
 };

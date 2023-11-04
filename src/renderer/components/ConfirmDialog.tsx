@@ -1,15 +1,20 @@
 import classNames from 'classnames';
 
+export type ConfirmDialogResponse = {
+  type: string;
+  value: any;
+};
+
 interface ConfirmDialogProps {
-  id: string;
+  response: ConfirmDialogResponse;
   isOpen: boolean;
-  onClose: (id: string) => void;
-  onConfirm: (id: string) => void;
+  onClose: (response: ConfirmDialogResponse) => void;
+  onConfirm: (response: ConfirmDialogResponse) => void;
   msg: string;
 }
 
 export default function ConfirmDialog({
-  id,
+  response,
   isOpen,
   onClose,
   onConfirm,
@@ -17,7 +22,6 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <dialog
-      id={id}
       className={classNames([
         'modal',
         {
@@ -33,14 +37,14 @@ export default function ConfirmDialog({
             <button
               type="button"
               className="btn btn-primary mx-1"
-              onClick={() => onConfirm(id)}
+              onClick={() => onConfirm(response)}
             >
               Yes
             </button>
             <button
               type="button"
               className="btn mx-1"
-              onClick={() => onClose(id)}
+              onClick={() => onClose(response)}
             >
               No
             </button>

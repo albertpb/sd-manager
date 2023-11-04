@@ -228,7 +228,7 @@ export default function Navbar() {
         </div>
       </nav>
       <ConfirmDialog
-        id="delete-images"
+        response={{ type: 'delete-images', value: '' }}
         msg="Are you sure to delete selected images ?"
         isOpen={cofirmDialogIsOpen}
         onClose={() => setConfirmDialogIsOpen(false)}
