@@ -31,10 +31,27 @@ export const tagIpc = async (
         },
       );
 
-      await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
-        $tagId: payload.id,
-        $key: 'activeTag',
-      });
+      const checkIfSettingExists = await db.get(
+        `SELECT key FROM settings WHERE key = $key`,
+        {
+          $key: 'activeTag',
+        },
+      );
+
+      if (checkIfSettingExists) {
+        await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
+          $tagId: payload.id,
+          $key: 'activeTag',
+        });
+      } else {
+        await db.run(
+          `INSERT INTO settings (key, value) VALUES ($key, $value)`,
+          {
+            $key: 'activeTag',
+            $value: payload.id,
+          },
+        );
+      }
       break;
     }
 
@@ -46,7 +63,7 @@ export const tagIpc = async (
         },
       );
 
-      if (activeTag.value === payload.id) {
+      if (activeTag?.value === payload.id) {
         const tags = await db.all(`SELECT * FROM tags`);
 
         await db.run(
