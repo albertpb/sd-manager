@@ -60,44 +60,53 @@ export function extractMetadata(pngData: Buffer) {
   return metadata;
 }
 
-export function parseAutomatic1111Meta(
-  parameters: string,
-): ImageMetaData | null {
-  const texts = parameters.split(/\r?\n/);
+export function parseAutomatic1111Meta(parameters: string): ImageMetaData {
+  const texts = parameters.split(/\r?\n/).map((t) => t.trim());
 
-  if (parameters.startsWith('Negative prompt')) {
-    texts.unshift('Positive prompt:');
+  const keyValuePairsIndex = texts.findIndex((t) => t.startsWith('Steps:'));
+  const negativeIndex = texts.findIndex((t) =>
+    t.startsWith('Negative prompt:'),
+  );
+
+  let positivePrompt = '';
+  if (negativeIndex !== -1 && texts[negativeIndex - 1] !== undefined) {
+    positivePrompt = texts[negativeIndex - 1];
+  } else if (
+    negativeIndex === -1 &&
+    texts[keyValuePairsIndex - 1] !== undefined
+  ) {
+    positivePrompt = texts[keyValuePairsIndex - 1];
   }
 
-  if (texts.length === 3) {
-    const positivePrompt = texts[0];
-    const negativePrompt = texts[1].split(': ')[1];
-    const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
+  const negativePrompt =
+    negativeIndex !== -1 ? texts[negativeIndex].split(': ')[1] : '';
+  const keyValuePairs =
+    keyValuePairsIndex !== -1
+      ? splitOutsideQuotes(texts[keyValuePairsIndex])
+      : [];
 
-    const data = keyValuePairs.reduce(
-      (acc: Record<string, string>, pair: string) => {
-        const [key, value] = pair.split(': ');
-        acc[key.replace(' ', '_')] = value;
-        return acc;
-      },
-      {},
-    );
+  const data = keyValuePairs.reduce(
+    (acc: Record<string, string>, pair: string) => {
+      const [key, value] = pair.split(': ');
+      acc[key.replace(' ', '_')] = value;
+      return acc;
+    },
+    {},
+  );
 
-    const params: ImageMetaData = {
-      positivePrompt,
-      negativePrompt,
-      cfg: data.CFG_scale,
-      seed: data.Seed,
-      steps: data.Steps,
-      model: data.Model,
-      sampler: data.Sampler,
-      scheduler: data.Scheduler,
-      generatedBy: 'automatic1111',
-    };
+  const params: ImageMetaData = {
+    positivePrompt,
+    negativePrompt,
+    cfg: data.CFG_scale,
+    seed: data.Seed,
+    steps: data.Steps,
+    model: data.Model,
+    sampler: data.Sampler,
+    scheduler: data.Sampler,
+    generatedBy: 'automatic1111',
+  };
 
-    return params;
-  }
-  return null;
+  return params;
 }
 
 export function parseComfyUiMeta(workflow: string): ImageMetaData {
@@ -121,9 +130,9 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
     );
 
     if (KSamplerNode) {
-      params.seed = KSamplerNode.widgets_values[1];
-      params.cfg = KSamplerNode.widgets_values[4];
-      params.steps = KSamplerNode.widgets_values[3];
+      params.seed = `${KSamplerNode.widgets_values[1]}`;
+      params.cfg = `${KSamplerNode.widgets_values[4]}`;
+      params.steps = `${KSamplerNode.widgets_values[3]}`;
       params.scheduler = `${KSamplerNode.widgets_values[6]}`;
       params.sampler = `${KSamplerNode.widgets_values[5]}`;
     } else {
@@ -132,9 +141,9 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
       );
 
       if (KSamplerNode) {
-        params.seed = KSamplerNode.widgets_values[0];
-        params.cfg = KSamplerNode.widgets_values[3];
-        params.steps = KSamplerNode.widgets_values[2];
+        params.seed = `${KSamplerNode.widgets_values[0]}`;
+        params.cfg = `${KSamplerNode.widgets_values[3]}`;
+        params.steps = `${KSamplerNode.widgets_values[2]}`;
         params.scheduler = `${KSamplerNode.widgets_values[4]}`;
         params.sampler = `${KSamplerNode.widgets_values[5]}`;
       }
@@ -181,19 +190,23 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 }
 
 export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
+  console.log(invokeaiMetadata);
+
   const parsed = JSON.parse(invokeaiMetadata);
 
   const params: ImageMetaData = {
     positivePrompt: parsed.positive_prompt,
     negativePrompt: parsed.negative_prompt,
-    cfg: parsed.cfg_scale,
-    seed: parsed.seed,
-    steps: parsed.steps,
+    cfg: `${parsed.cfg_scale}`,
+    seed: `${parsed.seed}`,
+    steps: `${parsed.steps}`,
     model: parsed.model.model_name,
     sampler: parsed.scheduler,
     scheduler: parsed.scheduler,
     generatedBy: 'InvokeAI',
   };
+
+  console.log(params);
 
   return params;
 };

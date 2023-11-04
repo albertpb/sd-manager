@@ -11,8 +11,14 @@
   "testEnvironmentOptions": {
     "url": "http://localhost/"
   },
-  "testPathIgnorePatterns": ["release/app/dist", ".erb/dll", "node_modules"],
+  "testPathIgnorePatterns": [
+    "release/app/dist",
+    ".erb/dll",
+    "node_modules",
+    ".mock.ts"
+  ],
   "transform": {
     "\\.(ts|tsx|js|jsx)$": "ts-jest"
-  }
+  },
+  "setupFilesAfterEnv": ["./setup-jest.js"]
 }
