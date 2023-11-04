@@ -70,29 +70,32 @@ function parseAutomatic1111Meta(parameters) {
     texts.unshift('Positive prompt:');
   }
 
-  const positivePrompt = texts[0];
-  const negativePrompt = texts[1].split(': ')[1];
-  const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
+  if (texts.length === 3) {
+    const positivePrompt = texts[0];
+    const negativePrompt = texts[1].split(': ')[1];
+    const keyValuePairs = texts[2] ? splitOutsideQuotes(texts[2]) : [];
 
-  const data = keyValuePairs.reduce((acc, pair) => {
-    const [key, value] = pair.split(': ');
-    acc[key.replace(' ', '_')] = value;
-    return acc;
-  }, {});
+    const data = keyValuePairs.reduce((acc, pair) => {
+      const [key, value] = pair.split(': ');
+      acc[key.replace(' ', '_')] = value;
+      return acc;
+    }, {});
 
-  const params = {
-    positivePrompt,
-    negativePrompt,
-    cfg: data.CFG_scale,
-    seed: data.Seed,
-    steps: data.Steps,
-    model: data.Model,
-    sampler: data.Sampler,
-    scheduler: data.Scheduler,
-    generatedBy: 'automatic1111',
-  };
+    const params = {
+      positivePrompt,
+      negativePrompt,
+      cfg: data.CFG_scale,
+      seed: data.Seed,
+      steps: data.Steps,
+      model: data.Model,
+      sampler: data.Sampler,
+      scheduler: data.Scheduler,
+      generatedBy: 'automatic1111',
+    };
 
-  return params;
+    return params;
+  }
+  return null;
 }
 
 function parseComfyUiMeta(workflow) {

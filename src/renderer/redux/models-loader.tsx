@@ -45,11 +45,12 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     return () => remove();
   }, []);
 
-  if (lorasLoading || checkpointsLoading) {
-    return (
-      <FullLoader title="Hashing Files" progress={progress} message={msg} />
-    );
-  }
-
-  return children;
+  return (
+    <>
+      {(lorasLoading || checkpointsLoading) && (
+        <FullLoader title="Hashing Files" progress={progress} message={msg} />
+      )}
+      {children}
+    </>
+  );
 }

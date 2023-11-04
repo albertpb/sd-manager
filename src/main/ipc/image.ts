@@ -138,6 +138,7 @@ export const scanImagesIpc = async (
   event: IpcMainInvokeEvent,
   foldersToWatch: string[],
 ) => {
+  console.log('scaning images');
   const db = await SqliteDB.getInstance().getdb();
 
   const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
@@ -165,14 +166,12 @@ export const scanImagesIpc = async (
       return acc;
     }, {});
 
-  const filesMetadata = await parseImagesMetadata(
-    files.filter((f) => !imagesRowsPathMap[decodeURI(f)]),
-    (progress) =>
-      notifyProgressImage(browserWindow, `Parsing images...`, progress),
+  const filesMetadata = await parseImagesMetadata(files, (progress) =>
+    notifyProgressImage(browserWindow, `Parsing images...`, progress),
   );
 
   const filesHashes = await hashFilesInBackground(
-    files.filter((f) => !imagesRowsPathMap[decodeURI(f)]),
+    files,
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
     'blake3',
@@ -187,7 +186,7 @@ export const scanImagesIpc = async (
     notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
     const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
-    if (!thumbnailsFilesMap[thumbnailDestPath]) {
+    if (!thumbnailsFilesMap[decodeURI(thumbnailDestPath)]) {
       filesToThumbnail.push([files[i], thumbnailDestPath]);
     }
 

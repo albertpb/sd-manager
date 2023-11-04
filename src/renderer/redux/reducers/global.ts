@@ -88,7 +88,6 @@ export const readCheckpoints = createAsyncThunk(
           state.global.settings.checkpointsPath,
         );
       }
-
       const models = await readModelsAsync('checkpoint');
       return models;
     }

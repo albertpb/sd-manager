@@ -3,6 +3,7 @@ import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FullLoader } from 'renderer/components/FullLoader';
+import { WatchFolder } from 'main/ipc/watchFolders';
 import { AppDispatch, RootState } from '.';
 import {
   loadTags,
@@ -22,9 +23,6 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   );
 
   const images = useSelector((state: RootState) => state.global.images);
-  const watchFolders = useSelector(
-    (state: RootState) => state.global.watchFolders,
-  );
 
   useEffect(() => {
     const load = async () => {
@@ -36,12 +34,13 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
+      const watchFolders: WatchFolder[] =
+        await window.ipcHandler.watchFolder('read');
       await dispatch(scanImages(watchFolders.map((f) => f.path)));
       await dispatch(readImages());
     };
-
     load();
-  }, [dispatch, watchFolders]);
+  }, [dispatch]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
@@ -63,9 +62,16 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
     return () => remove();
   }, [images, dispatch]);
 
-  if (!imagesLoading) return children;
-
   return (
-    <FullLoader title="Importing images" progress={progress} message={msg} />
+    <>
+      {imagesLoading && (
+        <FullLoader
+          title="Importing images"
+          progress={progress}
+          message={msg}
+        />
+      )}
+      {children}
+    </>
   );
 }

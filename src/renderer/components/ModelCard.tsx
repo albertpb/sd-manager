@@ -84,7 +84,7 @@ export default function ModelCard({
           </div>
         </div>
         <div className="absolute bottom-0 left-0 w-full p-3 flex ">
-          <p className="text-xl font-bold text-white">{name}</p>
+          <p className="text-xl font-bold text-white truncate">{name}</p>
         </div>
       </figure>
     </div>

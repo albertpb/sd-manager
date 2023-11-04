@@ -32,8 +32,7 @@ export default function SettingsLoader({ children }: { children: ReactNode }) {
     loadConf();
   }, [dispatch, navigate, loaded]);
 
-  if (loaded) {
-    return children;
-  }
-  return null;
+  if (!loaded) return null;
+
+  return children;
 }
