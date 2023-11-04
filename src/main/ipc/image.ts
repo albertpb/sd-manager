@@ -154,9 +154,9 @@ export const scanImagesIpc = async (
     return acc;
   }, []);
 
-  const files = allFiles.filter(
-    (f) => f.endsWith('.png') && !imagesRowsPathMap[f],
-  );
+  const files = allFiles.filter((f) => {
+    return f.endsWith('.png') && !imagesRowsPathMap[decodeURI(f)];
+  });
 
   const thumbnailsFilesMap = allFiles
     .filter((f) => f.endsWith('thumbnail.webp'))
@@ -166,13 +166,13 @@ export const scanImagesIpc = async (
     }, {});
 
   const filesMetadata = await parseImagesMetadata(
-    files.filter((f) => !imagesRowsPathMap[f]),
+    files.filter((f) => !imagesRowsPathMap[decodeURI(f)]),
     (progress) =>
       notifyProgressImage(browserWindow, `Parsing images...`, progress),
   );
 
   const filesHashes = await hashFilesInBackground(
-    files.filter((f) => !imagesRowsPathMap[f]),
+    files.filter((f) => !imagesRowsPathMap[decodeURI(f)]),
     (progress) =>
       notifyProgressImage(browserWindow, `Hashing images...`, progress),
     'blake3',
@@ -201,9 +201,9 @@ export const scanImagesIpc = async (
     );
 
     if (metadata && metadata.model) {
-      const imageHash = filesHashes[files[i]];
+      const imageHash = filesHashes[decodeURI(files[i])];
 
-      if (!imagesRowsPathMap[files[i]]) {
+      if (!imagesRowsPathMap[decodeURI(files[i])]) {
         try {
           await db.run(
             `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
@@ -219,7 +219,7 @@ export const scanImagesIpc = async (
             },
           );
 
-          if (activeTag) {
+          if (activeTag && activeTag.value !== '') {
             await db.run(
               `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
               {
@@ -229,7 +229,7 @@ export const scanImagesIpc = async (
             );
           }
         } catch (error) {
-          console.log(error, 'updating');
+          // console.log(error, 'updating ', imageHash, files[i]);
           try {
             await db.run(
               `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
