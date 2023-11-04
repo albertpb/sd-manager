@@ -25,6 +25,8 @@ export default class SqliteDB {
         filename: `${app.getPath('userData')}\\database.db`,
         driver: sqlite3.Database,
       });
+
+      this.db.run(`PRAGMA foreign_keys=ON`);
     }
 
     return this.db;
