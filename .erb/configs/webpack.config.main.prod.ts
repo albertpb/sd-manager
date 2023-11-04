@@ -75,6 +75,10 @@ const configuration: webpack.Configuration = {
           from: webpackPaths.srcWorkersPath,
           to: webpackPaths.distWorkersPath,
         },
+        {
+          from: path.join(webpackPaths.srcMainPath, 'assets'),
+          to: path.join(webpackPaths.distMainPath, 'assets'),
+        },
       ],
     }),
   ],
