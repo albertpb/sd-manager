@@ -190,7 +190,7 @@ ipcMain.handle('watchImagesFolder', async () => {
       },
     );
 
-    if (activeTag) {
+    if (activeTag && activeTag.value !== '') {
       try {
         await db.run(
           `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,

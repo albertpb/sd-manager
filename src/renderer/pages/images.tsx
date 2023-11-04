@@ -533,6 +533,7 @@ export default function Images() {
                         value={activeTag || ''}
                         onChange={(e) => onSetActiveTag(e.target.value)}
                       >
+                        <option value="">None</option>
                         {tags.map((tag) => {
                           return (
                             <option key={`active-tag-${tag.id}`} value={tag.id}>
