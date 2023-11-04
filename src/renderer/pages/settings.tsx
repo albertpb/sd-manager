@@ -146,6 +146,19 @@ export default function Settings() {
     }
   };
 
+  const scanModels = async (type: 'checkpoint' | 'lora') => {
+    if (type === 'checkpoint') {
+      await dispatch(
+        readCheckpoints({ shouldImport: settings.scanModelsOnStart === '1' }),
+      );
+    }
+    if (type === 'lora') {
+      await dispatch(
+        readLoras({ shouldImport: settings.scanModelsOnStart === '1' }),
+      );
+    }
+  };
+
   const confirmDeleteTag = async (tag: Tag) => {
     setConfirmDialogResponse({ type: 'deleteTag', value: tag.id });
     setConfirmMessage(
@@ -197,13 +210,20 @@ export default function Settings() {
               <span>Checkpoints folder:</span> {settings.checkpointsPath}{' '}
             </p>
           </div>
-          <div className="">
+          <div className="flex flex-row">
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => onSelectCheckpointsDir()}
             >
               Change
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm ml-2"
+              onClick={() => scanModels('checkpoint')}
+            >
+              Scan
             </button>
           </div>
         </div>
@@ -221,6 +241,13 @@ export default function Settings() {
                 onClick={() => onSelectLorasDir()}
               >
                 Change
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm ml-2"
+                onClick={() => scanModels('lora')}
+              >
+                Scan
               </button>
             </div>
           </div>
