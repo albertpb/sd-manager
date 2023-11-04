@@ -148,14 +148,10 @@ export default function Settings() {
 
   const scanModels = async (type: 'checkpoint' | 'lora') => {
     if (type === 'checkpoint') {
-      await dispatch(
-        readCheckpoints({ shouldImport: settings.scanModelsOnStart === '1' }),
-      );
+      await dispatch(readCheckpoints({ shouldImport: true }));
     }
     if (type === 'lora') {
-      await dispatch(
-        readLoras({ shouldImport: settings.scanModelsOnStart === '1' }),
-      );
+      await dispatch(readLoras({ shouldImport: true }));
     }
   };
 
