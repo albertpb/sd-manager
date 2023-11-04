@@ -918,7 +918,7 @@ export default function Images() {
         </ul>
       </div>
       <div className="flex flex-col w-full">
-        <div className="flex flex-col" style={{ width: `calc(100% - 68px)` }}>
+        <div className="flex flex-col w-full">
           <div className="px-10 pt-8 pb-10">
             <VirtualScroll
               id={virtualScrollId}
