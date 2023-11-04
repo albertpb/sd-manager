@@ -113,6 +113,7 @@ export default function ImageDetail() {
 
   const doDelete = useCallback(async () => {
     await dispatch(deleteImages());
+    setConfirmDialogIsOpen(false);
 
     goToNextOrPrevImage(false);
   }, [dispatch, goToNextOrPrevImage]);

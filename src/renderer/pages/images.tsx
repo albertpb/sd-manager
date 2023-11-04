@@ -955,7 +955,7 @@ export default function Images() {
                 />
               </svg>
 
-              <span className="ml-1">filtered: {imagesList.length}</span>
+              <span className="ml-1">filtered: {imagesResult.length}</span>
             </button>
             <button type="button" className="h-full flex items-center ml-2">
               <svg
