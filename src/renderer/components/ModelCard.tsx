@@ -73,7 +73,7 @@ export default function ModelCard({
             <div className="w-full h-full flex px-3 mt-1 flex-col">
               <div className="badge badge-accent mb-2">{type}</div>
               {needUpdate ? (
-                <div className="badge badge-warning mb-2">Update Available</div>
+                <div className="badge badge-warning mb-2">update</div>
               ) : null}
             </div>
             {showRating && (
