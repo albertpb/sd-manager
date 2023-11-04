@@ -66,6 +66,7 @@ export default function Navbar() {
   const onDeleteImages = async () => {
     await dispatch(deleteImages());
     await dispatch(readImages());
+    setConfirmDialogIsOpen(false);
   };
 
   const changeFilterCheckpoint = (checkpointName: string) => {
