@@ -193,6 +193,13 @@ export const scanImagesIpc = async (
 
     const metadata = filesMetadata[files[i]];
 
+    const activeTag = await db.get(
+      `SELECT value FROM settings WHERE key = $key`,
+      {
+        $key: 'activeTag',
+      },
+    );
+
     if (metadata && metadata.model) {
       const imageHash = filesHashes[files[i]];
 
@@ -211,6 +218,16 @@ export const scanImagesIpc = async (
               $fileName: parsedFilePath.base,
             },
           );
+
+          if (activeTag) {
+            await db.run(
+              `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+              {
+                $tagId: activeTag.value,
+                $imageHash: imageHash,
+              },
+            );
+          }
         } catch (error) {
           console.log(error, 'updating');
           try {
