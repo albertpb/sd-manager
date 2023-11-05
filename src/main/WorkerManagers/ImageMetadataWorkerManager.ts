@@ -1,4 +1,5 @@
 import os from 'os';
+import log from 'electron-log';
 import { app } from 'electron';
 import path from 'path';
 import { Worker } from 'worker_threads';
@@ -57,6 +58,8 @@ export default class ImageMetadataWorkerManager {
         if (message.type === 'result') {
           resolve(message.message);
         } else if (message.type === 'error') {
+          console.error(message.message);
+          log.error(message.message);
           reject(message.message);
         }
       };

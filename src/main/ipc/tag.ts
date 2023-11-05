@@ -1,4 +1,5 @@
 import { IpcMainInvokeEvent } from 'electron';
+import log from 'electron-log/main';
 import SqliteDB from '../db';
 
 export type Tag = {
@@ -13,91 +14,97 @@ export const tagIpc = async (
   action: string,
   payload: any,
 ) => {
-  const db = await SqliteDB.getInstance().getdb();
+  try {
+    const db = await SqliteDB.getInstance().getdb();
 
-  switch (action) {
-    case 'read': {
-      return db.all(`SELECT * FROM tags`);
-    }
+    switch (action) {
+      case 'read': {
+        return db.all(`SELECT * FROM tags`);
+      }
 
-    case 'add': {
-      await db.run(
-        `INSERT INTO tags (id, label, color, bgColor) VALUES ($id, $label, $color, $bgColor)`,
-        {
+      case 'add': {
+        await db.run(
+          `INSERT INTO tags (id, label, color, bgColor) VALUES ($id, $label, $color, $bgColor)`,
+          {
+            $id: payload.id,
+            $label: payload.label,
+            $color: payload.color,
+            $bgColor: payload.bgColor,
+          },
+        );
+
+        const checkIfSettingExists = await db.get(
+          `SELECT key FROM settings WHERE key = $key`,
+          {
+            $key: 'activeTag',
+          },
+        );
+
+        if (checkIfSettingExists) {
+          await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
+            $tagId: payload.id,
+            $key: 'activeTag',
+          });
+        } else {
+          await db.run(
+            `INSERT INTO settings (key, value) VALUES ($key, $value)`,
+            {
+              $key: 'activeTag',
+              $value: payload.id,
+            },
+          );
+        }
+        break;
+      }
+
+      case 'delete': {
+        const activeTag = await db.get(
+          `SELECT value FROM settings WHERE key = $key`,
+          {
+            $key: 'activeTag',
+          },
+        );
+
+        if (activeTag?.value === payload.id) {
+          const tags = await db.all(`SELECT * FROM tags`);
+
+          await db.run(
+            `UPDATE settings SET value = $activeTag WHERE key = $key`,
+            {
+              $activeTag: tags.length > 0 ? tags[tags.length - 1].id : null,
+              $key: 'activeTag',
+            },
+          );
+        }
+        await db.run(`DELETE FROM tags WHERE id = $id`, {
           $id: payload.id,
-          $label: payload.label,
-          $color: payload.color,
-          $bgColor: payload.bgColor,
-        },
-      );
-
-      const checkIfSettingExists = await db.get(
-        `SELECT key FROM settings WHERE key = $key`,
-        {
-          $key: 'activeTag',
-        },
-      );
-
-      if (checkIfSettingExists) {
-        await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
-          $tagId: payload.id,
-          $key: 'activeTag',
         });
-      } else {
+
+        break;
+      }
+
+      case 'edit': {
         await db.run(
-          `INSERT INTO settings (key, value) VALUES ($key, $value)`,
+          `UPDATE tags SET label = $label, color = $color, bgColor = $bgColor WHERE id = $id`,
           {
-            $key: 'activeTag',
-            $value: payload.id,
+            $id: payload.id,
+            $label: payload.label,
+            $color: payload.color,
+            $bgColor: payload.bgColor,
           },
         );
+        break;
       }
-      break;
-    }
 
-    case 'delete': {
-      const activeTag = await db.get(
-        `SELECT value FROM settings WHERE key = $key`,
-        {
-          $key: 'activeTag',
-        },
-      );
-
-      if (activeTag?.value === payload.id) {
-        const tags = await db.all(`SELECT * FROM tags`);
-
-        await db.run(
-          `UPDATE settings SET value = $activeTag WHERE key = $key`,
-          {
-            $activeTag: tags.length > 0 ? tags[tags.length - 1].id : null,
-            $key: 'activeTag',
-          },
-        );
+      default: {
+        break;
       }
-      await db.run(`DELETE FROM tags WHERE id = $id`, {
-        $id: payload.id,
-      });
-
-      break;
     }
 
-    case 'edit': {
-      await db.run(
-        `UPDATE tags SET label = $label, color = $color, bgColor = $bgColor WHERE id = $id`,
-        {
-          $id: payload.id,
-          $label: payload.label,
-          $color: payload.color,
-          $bgColor: payload.bgColor,
-        },
-      );
-      break;
-    }
-
-    default: {
-      break;
-    }
+    return null;
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+    return null;
   }
-
-  return null;
 };

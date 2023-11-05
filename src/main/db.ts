@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import log from 'electron-log/main';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { hashFilesInBackground } from './util';
@@ -78,6 +79,7 @@ export default class SqliteDB {
         );
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 2`);
@@ -92,6 +94,7 @@ export default class SqliteDB {
         );
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 3`);
@@ -106,6 +109,7 @@ export default class SqliteDB {
         );
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 4`);
@@ -119,6 +123,7 @@ export default class SqliteDB {
         await db.run(`ALTER TABLE models ADD COLUMN modelVersionId INTEGER`);
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 5`);
@@ -131,6 +136,7 @@ export default class SqliteDB {
         await db.run(`ALTER TABLE models ADD COLUMN description TEXT`);
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 6`);
@@ -145,6 +151,7 @@ export default class SqliteDB {
         )`);
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 7`);
@@ -157,6 +164,7 @@ export default class SqliteDB {
         await db.run(`ALTER TABLE images DROP COLUMN deleted`);
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 9`);
@@ -176,6 +184,7 @@ export default class SqliteDB {
         await hashFilesInBackground(modelsFiles, undefined, 'blake3');
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 10`);
@@ -220,6 +229,7 @@ export default class SqliteDB {
         )`);
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
 
       await db.run(`PRAGMA user_version = 11`);

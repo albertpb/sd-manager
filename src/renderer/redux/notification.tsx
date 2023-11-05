@@ -23,8 +23,9 @@ export default function Notificator({ children }: { children: ReactNode }) {
   useEffect(() => {
     const cb = (event: IpcRendererEvent, msg: string, model: string) => {
       toast(`${msg} ${model}`, {
-        closeOnClick: false,
-        autoClose: false,
+        closeOnClick: true,
+        autoClose: 5000,
+        pauseOnHover: true,
       });
     };
 

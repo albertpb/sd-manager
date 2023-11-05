@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { BrowserWindow, IpcMainInvokeEvent } from 'electron';
+import log from 'electron-log/main';
 import {
   checkFileExists,
   downloadImage,
@@ -115,6 +116,7 @@ export const readdirModelsIpc = async (
 
     if (!modelsHashMap[files[i]]) {
       console.log('hashing', files[i]);
+      log.info('hashing', files[i]);
       const hash = filesHashes[files[i]];
 
       if (!modelInfo) {
@@ -127,6 +129,7 @@ export const readdirModelsIpc = async (
           );
         } catch (error) {
           console.log(error);
+          log.error(error);
         }
       }
 
@@ -159,11 +162,17 @@ export const readdirModelsIpc = async (
               },
             );
 
-            browserWindow.webContents.send(
+            log.info(
+              `Detected duplicated model, ${fileNameNoExt} collided with ${model.name}`,
+            );
+
+            /*
+              browserWindow.webContents.send(
               'duplicates-detected',
               'Detected duplicated model',
               `${fileNameNoExt} collided with ${model.name}`,
             );
+            */
           }
         }
       }
@@ -190,6 +199,7 @@ export const readdirModelsIpc = async (
         );
       } catch (error) {
         console.log(error);
+        log.info(error);
       }
     }
 
@@ -223,6 +233,7 @@ export const readdirModelsIpc = async (
             );
           } catch (error) {
             console.log(error);
+            log.info(error);
           }
         }
       }
@@ -418,6 +429,7 @@ export async function checkModelsToUpdateIpc(
       }
     } catch (error) {
       console.log(error);
+      log.info(error);
 
       if (browserWindow !== null) {
         browserWindow.webContents.send(

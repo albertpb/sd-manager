@@ -1,3 +1,4 @@
+import log from 'electron-log/renderer';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { Model } from 'main/ipc/model';
@@ -165,11 +166,13 @@ export default function ImageDetail() {
             await window.ipcHandler.saveImageMD(file.path, dest);
           } catch (error) {
             console.log(error);
+            log.info(error);
 
             try {
               await window.ipcHandler.saveImageFromClipboard(dest);
             } catch (err) {
               console.log(err);
+              log.info(error);
             }
           }
 

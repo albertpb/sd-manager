@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import log from 'electron-log/main';
 import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import SqliteDB from '../db';
 import {
@@ -107,11 +108,13 @@ export async function removeImagesIpc(
       fs.unlinkSync(imagesToDelete[i].sourcePath);
     } catch (error) {
       console.log(error);
+      log.info(error);
     }
     try {
       fs.unlinkSync(`${pathParsed.dir}\\${pathParsed.name}.thumbnail.webp`);
     } catch (error) {
       console.log(error);
+      log.info(error);
     }
     try {
       fs.rmSync(`${pathParsed.dir}\\${pathParsed.name}`, {
@@ -119,6 +122,7 @@ export async function removeImagesIpc(
       });
     } catch (error) {
       console.log(error);
+      log.info(error);
     }
   }
 }
@@ -138,119 +142,127 @@ export const scanImagesIpc = async (
   event: IpcMainInvokeEvent,
   foldersToWatch: string[],
 ) => {
-  console.log('scaning images');
-  const db = await SqliteDB.getInstance().getdb();
+  try {
+    console.log('scaning images...');
+    log.info('scaning imagess...');
+    const db = await SqliteDB.getInstance().getdb();
 
-  const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
-  const imagesRowsPathMap = imagesRows.reduce(
-    (acc: Record<string, ImageRow>, row) => {
-      acc[row.sourcePath] = row;
-      return acc;
-    },
-    {},
-  );
-
-  const allFiles = foldersToWatch.reduce((acc: string[], folder) => {
-    acc = acc.concat(getAllFiles(folder));
-    return acc;
-  }, []);
-
-  const files = allFiles.filter((f) => {
-    return f.endsWith('.png') && !imagesRowsPathMap[decodeURI(f)];
-  });
-
-  const thumbnailsFilesMap = allFiles
-    .filter((f) => f.endsWith('thumbnail.webp'))
-    .reduce((acc: Record<string, boolean>, f) => {
-      acc[f] = true;
-      return acc;
-    }, {});
-
-  const filesMetadata = await parseImagesMetadata(files, (progress) =>
-    notifyProgressImage(browserWindow, `Parsing images...`, progress),
-  );
-
-  const filesHashes = await hashFilesInBackground(
-    files,
-    (progress) =>
-      notifyProgressImage(browserWindow, `Hashing images...`, progress),
-    'blake3',
-  );
-
-  const filesToThumbnail: [string, string][] = [];
-
-  for (let i = 0; i < files.length; i++) {
-    const parsedFilePath = path.parse(files[i]);
-
-    const progress = ((i + 1) / files.length) * 100;
-    notifyProgressImage(browserWindow, `Saving to database...`, progress);
-
-    const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
-    if (!thumbnailsFilesMap[decodeURI(thumbnailDestPath)]) {
-      filesToThumbnail.push([files[i], thumbnailDestPath]);
-    }
-
-    const metadata = filesMetadata[files[i]];
-
-    const activeTag = await db.get(
-      `SELECT value FROM settings WHERE key = $key`,
-      {
-        $key: 'activeTag',
+    const imagesRows: ImageRow[] = await db.all(`SELECT * FROM images`);
+    const imagesRowsPathMap = imagesRows.reduce(
+      (acc: Record<string, ImageRow>, row) => {
+        acc[row.sourcePath] = row;
+        return acc;
       },
+      {},
     );
 
-    if (metadata && metadata.model) {
-      const imageHash = filesHashes[decodeURI(files[i])];
+    const allFiles = foldersToWatch.reduce((acc: string[], folder) => {
+      acc = acc.concat(getAllFiles(folder));
+      return acc;
+    }, []);
 
-      if (!imagesRowsPathMap[decodeURI(files[i])]) {
-        try {
-          await db.run(
-            `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
-            {
-              $hash: imageHash,
-              $path: parsedFilePath.dir,
-              $rating: 1,
-              $model: metadata.model,
-              $generatedBy: metadata.generatedBy,
-              $sourcePath: files[i],
-              $name: parsedFilePath.name,
-              $fileName: parsedFilePath.base,
-            },
-          );
+    const files = allFiles.filter((f) => {
+      return f.endsWith('.png') && !imagesRowsPathMap[decodeURI(f)];
+    });
 
-          if (activeTag && activeTag.value !== '') {
-            await db.run(
-              `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
-              {
-                $tagId: activeTag.value,
-                $imageHash: imageHash,
-              },
-            );
-          }
-        } catch (error) {
-          // console.log(error, 'updating ', imageHash, files[i]);
+    const thumbnailsFilesMap = allFiles
+      .filter((f) => f.endsWith('thumbnail.webp'))
+      .reduce((acc: Record<string, boolean>, f) => {
+        acc[f] = true;
+        return acc;
+      }, {});
+
+    const filesMetadata = await parseImagesMetadata(files, (progress) =>
+      notifyProgressImage(browserWindow, `Parsing images...`, progress),
+    );
+
+    const filesHashes = await hashFilesInBackground(
+      files,
+      (progress) =>
+        notifyProgressImage(browserWindow, `Hashing images...`, progress),
+      'blake3',
+    );
+
+    const filesToThumbnail: [string, string][] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const parsedFilePath = path.parse(files[i]);
+
+      const progress = ((i + 1) / files.length) * 100;
+      notifyProgressImage(browserWindow, `Saving to database...`, progress);
+
+      const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
+      if (!thumbnailsFilesMap[decodeURI(thumbnailDestPath)]) {
+        filesToThumbnail.push([files[i], thumbnailDestPath]);
+      }
+
+      const metadata = filesMetadata[files[i]];
+
+      const activeTag = await db.get(
+        `SELECT value FROM settings WHERE key = $key`,
+        {
+          $key: 'activeTag',
+        },
+      );
+
+      if (metadata && metadata.model) {
+        const imageHash = filesHashes[decodeURI(files[i])];
+
+        if (!imagesRowsPathMap[decodeURI(files[i])]) {
           try {
             await db.run(
-              `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
+              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
               {
-                $sourcePath: files[i],
+                $hash: imageHash,
                 $path: parsedFilePath.dir,
+                $rating: 1,
+                $model: metadata.model,
+                $generatedBy: metadata.generatedBy,
+                $sourcePath: files[i],
                 $name: parsedFilePath.name,
                 $fileName: parsedFilePath.base,
-                $hash: imageHash,
               },
             );
-          } catch (e) {
-            console.log(e);
+
+            if (activeTag && activeTag.value !== '') {
+              await db.run(
+                `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+                {
+                  $tagId: activeTag.value,
+                  $imageHash: imageHash,
+                },
+              );
+            }
+          } catch (error) {
+            console.log(error, 'updating ', imageHash, files[i]);
+            log.info(error, 'updating ', imageHash, files[i]);
+            try {
+              await db.run(
+                `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
+                {
+                  $sourcePath: files[i],
+                  $path: parsedFilePath.dir,
+                  $name: parsedFilePath.name,
+                  $fileName: parsedFilePath.base,
+                  $hash: imageHash,
+                },
+              );
+            } catch (e) {
+              console.log(e);
+              log.info(e);
+            }
           }
         }
       }
     }
-  }
 
-  await makeThumbnails(filesToThumbnail, (progress) =>
-    notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
-  );
+    await makeThumbnails(filesToThumbnail, (progress) =>
+      notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
+    );
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+  }
 };
 
 export const tagImageIpc = async (
@@ -295,6 +307,7 @@ export const tagImageIpc = async (
       throw Error('tag not exits');
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    log.error(error);
   }
 };

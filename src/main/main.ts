@@ -24,7 +24,7 @@ import url, { pathToFileURL } from 'url';
 import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
 import { Worker } from 'worker_threads';
-import log from 'electron-log';
+import log from 'electron-log/main';
 import MenuBuilder from './menu';
 import { calculateHashFile, checkFolderExists, resolveHtmlPath } from './util';
 import SqliteDB from './db';
@@ -71,6 +71,8 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+
+log.initialize({ preload: true });
 
 ipcMain.handle('readdirModels', (event, model, folderPath) =>
   readdirModelsIpc(mainWindow, event, model, folderPath),
@@ -200,7 +202,8 @@ ipcMain.handle('watchImagesFolder', async () => {
           },
         );
       } catch (error) {
-        console.log(error);
+        console.error(error);
+        log.error(error);
       }
     }
 
@@ -232,7 +235,10 @@ const installExtensions = async () => {
       extensions.map((name) => installer[name]),
       forceDownload,
     )
-    .catch(console.log);
+    .catch((error: any) => {
+      console.error(error);
+      log.error(error);
+    });
 };
 
 const createWindow = async () => {
@@ -344,4 +350,7 @@ app
       if (mainWindow === null) createWindow();
     });
   })
-  .catch(console.log);
+  .catch((error) => {
+    log.error(error);
+    console.error(error);
+  });

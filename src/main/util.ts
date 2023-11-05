@@ -2,6 +2,7 @@
 import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
+import log from 'electron-log/main';
 import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
 import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
@@ -55,6 +56,7 @@ export function calculateHashFile(filePath: string): Promise<string> {
       });
     } catch (error) {
       console.error(error);
+      log.error(error);
       reject(error);
     }
   });
@@ -108,6 +110,8 @@ export async function downloadModelInfoByHash(
 
     return response.data;
   } catch (error) {
+    console.log(`failed to download civitai info model ${modelName}`);
+    log.info(`failed to download civitai info model ${modelName}`);
     await fs.promises.writeFile(
       `${downloadDir}\\${modelName}.civitai.info`,
       '{}',
@@ -155,24 +159,28 @@ export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
   try {
     fs.unlinkSync(filePath);
   } catch (error) {
+    log.info(error);
     console.log(error);
   }
 
   try {
     fs.rmdirSync(`${folderPath}\\${fileNameNoExt}`);
   } catch (error) {
+    log.info(error);
     console.log(error);
   }
 
   try {
     fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.civitai.info`);
   } catch (error) {
+    log.info(error);
     console.log(error);
   }
 
   try {
     fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.preview.png`);
   } catch (error) {
+    log.info(error);
     console.log(error);
   }
 };
@@ -202,6 +210,8 @@ export function retryPromise<T>(
       promiseFactory()
         .then(resolve)
         .catch((error) => {
+          console.log(error);
+          log.info(error);
           attempts++;
           if (attempts < maxAttempts) {
             setTimeout(attempt, delayMs); // Retry after a delay

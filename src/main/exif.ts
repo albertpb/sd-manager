@@ -190,8 +190,6 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 }
 
 export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
-  console.log(invokeaiMetadata);
-
   const parsed = JSON.parse(invokeaiMetadata);
 
   const params: ImageMetaData = {
@@ -205,8 +203,6 @@ export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
     scheduler: parsed.scheduler,
     generatedBy: 'InvokeAI',
   };
-
-  console.log(params);
 
   return params;
 };

@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import log from 'electron-log';
 import os from 'os';
 import path from 'path';
 import { Worker } from 'worker_threads';
@@ -56,6 +57,8 @@ export default class ThumbnailWorkerManager {
         if (message.type === 'result') {
           resolve(message.message);
         } else if (message.type === 'error') {
+          console.error(message.message);
+          log.error(message.message);
           resolve(null);
         }
       };
