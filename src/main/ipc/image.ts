@@ -162,7 +162,7 @@ export const scanImagesIpc = async (
     }, []);
 
     const files = allFiles.filter((f) => {
-      return f.endsWith('.png') && !imagesRowsPathMap[decodeURI(f)];
+      return f.endsWith('.png') && !imagesRowsPathMap[f];
     });
 
     const thumbnailsFilesMap = allFiles
@@ -192,7 +192,7 @@ export const scanImagesIpc = async (
       notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
       const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
-      if (!thumbnailsFilesMap[decodeURI(thumbnailDestPath)]) {
+      if (!thumbnailsFilesMap[thumbnailDestPath]) {
         filesToThumbnail.push([files[i], thumbnailDestPath]);
       }
 
@@ -206,9 +206,9 @@ export const scanImagesIpc = async (
       );
 
       if (metadata && metadata.model) {
-        const imageHash = filesHashes[decodeURI(files[i])];
+        const imageHash = filesHashes[files[i]];
 
-        if (!imagesRowsPathMap[decodeURI(files[i])]) {
+        if (!imagesRowsPathMap[files[i]]) {
           try {
             await db.run(
               `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
@@ -234,19 +234,41 @@ export const scanImagesIpc = async (
               );
             }
           } catch (error) {
-            console.log(error, 'updating ', imageHash, files[i]);
-            log.info(error, 'updating ', imageHash, files[i]);
+            console.log(
+              error,
+              'found image already present in db',
+              imageHash,
+              files[i],
+            );
+            log.info(
+              error,
+              'found image already present in db',
+              imageHash,
+              files[i],
+            );
             try {
-              await db.run(
-                `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
+              const duplicatedImageInDb = await db.get(
+                `SELECT * FROM images WHERE hash = $hash`,
                 {
-                  $sourcePath: files[i],
-                  $path: parsedFilePath.dir,
-                  $name: parsedFilePath.name,
-                  $fileName: parsedFilePath.base,
                   $hash: imageHash,
                 },
               );
+
+              if (duplicatedImageInDb.path !== parsedFilePath.dir) {
+                console.log(`path doesn't match, updating`);
+                log.info(`path doesn't match, updating`);
+
+                await db.run(
+                  `UPDATE images SET sourcePath = $sourcePath, path = $path, name = $name, fileName = $fileName WHERE hash = $hash`,
+                  {
+                    $sourcePath: files[i],
+                    $path: parsedFilePath.dir,
+                    $name: parsedFilePath.name,
+                    $fileName: parsedFilePath.base,
+                    $hash: imageHash,
+                  },
+                );
+              }
             } catch (e) {
               console.log(e);
               log.info(e);
