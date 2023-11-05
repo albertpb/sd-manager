@@ -110,8 +110,6 @@ function parseAutomatic1111Meta(parameters) {
 }
 
 function parseComfyUiMeta(workflow) {
-  const parsed = JSON.parse(workflow);
-
   const params = {
     positivePrompt: '',
     negativePrompt: '',
@@ -124,85 +122,107 @@ function parseComfyUiMeta(workflow) {
     generatedBy: 'ComfyUi',
   };
 
-  if (parsed.nodes && Array.isArray(parsed.nodes)) {
-    let KSamplerNode = parsed.nodes.find(
-      (node) => node.type === 'KSamplerAdvanced',
-    );
+  try {
+    const parsed = JSON.parse(workflow);
 
-    if (KSamplerNode) {
-      params.seed = `${KSamplerNode.widgets_values[1]}`;
-      params.cfg = `${KSamplerNode.widgets_values[4]}`;
-      params.steps = `${KSamplerNode.widgets_values[3]}`;
-      params.scheduler = `${KSamplerNode.widgets_values[6]}`;
-      params.sampler = `${KSamplerNode.widgets_values[5]}`;
-    } else {
-      KSamplerNode = parsed.nodes.find((node) => node.type === 'KSampler');
+    if (parsed.nodes && Array.isArray(parsed.nodes)) {
+      let KSamplerNode = parsed.nodes.find(
+        (node) => node.type === 'KSamplerAdvanced',
+      );
 
       if (KSamplerNode) {
-        params.seed = `${KSamplerNode.widgets_values[0]}`;
-        params.cfg = `${KSamplerNode.widgets_values[3]}`;
-        params.steps = `${KSamplerNode.widgets_values[2]}`;
-        params.scheduler = `${KSamplerNode.widgets_values[4]}`;
+        params.seed = `${KSamplerNode.widgets_values[1]}`;
+        params.cfg = `${KSamplerNode.widgets_values[4]}`;
+        params.steps = `${KSamplerNode.widgets_values[3]}`;
+        params.scheduler = `${KSamplerNode.widgets_values[6]}`;
         params.sampler = `${KSamplerNode.widgets_values[5]}`;
-      }
-    }
+      } else {
+        KSamplerNode = parsed.nodes.find((node) => node.type === 'KSampler');
 
-    if (KSamplerNode) {
-      let positiveLink = 0;
-      let negativeLink = 0;
-
-      for (let j = 0; j < KSamplerNode.inputs.length; j++) {
-        const input = KSamplerNode.inputs[j];
-        if (input.name === 'positive') {
-          positiveLink = input.link;
-        }
-        if (input.name === 'negative') {
-          negativeLink = input.link;
+        if (KSamplerNode) {
+          params.seed = `${KSamplerNode.widgets_values[0]}`;
+          params.cfg = `${KSamplerNode.widgets_values[3]}`;
+          params.steps = `${KSamplerNode.widgets_values[2]}`;
+          params.scheduler = `${KSamplerNode.widgets_values[4]}`;
+          params.sampler = `${KSamplerNode.widgets_values[5]}`;
         }
       }
 
-      for (let i = 0; i < parsed.nodes.length; i++) {
-        const node = parsed.nodes[i];
+      if (KSamplerNode) {
+        let positiveLink = 0;
+        let negativeLink = 0;
 
-        if (node.type === 'CLIPTextEncode') {
-          if (node.outputs[0] && node.outputs[0].links[0]) {
-            if (node.outputs[0].links[0] === positiveLink) {
-              params.positivePrompt = node.widgets_values[0];
-            }
-            if (node.outputs[0].links[0] === negativeLink) {
-              params.negativePrompt = node.widgets_values[0];
-            }
+        for (let j = 0; j < KSamplerNode.inputs.length; j++) {
+          const input = KSamplerNode.inputs[j];
+          if (input.name === 'positive') {
+            positiveLink = input.link;
+          }
+          if (input.name === 'negative') {
+            negativeLink = input.link;
           }
         }
 
-        if (node.type === 'CheckpointLoaderSimple') {
-          params.model = node.widgets_values[0].replace(
-            /.safetensors|.ckpt/g,
-            '',
-          );
+        for (let i = 0; i < parsed.nodes.length; i++) {
+          const node = parsed.nodes[i];
+
+          if (node.type === 'CLIPTextEncode') {
+            if (node.outputs[0] && node.outputs[0].links[0]) {
+              if (node.outputs[0].links[0] === positiveLink) {
+                params.positivePrompt = node.widgets_values[0];
+              }
+              if (node.outputs[0].links[0] === negativeLink) {
+                params.negativePrompt = node.widgets_values[0];
+              }
+            }
+          }
+
+          if (node.type === 'CheckpointLoaderSimple') {
+            params.model = node.widgets_values[0].replace(
+              /.safetensors|.ckpt/g,
+              '',
+            );
+          }
         }
       }
     }
+    return params;
+  } catch (error) {
+    console.error(error);
+    return params;
   }
-  return params;
 }
 
 const parseInvokeAIMeta = (invokeaiMetadata) => {
-  const parsed = JSON.parse(invokeaiMetadata);
+  try {
+    const parsed = JSON.parse(invokeaiMetadata);
 
-  const params = {
-    positivePrompt: parsed.positive_prompt,
-    negativePrompt: parsed.negative_prompt,
-    cfg: parsed.cfg_scale,
-    seed: parsed.seed,
-    steps: parsed.steps,
-    model: parsed.model.model_name,
-    sampler: parsed.scheduler,
-    scheduler: parsed.scheduler,
-    generatedBy: 'InvokeAI',
-  };
+    const params = {
+      positivePrompt: parsed.positive_prompt || '',
+      negativePrompt: parsed.negative_prompt || '',
+      cfg: `${parsed.cfg_scale || ''}`,
+      seed: `${parsed.seed || ''}`,
+      steps: `${parsed.steps || ''}`,
+      model: parsed.model.model_name || '',
+      sampler: parsed.scheduler || '',
+      scheduler: parsed.scheduler || '',
+      generatedBy: 'InvokeAI',
+    };
 
-  return params;
+    return params;
+  } catch (error) {
+    console.error(error);
+    return {
+      cfg: '',
+      generatedBy: '',
+      model: 'unknown',
+      negativePrompt: '',
+      positivePrompt: '',
+      sampler: '',
+      scheduler: '',
+      seed: '',
+      steps: '',
+    };
+  }
 };
 
 const parseImageSdMeta = (exif) => {
