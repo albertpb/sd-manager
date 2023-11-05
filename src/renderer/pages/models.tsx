@@ -206,9 +206,7 @@ export default function Models({
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
 
-    setPerChunk(
-      Math.floor((windowWidth - windowHeight * 0.15) / cardWidth) || 1,
-    );
+    setPerChunk(Math.floor((windowWidth - 250) / cardWidth) || 1);
   }, [containerHeight, zoomLevel]);
 
   const setRef = useCallback(
@@ -239,16 +237,6 @@ export default function Models({
   };
 
   const onResize = useCallback(() => {
-    const windowHeight = window.innerHeight;
-
-    if (windowHeight > 1300) {
-      setZoomLevel(3);
-    } else if (windowHeight <= 1299 && windowHeight >= 900) {
-      setZoomLevel(2);
-    } else if (windowHeight <= 899) {
-      setZoomLevel(1);
-    }
-
     calcImagesValues();
   }, [calcImagesValues]);
 
@@ -378,7 +366,7 @@ export default function Models({
   };
 
   return (
-    <div ref={setRef} className="W-full h-full flex">
+    <div ref={setRef} className="w-full h-full flex">
       <div className="w-fit h-full">
         <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
           <li>
