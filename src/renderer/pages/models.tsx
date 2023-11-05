@@ -746,7 +746,7 @@ export default function Models({
                 />
               </svg>
 
-              <span className="ml-1">filtered: {models.length}</span>
+              <span className="ml-1">filtered: {resultCards.length}</span>
             </button>
             <button type="button" className="h-full flex items-center ml-2">
               <svg
