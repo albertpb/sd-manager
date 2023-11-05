@@ -36,6 +36,7 @@ export default function ImageMetadata() {
   };
 
   const onFilesDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       if (IMAGE_TYPES.includes(e.dataTransfer.files.item(0)?.type || '')) {
         readMetadata(e.dataTransfer.files[0].path);
