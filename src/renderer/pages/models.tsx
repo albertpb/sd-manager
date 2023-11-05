@@ -10,6 +10,7 @@ import VirtualScroll, {
 import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
 import {
+  ModelState,
   setCheckingModelsUpdate,
   setModelsCheckingUpdate,
   setModelsToUpdate,
@@ -23,15 +24,15 @@ interface RowData {
   id: string;
 }
 
-export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
+export default function Models({
+  modelsState,
+  type,
+}: {
+  modelsState: ModelState;
+  type: 'checkpoint' | 'lora';
+}) {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const checkpoints = useSelector(
-    (state: RootState) => state.global.checkpoint,
-  );
-  const loras = useSelector((state: RootState) => state.global.lora);
-
-  const modelsState = type === 'checkpoint' ? checkpoints : loras;
 
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
@@ -42,14 +43,25 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     Object.values(modelsState.models).sort((a, b) => b.rating - a.rating),
   );
 
-  const [filterBy, setFilterBy] = useState<string>('none');
-  const [sortBy, setSortBy] = useState<string>('ratingDesc');
+  const [filterBy, setFilterBy] = useState<string>(
+    localStorage.getItem(`models-${type}-filterBy`) || 'none',
+  );
+  const [sortBy, setSortBy] = useState<string>(
+    localStorage.getItem(`models-${type}-sortBy`) || 'ratingDesc',
+  );
+
+  const localStorageZoomLevel = localStorage.getItem(
+    `models-${type}-zoomLevel`,
+  );
+  const [zoomLevel, setZoomLevel] = useState<number>(
+    parseInt(localStorageZoomLevel === null ? '3' : localStorageZoomLevel, 10),
+  );
+  const [showRating, setShowRating] = useState<boolean>(
+    localStorage.getItem(`models-${type}-showRating`) === 'true',
+  );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
-
-  const [zoomLevel, setZoomLevel] = useState<number>(3);
-  const [showRating, setShowRating] = useState<boolean>(true);
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
@@ -241,9 +253,13 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   }, [calcImagesValues]);
 
   useEffect(() => {
-    onResize();
-    // eslint-disable-next-line
-  }, []);
+    return () => {
+      localStorage.setItem(`models-${type}-filterBy`, filterBy);
+      localStorage.setItem(`models-${type}-sortBy`, sortBy);
+      localStorage.setItem(`models-${type}-zoomLevel`, `${zoomLevel}`);
+      localStorage.setItem(`models-${type}-showRating`, `${showRating}`);
+    };
+  }, [type, filterBy, sortBy, zoomLevel, showRating]);
 
   useEffect(() => {
     sortFilterModels(filterBy, sortBy);
@@ -418,7 +434,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
                 className={classNames([
                   'w-5 h-5',
                   {
-                    'text-green-500': filterBy === '',
+                    'text-green-500': filterBy === 'none',
                   },
                 ])}
               >

@@ -40,17 +40,46 @@ export default function Images() {
 
   const virtualScrollId = 'images_virtualscroll';
 
-  const [zoomLevel, setZoomLevel] = useState<number>(3);
-  const [showRating, setShowRating] = useState<boolean>(true);
-  const [showModelName, setShowModelName] = useState<boolean>(true);
-  const [imageAnimated, setImageAnimated] = useState<boolean>(true);
+  const localStorageZoomLevel = localStorage.getItem('images-zoomLevel');
+  const [zoomLevel, setZoomLevel] = useState<number>(
+    parseInt(localStorageZoomLevel === null ? '3' : localStorageZoomLevel, 10),
+  );
+  const [showRating, setShowRating] = useState<boolean>(
+    localStorage.getItem('images-showRating') === null
+      ? true
+      : localStorage.getItem('images-showRating') === 'true',
+  );
+  const [showModelName, setShowModelName] = useState<boolean>(
+    localStorage.getItem('images-showModelName') === null
+      ? true
+      : localStorage.getItem('images-showModelName') === 'true',
+  );
+  const [imageAnimated, setImageAnimated] = useState<boolean>(
+    localStorage.getItem('images-imageAnimated') === null
+      ? true
+      : localStorage.getItem('images-imageAnimated') === 'true',
+  );
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<string>('ratingDesc');
-  const [filterByRating, setFilterByRating] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<string>(
+    localStorage.getItem('images-sortBy') || 'ratingDesc',
+  );
+  const localStorageFilterByRating = localStorage.getItem(
+    'images-filterByRating',
+  );
+  const [filterByRating, setFilterByRating] = useState<number>(
+    parseInt(
+      localStorageFilterByRating === null ? '0' : localStorageFilterByRating,
+      10,
+    ),
+  );
   const [filterByTags, setFilterByTags] = useState<Set<string>>(new Set());
   const [addTagLabel, setAddTagLabel] = useState<string>('');
   const [addTagBgColor, setAddTagBgColor] = useState<string>('#269310');
-  const [showTag, setShowTag] = useState<boolean>(true);
+  const [showTag, setShowTag] = useState<boolean>(
+    localStorage.getItem('images-showTag') === null
+      ? true
+      : localStorage.getItem('images-showTag') === 'true',
+  );
 
   const images = useSelector((state: RootState) => state.global.images);
   const watchFolders = useSelector(
@@ -249,9 +278,24 @@ export default function Images() {
   }, [calcImagesValues]);
 
   useEffect(() => {
-    onResize();
-    // eslint-disable-next-line
-  }, []);
+    return () => {
+      localStorage.setItem('images-zoomLevel', `${zoomLevel}`);
+      localStorage.setItem('images-showRating', `${showRating}`);
+      localStorage.setItem('images-showModelName', `${showModelName}`);
+      localStorage.setItem('images-imageAnimated', `${imageAnimated}`);
+      localStorage.setItem('images-sortBy', sortBy);
+      localStorage.setItem('images-filterByRating', `${filterByRating}`);
+      localStorage.setItem('images-showTag', `${showTag}`);
+    };
+  }, [
+    zoomLevel,
+    showRating,
+    showModelName,
+    imageAnimated,
+    sortBy,
+    filterByRating,
+    showTag,
+  ]);
 
   useEffect(() => {
     sortFilterImages(sortBy);
