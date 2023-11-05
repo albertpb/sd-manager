@@ -54,10 +54,10 @@ export default function Images() {
       ? true
       : localStorage.getItem('images-showModelName') === 'true',
   );
-  const [imageAnimated, setImageAnimated] = useState<boolean>(
-    localStorage.getItem('images-imageAnimated') === null
+  const [hoverEffect, setHoverEffect] = useState<boolean>(
+    localStorage.getItem('images-hoverEffect') === null
       ? true
-      : localStorage.getItem('images-imageAnimated') === 'true',
+      : localStorage.getItem('images-hoverEffect') === 'true',
   );
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>(
@@ -282,7 +282,7 @@ export default function Images() {
       localStorage.setItem('images-zoomLevel', `${zoomLevel}`);
       localStorage.setItem('images-showRating', `${showRating}`);
       localStorage.setItem('images-showModelName', `${showModelName}`);
-      localStorage.setItem('images-imageAnimated', `${imageAnimated}`);
+      localStorage.setItem('images-hoverEffect', `${hoverEffect}`);
       localStorage.setItem('images-sortBy', sortBy);
       localStorage.setItem('images-filterByRating', `${filterByRating}`);
       localStorage.setItem('images-showTag', `${showTag}`);
@@ -291,7 +291,7 @@ export default function Images() {
     zoomLevel,
     showRating,
     showModelName,
-    imageAnimated,
+    hoverEffect,
     sortBy,
     filterByRating,
     showTag,
@@ -439,7 +439,7 @@ export default function Images() {
             className={classNames([
               'card__figure rounded-md overflow-hidden relative',
               {
-                animated: imageAnimated,
+                animated: hoverEffect,
               },
               {
                 'max-w-fit': zoomLevel === 1,
@@ -680,12 +680,9 @@ export default function Images() {
           </li>
           <li
             className="tooltip tooltip-right"
-            data-tip={`image animated: ${imageAnimated ? 'on' : 'off'}`}
+            data-tip={`hover effect: ${hoverEffect ? 'on' : 'off'}`}
           >
-            <button
-              type="button"
-              onClick={() => setImageAnimated(!imageAnimated)}
-            >
+            <button type="button" onClick={() => setHoverEffect(!hoverEffect)}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -694,7 +691,7 @@ export default function Images() {
                 stroke="currentColor"
                 className={classNames([
                   'w-5 h-5',
-                  { 'stroke-green-500': imageAnimated },
+                  { 'stroke-green-500': hoverEffect },
                 ])}
               >
                 <path
