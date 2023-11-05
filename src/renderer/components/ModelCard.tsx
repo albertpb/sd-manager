@@ -16,6 +16,9 @@ type ModelCardProps = {
   needUpdate?: boolean;
   className?: any;
   showRating?: boolean;
+  hoverEffect?: boolean;
+  showName?: boolean;
+  showBadge?: boolean;
   onDragPath?: string;
 };
 
@@ -33,6 +36,9 @@ export default function ModelCard({
   loading = false,
   needUpdate = false,
   showRating = true,
+  hoverEffect = true,
+  showName = true,
+  showBadge = true,
   onDragPath,
 }: ModelCardProps) {
   const loadingOverlay = (
@@ -54,7 +60,7 @@ export default function ModelCard({
       <figure
         className={classNames([
           'card__figure rounded-md overflow-hidden',
-          { animated: !loading },
+          { animated: !loading && hoverEffect },
           { 'blur-sm': loading },
           figureClassName,
         ])}
@@ -71,10 +77,12 @@ export default function ModelCard({
         <div className="absolute top-2 left-0 w-full z-20">
           <div className="flex flex-row justify-between">
             <div className="w-full h-full flex px-3 mt-1 flex-col">
-              <div className="badge badge-accent mb-2">{type}</div>
-              {needUpdate ? (
+              {showBadge && (
+                <div className="badge badge-accent mb-2">{type}</div>
+              )}
+              {needUpdate && (
                 <div className="badge badge-warning mb-2">update</div>
-              ) : null}
+              )}
             </div>
             {showRating && (
               <div className="sm:hidden md:hidden lg:block pr-2">
@@ -83,9 +91,11 @@ export default function ModelCard({
             )}
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-full p-3 flex ">
-          <p className="text-xl font-bold text-white truncate">{name}</p>
-        </div>
+        {showName && (
+          <div className="absolute bottom-0 left-0 w-full p-3 flex ">
+            <p className="text-xl font-bold text-white truncate">{name}</p>
+          </div>
+        )}
       </figure>
     </div>
   );
