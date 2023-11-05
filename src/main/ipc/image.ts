@@ -29,14 +29,14 @@ export async function getImages(modelName: string | undefined) {
   let images;
   if (modelName) {
     images = await db.all(
-      `SELECT row_number() over (order by '') as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.model = $modelName GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
+      `SELECT images.rowid as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.model = $modelName GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
       {
         $modelName: modelName,
       },
     );
   } else {
     images = await db.all(
-      `SELECT row_number() over (order by '') as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
+      `SELECT images.rowid as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId GROUP BY images.hash ORDER BY images.rating DESC, rowNum DESC`,
     );
   }
 
@@ -64,7 +64,7 @@ export async function getImagesIpc(
 export async function getImage(hash: string) {
   const db = await SqliteDB.getInstance().getdb();
   const image = await db.get(
-    `SELECT images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.hash = $hash GROUP BY images.hash`,
+    `SELECT images.rowid as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.hash = $hash GROUP BY images.hash`,
     {
       $hash: hash,
     },

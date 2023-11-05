@@ -166,13 +166,11 @@ export const readdirModelsIpc = async (
               `Detected duplicated model, ${fileNameNoExt} collided with ${model.name}`,
             );
 
-            /*
-              browserWindow.webContents.send(
+            browserWindow.webContents.send(
               'duplicates-detected',
               'Detected duplicated model',
               `${fileNameNoExt} collided with ${model.name}`,
             );
-            */
           }
         }
       }
