@@ -142,10 +142,11 @@ export const scanImages = createAsyncThunk(
 
 export const deleteImages = createAsyncThunk(
   'deleteImages',
-  async (arg, { getState }) => {
+  async (arg, { getState, dispatch }) => {
     const state = getState() as { global: GlobalState };
 
     await window.ipcHandler.removeImages(state.global.imagesToDelete);
+    await dispatch(readImages());
   },
 );
 
