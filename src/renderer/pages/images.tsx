@@ -815,6 +815,27 @@ export default function Images() {
               </svg>
             </button>
           </li>
+          <li className="tooltip tooltip-right" data-tip="sort by asc">
+            <button type="button" onClick={() => sortFilterImages('rowNumAsc')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className={classNames([
+                  'w-5 h-5',
+                  { 'stroke-green-500': sortBy === 'rowNumAsc' },
+                ])}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5"
+                />
+              </svg>
+            </button>
+          </li>
           <li className="tooltip tooltip-right" data-tip="sort by desc">
             <button
               type="button"
@@ -829,27 +850,6 @@ export default function Images() {
                 className={classNames([
                   'w-5 h-5',
                   { 'stroke-green-500': sortBy === 'rowNumDesc' },
-                ])}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5"
-                />
-              </svg>
-            </button>
-          </li>
-          <li className="tooltip tooltip-right" data-tip="sort by asc">
-            <button type="button" onClick={() => sortFilterImages('rowNumAsc')}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className={classNames([
-                  'w-5 h-5',
-                  { 'stroke-green-500': sortBy === 'rowNumAsc' },
                 ])}
               >
                 <path
@@ -876,7 +876,7 @@ export default function Images() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25"
+                  d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"
                 />
               </svg>
             </button>
@@ -897,7 +897,7 @@ export default function Images() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"
+                  d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25"
                 />
               </svg>
             </button>

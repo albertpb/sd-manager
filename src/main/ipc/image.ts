@@ -23,10 +23,7 @@ export type ImageRow = {
   tags: Record<string, string>;
 };
 
-export async function getImagesIpc(
-  event: IpcMainInvokeEvent,
-  modelName: string | undefined,
-) {
+export async function getImages(modelName: string | undefined) {
   const db = await SqliteDB.getInstance().getdb();
 
   let images;
@@ -57,7 +54,14 @@ export async function getImagesIpc(
   return images;
 }
 
-export async function getImageIpc(event: IpcMainInvokeEvent, hash: string) {
+export async function getImagesIpc(
+  event: IpcMainInvokeEvent,
+  modelName: string | undefined,
+) {
+  return getImages(modelName);
+}
+
+export async function getImage(hash: string) {
   const db = await SqliteDB.getInstance().getdb();
   const image = await db.get(
     `SELECT images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.hash = $hash GROUP BY images.hash`,
@@ -76,6 +80,10 @@ export async function getImageIpc(event: IpcMainInvokeEvent, hash: string) {
           }, {})
       : {};
   return image;
+}
+
+export async function getImageIpc(event: IpcMainInvokeEvent, hash: string) {
+  return getImage(hash);
 }
 
 export async function updateImageIpc(
