@@ -49,6 +49,7 @@ import {
   scanImagesIpc,
   updateImageIpc,
   tagImageIpc,
+  getImage,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
@@ -162,7 +163,7 @@ ipcMain.handle('watchImagesFolder', async () => {
       },
     );
 
-    const imagesData: ImageRow = {
+    let imagesData: ImageRow = {
       hash,
       path: imagesFolder,
       rating: 1,
@@ -206,6 +207,8 @@ ipcMain.handle('watchImagesFolder', async () => {
         log.error(error);
       }
     }
+
+    imagesData = await getImage(imagesData.hash);
 
     if (mainWindow !== null) {
       mainWindow.webContents.send('detected-add-image', imagesData);

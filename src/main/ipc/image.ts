@@ -61,7 +61,7 @@ export async function getImagesIpc(
   return getImages(modelName);
 }
 
-export async function getImage(hash: string) {
+export async function getImage(hash: string): Promise<ImageRow> {
   const db = await SqliteDB.getInstance().getdb();
   const image = await db.get(
     `SELECT images.rowid as rowNum, images.hash, images.fileName, images.generatedBy, images.model, images.name, images.path, images.rating, images.sourcePath, GROUP_CONCAT(tags.id) AS tags FROM images LEFT JOIN images_tags ON images_tags.imageHash = images.hash LEFT JOIN tags ON tags.id = images_tags.tagId WHERE images.hash = $hash GROUP BY images.hash`,
