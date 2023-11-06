@@ -130,7 +130,15 @@ export default function Images() {
   );
 
   const filterByTagFunc = useCallback(
-    (img: ImageRow) => [...filterByTags].some((t) => img.tags[t]),
+    (img: ImageRow) => {
+      const imgtags = Object.values(img.tags);
+      if (imgtags.length > 0) {
+        return imgtags.every((t) => {
+          return filterByTags.size === imgtags.length && filterByTags.has(t);
+        });
+      }
+      return false;
+    },
     [filterByTags],
   );
 
