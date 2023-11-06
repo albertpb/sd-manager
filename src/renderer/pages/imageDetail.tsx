@@ -116,7 +116,7 @@ export default function ImageDetail() {
     await dispatch(deleteImages());
     setConfirmDialogIsOpen(false);
 
-    goToNextOrPrevImage(false);
+    goToNextOrPrevImage(true);
   }, [dispatch, goToNextOrPrevImage]);
 
   useEffect(() => {
