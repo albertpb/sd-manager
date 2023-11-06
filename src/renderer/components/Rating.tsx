@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import { MouseEvent } from 'react';
 
 export default function Rating({
   id,
@@ -8,7 +9,7 @@ export default function Rating({
 }: {
   id: string;
   value: number;
-  onClick?: (value: number) => void;
+  onClick?: (event: MouseEvent<HTMLInputElement>, value: number) => void;
   hidden?: boolean;
 }) {
   const stars = (
@@ -18,7 +19,7 @@ export default function Rating({
         name={`${id}_rating-2`}
         className="mask mask-star-2 bg-orange-400"
         checked={value === 1}
-        onClick={() => onClick && onClick(1)}
+        onClick={(e) => onClick && onClick(e, 1)}
         onChange={() => {}}
       />
       <input
@@ -26,7 +27,7 @@ export default function Rating({
         name={`${id}_rating-2`}
         className="mask mask-star-2 bg-orange-400"
         checked={value === 2}
-        onClick={() => onClick && onClick(2)}
+        onClick={(e) => onClick && onClick(e, 2)}
         onChange={() => {}}
       />
       <input
@@ -34,7 +35,7 @@ export default function Rating({
         name={`${id}_rating-2`}
         className="mask mask-star-2 bg-orange-400"
         checked={value === 3}
-        onClick={() => onClick && onClick(3)}
+        onClick={(e) => onClick && onClick(e, 3)}
         onChange={() => {}}
       />
       <input
@@ -42,7 +43,7 @@ export default function Rating({
         name={`${id}_rating-2`}
         className="mask mask-star-2 bg-orange-400"
         checked={value === 4}
-        onClick={() => onClick && onClick(4)}
+        onClick={(e) => onClick && onClick(e, 4)}
         onChange={() => {}}
       />
       <input
@@ -50,7 +51,7 @@ export default function Rating({
         name={`${id}_rating-2`}
         className="mask mask-star-2 bg-orange-400"
         checked={value === 5}
-        onClick={() => onClick && onClick(5)}
+        onClick={(e) => onClick && onClick(e, 5)}
         onChange={() => {}}
       />
     </>

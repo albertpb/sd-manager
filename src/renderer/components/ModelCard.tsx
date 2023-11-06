@@ -1,3 +1,4 @@
+import { MouseEvent } from 'react';
 import classNames from 'classnames';
 import Image from './Image';
 import Rating from './Rating';
@@ -20,6 +21,7 @@ type ModelCardProps = {
   showName?: boolean;
   showBadge?: boolean;
   onDragPath?: string;
+  onRatingChange?: (event: MouseEvent<HTMLInputElement>, value: number) => void;
 };
 
 export default function ModelCard({
@@ -40,6 +42,7 @@ export default function ModelCard({
   showName = true,
   showBadge = true,
   onDragPath,
+  onRatingChange,
 }: ModelCardProps) {
   const loadingOverlay = (
     <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
@@ -86,7 +89,11 @@ export default function ModelCard({
             </div>
             {showRating && (
               <div className="sm:hidden md:hidden lg:block pr-2">
-                <Rating id={`model-card-rating-${id}`} value={rating || 1} />
+                <Rating
+                  id={`model-card-rating-${id}`}
+                  value={rating || 1}
+                  onClick={onRatingChange}
+                />
               </div>
             )}
           </div>

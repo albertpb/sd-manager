@@ -342,7 +342,7 @@ export default function ImageDetail() {
                   <Rating
                     id={`image-detail-${imageData.hash}`}
                     value={imageData.rating}
-                    onClick={(value) => onRatingChange(value)}
+                    onClick={(e, value) => onRatingChange(value)}
                   />
                 </span>
               </div>

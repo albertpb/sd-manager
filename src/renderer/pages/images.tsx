@@ -27,6 +27,7 @@ import {
   setActiveTag,
   setImagesToDelete,
   tagImage,
+  updateImage,
 } from 'renderer/redux/reducers/global';
 
 interface RowData {
@@ -396,6 +397,17 @@ export default function Images() {
     }
   };
 
+  const onRatingChange = async (
+    event: MouseEvent<HTMLInputElement>,
+    hash: string,
+    value: number,
+  ) => {
+    event.stopPropagation();
+    if (hash) {
+      await dispatch(updateImage({ hash, field: 'rating', value }));
+    }
+  };
+
   useEffect(() => {
     return () => {
       dispatch(setImagesToDelete({}));
@@ -455,7 +467,11 @@ export default function Images() {
             )}
             {showRating && (
               <div className="absolute top-2 right-2 z-20 sm:hidden md:hidden lg:block">
-                <Rating id={item.hash} value={item.rating} />
+                <Rating
+                  id={item.hash}
+                  value={item.rating}
+                  onClick={(e, value) => onRatingChange(e, item.hash, value)}
+                />
               </div>
             )}
             <Image
@@ -763,7 +779,7 @@ export default function Images() {
                 <Rating
                   id="images-rating-selector"
                   value={filterByRating}
-                  onClick={(rating) => filterImagesByRating(rating)}
+                  onClick={(e, rating) => filterImagesByRating(rating)}
                   hidden={filterByRating === 0}
                 />
               </ul>

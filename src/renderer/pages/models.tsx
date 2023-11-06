@@ -15,6 +15,7 @@ import {
   setModelsCheckingUpdate,
   setModelsToUpdate,
   setNavbarDisabled,
+  updateModel,
 } from 'renderer/redux/reducers/global';
 import { IpcRendererEvent } from 'electron';
 import { toast } from 'react-toastify';
@@ -246,6 +247,22 @@ export default function Models({
     calcImagesValues();
   }, [calcImagesValues]);
 
+  const onRatingChange = async (
+    event: MouseEvent<HTMLInputElement>,
+    hash: string,
+    value: number,
+  ) => {
+    event.stopPropagation();
+
+    await dispatch(
+      updateModel({
+        hash,
+        field: 'rating',
+        value,
+      }),
+    );
+  };
+
   useEffect(() => {
     return () => {
       localStorage.setItem(`models-${type}-filterBy`, filterBy);
@@ -374,6 +391,7 @@ export default function Models({
             hoverEffect={hoverEffect}
             showBadge={showBadge}
             showName={showModelName}
+            onRatingChange={(e, value) => onRatingChange(e, item.hash, value)}
           />
         </div>
       );

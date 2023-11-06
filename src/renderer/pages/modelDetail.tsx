@@ -198,8 +198,6 @@ export default function ModelDetail() {
 
   const onRatingChange = async (rating: number) => {
     if (modelData) {
-      await window.ipcHandler.updateModel(modelData.hash, 'rating', rating);
-
       await dispatch(
         updateModel({
           hash: modelData.hash,
@@ -403,7 +401,7 @@ export default function ModelDetail() {
               <Rating
                 id={`model-detail-rating-2-${modelData.hash}`}
                 value={modelData.rating}
-                onClick={(value) => onRatingChange(value)}
+                onClick={(e, value) => onRatingChange(value)}
               />
             </div>
           </div>
