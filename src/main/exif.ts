@@ -98,12 +98,12 @@ export function parseAutomatic1111Meta(parameters: string): ImageMetaData {
   const params: ImageMetaData = {
     positivePrompt,
     negativePrompt,
-    cfg: data.CFG_scale,
-    seed: data.Seed,
-    steps: data.Steps,
-    model: data.Model,
-    sampler: data.Sampler,
-    scheduler: data.Sampler,
+    cfg: data.CFG_scale || '',
+    seed: data.Seed || '',
+    steps: data.Steps || '',
+    model: data.Model || '',
+    sampler: data.Sampler || '',
+    scheduler: data.Sampler || '',
     generatedBy: 'automatic1111',
   };
 
