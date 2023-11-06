@@ -15,6 +15,7 @@ import {
   deleteTag,
   editTag,
   createTag,
+  setScanImagesOnStart,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog, {
   ConfirmDialogResponse,
@@ -77,6 +78,10 @@ export default function Settings() {
 
   const onScanModelsOnStart = async (value: boolean) => {
     dispatch(setScanModelsOnStart(value ? '1' : '0'));
+  };
+
+  const onScanImagesOnStart = async (value: boolean) => {
+    dispatch(setScanImagesOnStart(value ? '1' : '0'));
   };
 
   const changeTheme = async (theme: string) => {
@@ -254,13 +259,30 @@ export default function Settings() {
             htmlFor="scanModelsOnStart"
           >
             <span className="label-text text-base w-2/3">
-              Scan models on start
+              Import new models on start
             </span>
             <input
               id="scanModelsOnStart"
               type="checkbox"
               checked={settings.scanModelsOnStart === '1'}
               onChange={(e) => onScanModelsOnStart(e.target.checked)}
+              className="checkbox checkbox-primary"
+            />
+          </label>
+        </div>
+        <div className="mt-3 flex flex-row items-center form-control">
+          <label
+            className="label cursor-pointer ml-0 pl-0 w-full justify-start"
+            htmlFor="scanImagesOnStart"
+          >
+            <span className="label-text text-base w-2/3">
+              Import new images on start
+            </span>
+            <input
+              id="scanImagesOnStart"
+              type="checkbox"
+              checked={settings.scanImagesOnStart === '1'}
+              onChange={(e) => onScanImagesOnStart(e.target.checked)}
               className="checkbox checkbox-primary"
             />
           </label>

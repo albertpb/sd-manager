@@ -573,7 +573,7 @@ export default function Images() {
                   <div className="flex flex-col">
                     <div className="form-control w-full max-w-xs">
                       <label className="label">
-                        <span className="label-text">Current active tag</span>
+                        <span className="label-text">Active tag</span>
                       </label>
                       <select
                         className="select select-bordered select-sm w-full max-w-xs"

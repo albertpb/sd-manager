@@ -23,6 +23,9 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
   );
 
   const images = useSelector((state: RootState) => state.global.images);
+  const scanImagesOnStart = useSelector(
+    (state: RootState) => state.global.settings.scanImagesOnStart,
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -34,13 +37,15 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
-      const watchFolders: WatchFolder[] =
-        await window.ipcHandler.watchFolder('read');
-      await dispatch(scanImages(watchFolders.map((f) => f.path)));
+      if (scanImagesOnStart === '1') {
+        const watchFolders: WatchFolder[] =
+          await window.ipcHandler.watchFolder('read');
+        await dispatch(scanImages(watchFolders.map((f) => f.path)));
+      }
       await dispatch(readImages());
     };
     load();
-  }, [dispatch]);
+  }, [dispatch, scanImagesOnStart]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

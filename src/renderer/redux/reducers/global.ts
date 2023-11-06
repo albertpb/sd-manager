@@ -8,6 +8,7 @@ import { getTextColorFromBackgroundColor } from 'renderer/utils';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
+  scanImagesOnStart: string | null;
   checkpointsPath: string | null;
   lorasPath: string | null;
   theme: string | null;
@@ -44,6 +45,7 @@ const initialState: GlobalState = {
   navbarDisabled: false,
   settings: {
     scanModelsOnStart: '0',
+    scanImagesOnStart: '0',
     checkpointsPath: null,
     lorasPath: null,
     theme: 'default',
@@ -247,6 +249,10 @@ export const globalSlice = createSlice({
     setScanModelsOnStart: (state, action) => {
       state.settings.scanModelsOnStart = action.payload;
       saveSettings('scanModelsOnStart', action.payload);
+    },
+    setScanImagesOnStart: (state, action) => {
+      state.settings.scanImagesOnStart = action.payload;
+      saveSettings('scanImagesOnStart', action.payload);
     },
     setNavbarSearchInputValue: (state, action) => {
       if (!state.navbarDisabled) {
@@ -459,6 +465,7 @@ export const {
   setLorasPath,
   setNavbarSearchInputValue,
   setScanModelsOnStart,
+  setScanImagesOnStart,
   setImagesToDelete,
   setTheme,
   setFilterCheckpoint,
