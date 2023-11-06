@@ -198,7 +198,7 @@ export function parseComfyUiMeta(workflow: string): ImageMetaData {
 
 export const parseInvokeAIMeta = (invokeaiMetadata: string) => {
   try {
-    const parsed = JSON.parse(invokeaiMetadata);
+    const parsed = JSON.parse(invokeaiMetadata.replace('\n', ''));
 
     const params: ImageMetaData = {
       positivePrompt: parsed.positive_prompt || '',
