@@ -64,47 +64,43 @@ function splitOutsideQuotes(input) {
 }
 
 function parseAutomatic1111Meta(parameters) {
-  const texts = parameters.split(/\r?\n/).map((t) => t.trim());
-
-  const keyValuePairsIndex = texts.findIndex((t) => t.startsWith('Steps:'));
-  const negativeIndex = texts.findIndex((t) =>
-    t.startsWith('Negative prompt:'),
-  );
-
-  let positivePrompt = '';
-  if (negativeIndex !== -1 && texts[negativeIndex - 1] !== undefined) {
-    positivePrompt = texts[negativeIndex - 1];
-  } else if (
-    negativeIndex === -1 &&
-    texts[keyValuePairsIndex - 1] !== undefined
-  ) {
-    positivePrompt = texts[keyValuePairsIndex - 1];
-  }
-
-  const negativePrompt =
-    negativeIndex !== -1 ? texts[negativeIndex].split(': ')[1] : '';
-  const keyValuePairs =
-    keyValuePairsIndex !== -1
-      ? splitOutsideQuotes(texts[keyValuePairsIndex])
-      : [];
-
-  const data = keyValuePairs.reduce((acc, pair) => {
-    const [key, value] = pair.split(': ');
-    acc[key.replace(' ', '_')] = value;
-    return acc;
-  }, {});
+  const matches = parameters.match(/^(.*?)(Negative prompt:.*?)?(Steps:.*)/s);
 
   const params = {
-    positivePrompt,
-    negativePrompt,
-    cfg: data.CFG_scale,
-    seed: data.Seed,
-    steps: data.Steps,
-    model: data.Model,
-    sampler: data.Sampler,
-    scheduler: data.Sampler,
+    positivePrompt: '',
+    negativePrompt: '',
+    cfg: '',
+    seed: '',
+    steps: '',
+    model: '',
+    sampler: '',
+    scheduler: '',
     generatedBy: 'automatic1111',
   };
+
+  if (matches) {
+    const firstString = matches[1]?.trim() || '';
+    const secondString =
+      matches[2]?.replace('Negative prompt:', '').trim() || '';
+    const thirdString = matches[3]?.trim() || '';
+
+    const keyValuePairs = splitOutsideQuotes(thirdString);
+
+    const data = keyValuePairs.reduce((acc, pair) => {
+      const [key, value] = pair.split(': ');
+      acc[key.replace(' ', '_')] = value;
+      return acc;
+    }, {});
+
+    params.positivePrompt = firstString;
+    params.negativePrompt = secondString;
+    params.cfg = data.CFG_scale;
+    params.seed = data.Seed;
+    params.steps = data.Steps;
+    params.model = data.Model;
+    params.sampler = data.Sampler;
+    params.scheduler = data.Sampler;
+  }
 
   return params;
 }
