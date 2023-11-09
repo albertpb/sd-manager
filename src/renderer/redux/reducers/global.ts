@@ -5,6 +5,7 @@ import { ImageRow } from 'main/ipc/image';
 import { WatchFolder } from 'main/ipc/watchFolders';
 import { Tag } from 'main/ipc/tag';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
+import { Option } from 'react-tailwindcss-select/dist/components/type';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
@@ -12,7 +13,7 @@ export type SettingsState = {
   checkpointsPath: string | null;
   lorasPath: string | null;
   theme: string | null;
-  activeTag: string | null;
+  activeTags: string | null;
   autoImportImages: string | null;
 };
 
@@ -50,7 +51,7 @@ const initialState: GlobalState = {
     checkpointsPath: null,
     lorasPath: null,
     theme: 'default',
-    activeTag: null,
+    activeTags: null,
     autoImportImages: '0',
   },
   checkpoint: {
@@ -281,9 +282,12 @@ export const globalSlice = createSlice({
       state.settings.theme = action.payload;
       saveSettings('theme', action.payload);
     },
-    setActiveTag: (state, action) => {
-      state.settings.activeTag = action.payload;
-      saveSettings('activeTag', action.payload);
+    setActiveTags: (state, action) => {
+      const payload = action.payload
+        ? action.payload.map((t: Option) => t.value).join(',')
+        : '';
+      state.settings.activeTags = payload;
+      saveSettings('activeTags', payload);
     },
     setFilterCheckpoint: (state, action) => {
       state.filterCheckpoint = action.payload;
@@ -436,7 +440,7 @@ export const globalSlice = createSlice({
 
     builder.addCase(createTag.fulfilled, (state, action) => {
       state.tags.push(action.payload);
-      state.settings.activeTag = action.payload.id;
+      state.settings.activeTags = `${state.settings.activeTags},${action.payload}`;
     });
 
     builder.addCase(deleteTag.fulfilled, (state, action) => {
@@ -444,10 +448,13 @@ export const globalSlice = createSlice({
       if (index !== -1) {
         state.tags.splice(index, 1);
       }
-      if (state.settings.activeTag === action.payload) {
-        if (state.tags.length > 0) {
-          state.settings.activeTag = state.tags[state.tags.length - 1].id;
-        }
+
+      const activeTagsSetting = state.settings.activeTags?.split(',') || [];
+      const activeTagsSettingIndex =
+        activeTagsSetting.find((t) => t === action.payload) || -1;
+      if (activeTagsSettingIndex !== -1) {
+        activeTagsSetting.splice(index, 1);
+        state.settings.activeTags = activeTagsSetting.join(',');
       }
     });
 
@@ -498,6 +505,6 @@ export const {
   setModelsToUpdate,
   setCheckingModelsUpdate,
   setNavbarDisabled,
-  setActiveTag,
+  setActiveTags,
   setAutoImportImages,
 } = globalSlice.actions;

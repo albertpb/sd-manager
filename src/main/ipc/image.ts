@@ -240,10 +240,10 @@ export const scanImagesIpc = async (
 
       const metadata = filesMetadata[files[i]];
 
-      const activeTag = await db.get(
+      const activeTags = await db.get(
         `SELECT value FROM settings WHERE key = $key`,
         {
-          $key: 'activeTag',
+          $key: 'activeTags',
         },
       );
 
@@ -266,14 +266,17 @@ export const scanImagesIpc = async (
               },
             );
 
-            if (activeTag && activeTag.value !== '') {
-              await db.run(
-                `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
-                {
-                  $tagId: activeTag.value,
-                  $imageHash: imageHash,
-                },
-              );
+            if (activeTags && activeTags.value !== '') {
+              const activeTagsArr = activeTags.value.split(',');
+              for (let j = 0; j < activeTagsArr.length; j++) {
+                await db.run(
+                  `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+                  {
+                    $tagId: activeTagsArr[i],
+                    $imageHash: imageHash,
+                  },
+                );
+              }
             }
           } catch (error) {
             console.log(

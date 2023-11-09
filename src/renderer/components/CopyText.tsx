@@ -23,7 +23,7 @@ export default function CopyText({ children }: { children: string }) {
     >
       <p className="prose max-w-none">{children}</p>
       <span className="copy-text opacity-0">
-        <button type="button">
+        <button aria-label="copy-text" type="button">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

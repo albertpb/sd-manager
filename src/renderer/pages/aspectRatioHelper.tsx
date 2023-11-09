@@ -62,7 +62,7 @@ export default function AspectRatioHelper() {
               <input
                 id="ar-ratiowidth"
                 type="number"
-                className="input input-bordered input-info input-md w-full"
+                className="input input-bordered rounded-none input-info input-md w-full"
                 onChange={(e) => setRatioWidth(parseInt(e.target.value, 10))}
                 value={ratioWidth}
               />
@@ -74,7 +74,7 @@ export default function AspectRatioHelper() {
               <input
                 id="ar-width"
                 type="number"
-                className="input input-bordered input-info input-md w-full"
+                className="input input-bordered rounded-none input-info input-md w-full"
                 onChange={(e) => setWidth(parseInt(e.target.value, 10))}
                 value={width}
               />
@@ -98,7 +98,7 @@ export default function AspectRatioHelper() {
               <input
                 id="ar-ratioheight"
                 type="number"
-                className="input input-bordered input-info input-md w-full"
+                className="input input-bordered rounded-none input-info input-md w-full"
                 onChange={(e) => setRatioHeight(parseInt(e.target.value, 10))}
                 value={ratioHeight}
               />
@@ -110,7 +110,7 @@ export default function AspectRatioHelper() {
               <input
                 id="ar-height"
                 type="number"
-                className="input input-bordered input-info input-md w-full"
+                className="input input-bordered rounded-none input-info input-md w-full"
                 onChange={(e) => setHeight(parseInt(e.target.value, 10))}
                 value={height}
               />

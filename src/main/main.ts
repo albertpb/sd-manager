@@ -180,12 +180,13 @@ ipcMain.handle('watchImagesFolder', async () => {
 
       const hash = await calculateHashFile(detectedFile);
 
-      const activeTag = await db.get(
+      const activeTags = await db.get(
         `SELECT value from settings WHERE key = $key`,
         {
           $key: 'activeTag',
         },
       );
+      const activeTagsArr = activeTags?.value.split(',') || [];
 
       let imagesData: ImageRow = {
         hash,
@@ -196,10 +197,10 @@ ipcMain.handle('watchImagesFolder', async () => {
         sourcePath: detectedFile,
         name: fileNameNoExt,
         fileName: fileBaseName,
-        tags: activeTag
-          ? {
-              [activeTag.value]: activeTag.value,
-            }
+        tags: activeTags?.value
+          ? activeTagsArr.map((t: string) => ({
+              [t]: t,
+            }))
           : {},
       };
 
@@ -217,19 +218,19 @@ ipcMain.handle('watchImagesFolder', async () => {
         },
       );
 
-      if (activeTag && activeTag.value !== '') {
-        try {
+      try {
+        for (let j = 0; j < activeTagsArr.length; j++) {
           await db.run(
             `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
             {
-              $tagId: activeTag.value,
+              $tagId: activeTagsArr[j],
               $imageHash: imagesData.hash,
             },
           );
-        } catch (error) {
-          console.error(error);
-          log.error(error);
         }
+      } catch (error) {
+        console.error(error);
+        log.error(error);
       }
 
       imagesData = await getImage(imagesData.hash);

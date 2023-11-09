@@ -3,7 +3,10 @@ const themes = require('./themes');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    './node_modules/react-tailwindcss-select/dist/index.esm.js',
+  ],
   plugins: [require('@tailwindcss/typography'), require('daisyui')],
   daisyui: {
     themes: [

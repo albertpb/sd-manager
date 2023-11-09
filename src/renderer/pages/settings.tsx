@@ -333,7 +333,7 @@ export default function Settings() {
             <p>Change theme</p>
           </div>
           <select
-            className="select select-bordered w-1/3"
+            className="select select-bordered rounded-none w-1/3"
             onChange={(e) => changeTheme(e.target.value)}
             value={settings.theme || 'default'}
           >
@@ -448,7 +448,7 @@ export default function Settings() {
               onChange={(e) => setAddTagLabel(e.target.value)}
               type="text"
               placeholder="Type tag label"
-              className="input input-bordered input-secondary input-sm w-full"
+              className="input input-bordered rounded-none input-secondary input-sm w-full"
               onKeyUp={(e) => (e.key === 'Enter' ? addTag() : null)}
             />
             <button
@@ -495,7 +495,7 @@ export default function Settings() {
                             }
                             type="text"
                             placeholder="Type here"
-                            className="input input-bordered input-sm w-full"
+                            className="input input-bordered rounded-none input-sm w-full"
                           />
                           <ColorPicker
                             className="ml-4"

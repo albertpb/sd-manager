@@ -16,6 +16,7 @@ import Images from './pages/images';
 import ImageMetadata from './pages/imageMetadata';
 import Loras from './pages/loras';
 import Checkpoints from './pages/checkpoints';
+import TestPage from './pages/testing';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <Routes>
                     <Route path="/" element={<MainLayout />}>
+                      <Route path="/test" element={<TestPage />} />
                       <Route index element={<Checkpoints />} />
                       <Route
                         path="/model-detail/:hash"

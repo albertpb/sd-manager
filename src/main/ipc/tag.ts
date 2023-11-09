@@ -33,23 +33,23 @@ export const tagIpc = async (
           },
         );
 
-        const checkIfSettingExists = await db.get(
-          `SELECT key FROM settings WHERE key = $key`,
+        const activeTags = await db.get(
+          `SELECT value FROM settings WHERE key = $key`,
           {
-            $key: 'activeTag',
+            $key: 'activeTags',
           },
         );
 
-        if (checkIfSettingExists) {
+        if (activeTags?.value) {
           await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
-            $tagId: payload.id,
-            $key: 'activeTag',
+            $tagId: `${activeTags.value},${payload.id}`,
+            $key: 'activeTags',
           });
         } else {
           await db.run(
             `INSERT INTO settings (key, value) VALUES ($key, $value)`,
             {
-              $key: 'activeTag',
+              $key: 'activeTags',
               $value: payload.id,
             },
           );
@@ -58,21 +58,24 @@ export const tagIpc = async (
       }
 
       case 'delete': {
-        const activeTag = await db.get(
+        const activeTags = await db.get(
           `SELECT value FROM settings WHERE key = $key`,
           {
-            $key: 'activeTag',
+            $key: 'activeTags',
           },
         );
 
-        if (activeTag?.value === payload.id) {
-          const tags = await db.all(`SELECT * FROM tags`);
+        const activeTagsArr = activeTags.value.split(',');
+        const index = activeTagsArr.findIndex((t: string) => t === payload.id);
+
+        if (index !== -1) {
+          activeTagsArr.splice(index, 1);
 
           await db.run(
-            `UPDATE settings SET value = $activeTag WHERE key = $key`,
+            `UPDATE settings SET value = $activeTags WHERE key = $key`,
             {
-              $activeTag: tags.length > 0 ? tags[tags.length - 1].id : null,
-              $key: 'activeTag',
+              $activeTag: activeTagsArr.join(','),
+              $key: 'activeTags',
             },
           );
         }

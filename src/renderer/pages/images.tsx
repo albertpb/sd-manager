@@ -11,10 +11,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import ClickAwayListener from 'react-click-away-listener';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import ColorPicker from 'renderer/components/ColorPicker';
 import Image from 'renderer/components/Image';
+import MultiSelect from 'renderer/components/MultiSelect';
 import Rating from 'renderer/components/Rating';
 import StatusBar from 'renderer/components/StatusBar';
 import VirtualScroll, {
@@ -25,7 +28,7 @@ import {
   createTag,
   readImages,
   scanImages,
-  setActiveTag,
+  setActiveTags,
   setImagesToDelete,
   tagImage,
   updateImage,
@@ -107,15 +110,19 @@ export default function Images() {
         return acc;
       }, {}),
   )(tags);
-  const activeTag = useSelector(
-    (state: RootState) => state.global.settings.activeTag,
+  const activeTags = useSelector(
+    (state: RootState) => state.global.settings.activeTags,
   );
+
+  console.log(tagsMap, activeTags);
 
   const [imagesList, setImagesList] = useState<ImageRow[]>([...images]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
   const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  const [tagsDropdownActive, setTagsDropdownActive] = useState<boolean>(false);
 
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
@@ -353,8 +360,13 @@ export default function Images() {
       } else {
         dispatch(setImagesToDelete({ ...imagesToDelete, [image.hash]: image }));
       }
-    } else if (e.shiftKey && activeTag) {
-      await dispatch(tagImage({ tagId: activeTag, imageHash: image.hash }));
+    } else if (e.shiftKey) {
+      const activeTagsArr = activeTags?.split(',') || [];
+      for (let i = 0; i < activeTagsArr.length; i++) {
+        await dispatch(
+          tagImage({ tagId: activeTagsArr[i], imageHash: image.hash }),
+        );
+      }
     } else {
       navigate(`/image-detail/${image.hash}`);
     }
@@ -372,8 +384,11 @@ export default function Images() {
     await dispatch(readImages());
   };
 
-  const onSetActiveTag = async (tag: string) => {
-    await dispatch(setActiveTag(tag));
+  const onSetActiveTags = async (
+    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    selectedTags: SelectValue,
+  ) => {
+    await dispatch(setActiveTags(selectedTags));
   };
 
   const addTag = async () => {
@@ -504,7 +519,7 @@ export default function Images() {
             className="dropdown dropdown-right tooltip tooltip-right"
             data-tip={`zoom level: ${zoomLevel}`}
           >
-            <button type="button">
+            <button type="button" aria-label="zoom-level">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -533,8 +548,19 @@ export default function Images() {
               </ul>
             </button>
           </li>
-          <li className="dropdown dropdown-right">
-            <button type="button">
+          <li
+            className={classNames([
+              'dropdown dropdown-right',
+              {
+                'dropdown-open': tagsDropdownActive,
+              },
+            ])}
+          >
+            <button
+              aria-label="tags"
+              type="button"
+              onClick={() => setTagsDropdownActive(true)}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -554,116 +580,125 @@ export default function Images() {
                   d="M6 6h.008v.008H6V6z"
                 />
               </svg>
-              <ul className="dropdown-content cursor-default z-[999] menu p-2 shadow-xl bg-base-200 rounded-box w-fit">
-                <div className="w-64 p-2 flex flex-col relative">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-5 h-5 absolute top-2 right-2 cursor-pointer hover:text-primary"
-                    onClick={() => navigate('/settings')}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+              <ClickAwayListener
+                onClickAway={() => setTagsDropdownActive(false)}
+              >
+                <ul className="dropdown-content cursor-default z-[999] menu p-2 shadow-xl bg-base-200 rounded-box w-fit">
+                  <div className="w-64 p-2 flex flex-col relative">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 absolute top-2 right-2 cursor-pointer hover:text-primary"
+                      onClick={() => navigate('/settings')}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
 
-                  <div className="flex flex-col">
-                    <div className="form-control w-full max-w-xs">
-                      <label className="label">
-                        <span className="label-text">Active tag</span>
-                      </label>
-                      <select
-                        className="select select-bordered select-sm w-full max-w-xs"
-                        value={activeTag || ''}
-                        onChange={(e) => onSetActiveTag(e.target.value)}
-                      >
-                        <option value="">None</option>
+                    <div className="flex flex-col">
+                      <div className="form-control w-full max-w-xs">
+                        <label className="label">
+                          <span className="label-text">Active tag</span>
+                        </label>
+                        <MultiSelect
+                          options={tags.map((tag) => ({
+                            label: tag.label,
+                            value: tag.id,
+                          }))}
+                          onChange={(e, value) => onSetActiveTags(e, value)}
+                          value={
+                            activeTags
+                              ? activeTags.split(',').map((t) => ({
+                                  label: tagsMap[t].label,
+                                  value: tagsMap[t].id,
+                                }))
+                              : []
+                          }
+                        />
+                      </div>
+                      <div className="mt-4">
+                        <kbd className="kbd kbd-sm">Shift</kbd> +{' '}
+                        <kbd className="kbd kbd-sm">Click</kbd>
+                        <span className="ml-2">To tag image</span>
+                      </div>
+                    </div>
+                    <div className="divider m-0 mt-2 p-0" />
+                    <div className="mt-2">
+                      <p className="">Click to filter: </p>
+                      <div className="flex flex-wrap flex-row">
                         {tags.map((tag) => {
                           return (
-                            <option key={`active-tag-${tag.id}`} value={tag.id}>
+                            <div
+                              key={tag.id}
+                              className={classNames(
+                                'badge gap-2 cursor-pointer mr-2 mt-2',
+                                {
+                                  'opacity-100': filterByTags.has(tag.id),
+                                  'opacity-50': !filterByTags.has(tag.id),
+                                },
+                              )}
+                              style={{
+                                color: tag.color,
+                                background: tag.bgColor,
+                                borderWidth: 1,
+                              }}
+                              onClick={() => onFilterByTag(tag)}
+                              aria-hidden
+                            >
                               {tag.label}
-                            </option>
+                            </div>
                           );
                         })}
-                      </select>
+                      </div>
                     </div>
-                    <div className="mt-4">
-                      <kbd className="kbd kbd-sm">Shift</kbd> +{' '}
-                      <kbd className="kbd kbd-sm">Click</kbd>
-                      <span className="ml-2">To tag image</span>
-                    </div>
-                  </div>
-                  <div className="divider m-0 mt-2 p-0" />
-                  <div className="mt-2">
-                    <p className="">Click to filter: </p>
-                    <div className="flex flex-wrap flex-row">
-                      {tags.map((tag) => {
-                        return (
-                          <div
-                            key={tag.id}
-                            className={classNames(
-                              'badge gap-2 cursor-pointer mr-2 mt-2',
-                              {
-                                'opacity-100': filterByTags.has(tag.id),
-                                'opacity-50': !filterByTags.has(tag.id),
-                              },
-                            )}
-                            style={{
-                              color: tag.color,
-                              background: tag.bgColor,
-                              borderWidth: 1,
-                            }}
-                            onClick={() => onFilterByTag(tag)}
-                            aria-hidden
-                          >
-                            {tag.label}
-                          </div>
-                        );
-                      })}
+                    <div className="divider m-0 mt-2 p-0" />
+                    <div className="mt-2 flex flex-row items-center">
+                      <input
+                        type="text"
+                        placeholder="Type tag label"
+                        className="input input-bordered rounded-none input-sm w-full mr-2 max-w-xs"
+                        value={addTagLabel}
+                        onChange={(e) => setAddTagLabel(e.target.value)}
+                        onKeyDown={(e) => onAddTagKeyPress(e)}
+                      />
+                      <ColorPicker
+                        color={addTagBgColor}
+                        onChange={(color) => setAddTagBgColor(color)}
+                      />
+                      <a
+                        type="button"
+                        href="#images"
+                        className="btn btn-sm ml-1"
+                        onClick={() => addTag()}
+                      >
+                        Add
+                      </a>
                     </div>
                   </div>
-                  <div className="divider m-0 mt-2 p-0" />
-                  <div className="mt-2 flex flex-row items-center">
-                    <input
-                      type="text"
-                      placeholder="Type tag label"
-                      className="input input-bordered input-sm w-full mr-2 max-w-xs"
-                      value={addTagLabel}
-                      onChange={(e) => setAddTagLabel(e.target.value)}
-                      onKeyDown={(e) => onAddTagKeyPress(e)}
-                    />
-                    <ColorPicker
-                      color={addTagBgColor}
-                      onChange={(color) => setAddTagBgColor(color)}
-                    />
-                    <a
-                      type="button"
-                      href="#images"
-                      className="btn btn-sm ml-1"
-                      onClick={() => addTag()}
-                    >
-                      Add
-                    </a>
-                  </div>
-                </div>
-              </ul>
+                </ul>
+              </ClickAwayListener>
             </button>
           </li>
           <li
             className="tooltip tooltip-right"
             data-tip={showTag ? `show tags` : 'hide tags'}
           >
-            <button type="button" onClick={() => setShowTag(!showTag)}>
+            <button
+              type="button"
+              aria-label="show-tag"
+              onClick={() => setShowTag(!showTag)}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -692,7 +727,11 @@ export default function Images() {
             className="tooltip tooltip-right"
             data-tip={`hover effect: ${hoverEffect ? 'on' : 'off'}`}
           >
-            <button type="button" onClick={() => setHoverEffect(!hoverEffect)}>
+            <button
+              type="button"
+              aria-label="hover-effect"
+              onClick={() => setHoverEffect(!hoverEffect)}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -718,6 +757,7 @@ export default function Images() {
           >
             <button
               type="button"
+              aria-label="show-model-name"
               onClick={() => setShowModelName(!showModelName)}
             >
               <svg
@@ -728,7 +768,7 @@ export default function Images() {
                 stroke="currentColor"
                 className={classNames([
                   'w-5 h-5',
-                  { 'stroke-green-500': showRating },
+                  { 'stroke-green-500': showModelName },
                 ])}
               >
                 <path
@@ -743,7 +783,11 @@ export default function Images() {
             className="tooltip tooltip-right"
             data-tip={`show rating: ${showRating ? 'on' : 'off'}`}
           >
-            <button type="button" onClick={() => setShowRating(!showRating)}>
+            <button
+              type="button"
+              aria-label="show-rating"
+              onClick={() => setShowRating(!showRating)}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -764,7 +808,7 @@ export default function Images() {
             </button>
           </li>
           <li className="dropdown dropdown-right">
-            <button type="button">
+            <button aria-label="filter-by-rating" type="button">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -793,7 +837,11 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by rating asc">
-            <button type="button" onClick={() => sortFilterImages('ratingAsc')}>
+            <button
+              type="button"
+              aria-label="sort-rating-asc"
+              onClick={() => sortFilterImages('ratingAsc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -816,6 +864,7 @@ export default function Images() {
           <li className="tooltip tooltip-right" data-tip="sort by rating desc">
             <button
               type="button"
+              aria-label="sort-rating-desc"
               onClick={() => sortFilterImages('ratingDesc')}
             >
               <svg
@@ -838,7 +887,11 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by asc">
-            <button type="button" onClick={() => sortFilterImages('rowNumAsc')}>
+            <button
+              type="button"
+              aria-label="sort-asc"
+              onClick={() => sortFilterImages('rowNumAsc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -861,6 +914,7 @@ export default function Images() {
           <li className="tooltip tooltip-right" data-tip="sort by desc">
             <button
               type="button"
+              aria-label="sort-desc"
               onClick={() => sortFilterImages('rowNumDesc')}
             >
               <svg
@@ -883,7 +937,11 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by name asc">
-            <button type="button" onClick={() => sortFilterImages('nameAsc')}>
+            <button
+              type="button"
+              aria-label="sort-name-asc"
+              onClick={() => sortFilterImages('nameAsc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -904,7 +962,11 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="sort by name desc">
-            <button type="button" onClick={() => sortFilterImages('nameDesc')}>
+            <button
+              type="button"
+              aria-label="sort-name-desc"
+              onClick={() => sortFilterImages('nameDesc')}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -928,7 +990,11 @@ export default function Images() {
             className="tooltip tooltip-right"
             data-tip="update images database"
           >
-            <button type="button" onClick={() => updateImagesDb()}>
+            <button
+              type="button"
+              aria-label="update-images-db"
+              onClick={() => updateImagesDb()}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -946,7 +1012,11 @@ export default function Images() {
             </button>
           </li>
           <li className="tooltip tooltip-right" data-tip="delete images">
-            <button type="button" onClick={() => toggleImagesDeleteState()}>
+            <button
+              type="button"
+              aria-label="delete-images"
+              onClick={() => toggleImagesDeleteState()}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
