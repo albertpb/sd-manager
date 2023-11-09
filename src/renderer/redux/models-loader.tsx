@@ -1,22 +1,20 @@
 import { IpcRendererEvent } from 'electron';
-import { ReactNode, useEffect, useState } from 'react';
+import { signal } from '@preact/signals-react';
+import { ReactNode, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FullLoader } from 'renderer/components/FullLoader';
 import { readCheckpoints, readLoras } from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
+export const modelsImportProgress = signal<{
+  progress: number;
+  message: string;
+}>({
+  progress: 0,
+  message: '',
+});
+
 export default function ModelsLoader({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState<string>('');
-  const [progress, setProgress] = useState<number>(0);
-
   const settings = useSelector((state: RootState) => state.global.settings);
-
-  const checkpointsLoading = useSelector(
-    (state: RootState) => state.global.checkpoint.loading,
-  );
-  const lorasLoading = useSelector(
-    (state: RootState) => state.global.lora.loading,
-  );
 
   const dispatch = useDispatch<AppDispatch>();
 
@@ -36,8 +34,10 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
-      setMsg(m);
-      setProgress(p);
+      modelsImportProgress.value = {
+        progress: p,
+        message: m,
+      };
     };
 
     const remove = window.ipcOn.modelsProgress(cb);
@@ -45,12 +45,5 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
     return () => remove();
   }, []);
 
-  return (
-    <>
-      {(lorasLoading || checkpointsLoading) && (
-        <FullLoader title="Hashing Files" progress={progress} message={msg} />
-      )}
-      {children}
-    </>
-  );
+  return children;
 }

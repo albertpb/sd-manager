@@ -1,8 +1,8 @@
 import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/image';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { signal } from '@preact/signals-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FullLoader } from 'renderer/components/FullLoader';
 import { WatchFolder } from 'main/ipc/watchFolders';
 import { AppDispatch, RootState } from '.';
 import {
@@ -13,14 +13,16 @@ import {
   setImages,
 } from './reducers/global';
 
+export const imagesImportProgress = signal<{
+  progress: number;
+  message: string;
+}>({
+  progress: 0,
+  message: '',
+});
+
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
-
-  const [msg, setMsg] = useState<string>('');
-  const [progress, setProgress] = useState<number>(0);
-  const imagesLoading = useSelector(
-    (state: RootState) => state.global.imagesLoading,
-  );
 
   const images = useSelector((state: RootState) => state.global.images);
   const scanImagesOnStart = useSelector(
@@ -49,8 +51,10 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
-      setMsg(m);
-      setProgress(p);
+      imagesImportProgress.value = {
+        progress: p,
+        message: m,
+      };
     };
     const remove = window.ipcOn.imagesProgress(cb);
 
@@ -67,16 +71,5 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
     return () => remove();
   }, [images, dispatch]);
 
-  return (
-    <>
-      {imagesLoading && (
-        <FullLoader
-          title="Importing images"
-          progress={progress}
-          message={msg}
-        />
-      )}
-      {children}
-    </>
-  );
+  return children;
 }
