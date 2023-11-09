@@ -232,6 +232,13 @@ export const tagImage = createAsyncThunk(
   },
 );
 
+export const regenerateThumbnails = createAsyncThunk(
+  'regenerateThumbnails',
+  async () => {
+    await window.ipcHandler.regenerateThumbnails();
+  },
+);
+
 export const globalSlice = createSlice({
   name: 'Global',
   initialState,
@@ -464,6 +471,14 @@ export const globalSlice = createSlice({
           image.tags[action.payload.tagId] = action.payload.tagId;
         }
       }
+    });
+
+    builder.addCase(regenerateThumbnails.pending, (state) => {
+      state.imagesLoading = true;
+    });
+
+    builder.addCase(regenerateThumbnails.fulfilled, (state) => {
+      state.imagesLoading = false;
     });
   },
 });

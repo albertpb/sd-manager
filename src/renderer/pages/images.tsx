@@ -414,7 +414,7 @@ export default function Images() {
       const imageSrc =
         zoomLevel <= 2
           ? `${item.path}\\${item.name}.png`
-          : `${item.path}\\${item.name}.thumbnail.webp`;
+          : `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`;
 
       return (
         <div

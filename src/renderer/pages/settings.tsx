@@ -18,6 +18,7 @@ import {
   createTag,
   setScanImagesOnStart,
   setAutoImportImages,
+  regenerateThumbnails,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog, {
   ConfirmDialogResponse,
@@ -76,6 +77,18 @@ export default function Settings() {
   const updateImagesDb = async () => {
     await dispatch(scanImages(watchFolders.map((wf) => wf.path)));
     await dispatch(readImages());
+  };
+
+  const onRegenerateThumbnails = async () => {
+    setLoading({
+      loading: true,
+      title: 'Regenerating thumbnails...',
+    });
+    await dispatch(regenerateThumbnails());
+    setLoading({
+      loading: false,
+      title: '',
+    });
   };
 
   const onScanModelsOnStart = async (value: boolean) => {
@@ -347,13 +360,22 @@ export default function Settings() {
           >
             Pick a folder to watch
           </button>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => updateImagesDb()}
-          >
-            update images database
-          </button>
+          <div className="flex flex-ro">
+            <button
+              type="button"
+              className="btn btn-sm mr-2"
+              onClick={() => onRegenerateThumbnails()}
+            >
+              regenerate thumbnails
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => updateImagesDb()}
+            >
+              update images database
+            </button>
+          </div>
         </div>
         <div className="">
           <table className="table">

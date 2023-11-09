@@ -50,6 +50,7 @@ import {
   updateImageIpc,
   tagImageIpc,
   getImage,
+  regenerateThumbnailsIpc,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
@@ -108,6 +109,9 @@ ipcMain.handle('readImageMetadata', readImageMetadata);
 ipcMain.handle('watchFolder', watchFolderIpc);
 ipcMain.handle('tag', tagIpc);
 ipcMain.handle('tagImage', tagImageIpc);
+ipcMain.handle('regenerateThumbnails', () =>
+  regenerateThumbnailsIpc(mainWindow),
+);
 
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
@@ -143,88 +147,99 @@ ipcMain.handle('watchImagesFolder', async () => {
   worker.postMessage(foldersToWatch);
 
   worker.on('message', async (detectedFile: string) => {
-    const filePathParse = path.parse(detectedFile);
-    const fileBaseName = filePathParse.name;
-    const ext = filePathParse.ext;
-    if (ext !== '.png') return;
+    try {
+      const filePathParse = path.parse(detectedFile);
+      const fileBaseName = filePathParse.name;
+      const ext = filePathParse.ext;
+      if (ext !== '.png') return;
 
-    const file = fs.readFileSync(detectedFile);
-    const fileNameNoExt = filePathParse.name;
-    const exif = extractMetadata(file);
-    const metadata = parseImageSdMeta(exif);
+      const file = fs.readFileSync(detectedFile);
+      const fileNameNoExt = filePathParse.name;
+      const exif = extractMetadata(file);
+      const metadata = parseImageSdMeta(exif);
 
-    const imagesFolder = filePathParse.dir;
-    const imagesFolderExists = await checkFolderExists(imagesFolder);
+      const imagesFolder = filePathParse.dir;
+      const imagesFolderExists = await checkFolderExists(imagesFolder);
 
-    if (!imagesFolderExists) {
-      fs.mkdirSync(imagesFolder);
-    }
-
-    const thumbnailDestPath = `${imagesFolder}\\${fileNameNoExt}.thumbnail.webp`;
-    await sharp(detectedFile)
-      .resize({ height: 400 })
-      .withMetadata()
-      .toFormat('webp')
-      .toFile(thumbnailDestPath);
-
-    const hash = await calculateHashFile(detectedFile);
-
-    const activeTag = await db.get(
-      `SELECT value from settings WHERE key = $key`,
-      {
-        $key: 'activeTag',
-      },
-    );
-
-    let imagesData: ImageRow = {
-      hash,
-      path: imagesFolder,
-      rating: 1,
-      model: metadata.model,
-      generatedBy: metadata.generatedBy,
-      sourcePath: detectedFile,
-      name: fileNameNoExt,
-      fileName: fileBaseName,
-      tags: activeTag
-        ? {
-            [activeTag.value]: activeTag.value,
-          }
-        : {},
-    };
-
-    await db.run(
-      `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
-      {
-        $hash: imagesData.hash,
-        $path: imagesData.path,
-        $rating: imagesData.rating,
-        $model: imagesData.model,
-        $generatedBy: imagesData.generatedBy,
-        $sourcePath: imagesData.sourcePath,
-        $name: imagesData.name,
-        $fileName: imagesData.fileName,
-      },
-    );
-
-    if (activeTag && activeTag.value !== '') {
-      try {
-        await db.run(
-          `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
-          {
-            $tagId: activeTag.value,
-            $imageHash: imagesData.hash,
-          },
-        );
-      } catch (error) {
-        console.error(error);
-        log.error(error);
+      if (!imagesFolderExists) {
+        fs.mkdirSync(imagesFolder);
       }
-    }
 
-    imagesData = await getImage(imagesData.hash);
+      const thumbnailsFolder = `${imagesFolder}\\thumbnails`;
+      const thumbnailFolderExists = await checkFolderExists(thumbnailsFolder);
+      if (!thumbnailFolderExists) {
+        fs.mkdirSync(thumbnailsFolder);
+      }
 
-    if (mainWindow !== null) {
-      mainWindow.webContents.send('detected-add-image', imagesData);
+      const thumbnailDestPath = `${thumbnailsFolder}\\${fileNameNoExt}.thumbnail.webp`;
+      await sharp(detectedFile)
+        .resize({ height: 400 })
+        .withMetadata()
+        .toFormat('webp')
+        .toFile(thumbnailDestPath);
+
+      const hash = await calculateHashFile(detectedFile);
+
+      const activeTag = await db.get(
+        `SELECT value from settings WHERE key = $key`,
+        {
+          $key: 'activeTag',
+        },
+      );
+
+      let imagesData: ImageRow = {
+        hash,
+        path: imagesFolder,
+        rating: 1,
+        model: metadata.model,
+        generatedBy: metadata.generatedBy,
+        sourcePath: detectedFile,
+        name: fileNameNoExt,
+        fileName: fileBaseName,
+        tags: activeTag
+          ? {
+              [activeTag.value]: activeTag.value,
+            }
+          : {},
+      };
+
+      await db.run(
+        `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+        {
+          $hash: imagesData.hash,
+          $path: imagesData.path,
+          $rating: imagesData.rating,
+          $model: imagesData.model,
+          $generatedBy: imagesData.generatedBy,
+          $sourcePath: imagesData.sourcePath,
+          $name: imagesData.name,
+          $fileName: imagesData.fileName,
+        },
+      );
+
+      if (activeTag && activeTag.value !== '') {
+        try {
+          await db.run(
+            `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
+            {
+              $tagId: activeTag.value,
+              $imageHash: imagesData.hash,
+            },
+          );
+        } catch (error) {
+          console.error(error);
+          log.error(error);
+        }
+      }
+
+      imagesData = await getImage(imagesData.hash);
+
+      if (mainWindow !== null) {
+        mainWindow.webContents.send('detected-add-image', imagesData);
+      }
+    } catch (error) {
+      console.error(error);
+      log.error(error);
     }
   });
 });

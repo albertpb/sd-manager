@@ -251,7 +251,7 @@ export default function ModelDetail() {
             }
 
             resultArr[chunkIndex].row.push({
-              path: `${item.path}\\${item.name}.thumbnail.webp`,
+              path: `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`,
               hash: item.hash,
               rating: item.rating,
               id: item.hash,

@@ -33,6 +33,7 @@ const channels = [
   'watchFolder',
   'tag',
   'tagImage',
+  'regenerateThumbnails',
 ] as const;
 export type Channels = (typeof channels)[number];
 

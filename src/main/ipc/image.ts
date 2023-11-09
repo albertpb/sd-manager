@@ -119,7 +119,9 @@ export async function removeImagesIpc(
       log.info(error);
     }
     try {
-      fs.unlinkSync(`${pathParsed.dir}\\${pathParsed.name}.thumbnail.webp`);
+      fs.unlinkSync(
+        `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
+      );
     } catch (error) {
       console.log(error);
       log.info(error);
@@ -143,6 +145,38 @@ const notifyProgressImage = (
   if (browserWindow !== null) {
     browserWindow.webContents.send('images-progress', msg, progress);
   }
+};
+
+export const regenerateThumbnailsIpc = async (
+  browserWindow: BrowserWindow | null,
+) => {
+  const db = await SqliteDB.getInstance().getdb();
+
+  const foldersToWatch = await db.all(`SELECT * FROM watch_folders`);
+
+  const allFiles = foldersToWatch
+    .map((fw) => fw.path)
+    .reduce((acc: string[], folder) => {
+      acc = acc.concat(getAllFiles(folder));
+      return acc;
+    }, []);
+
+  const files = allFiles.filter((f) => {
+    return f.endsWith('.png');
+  });
+
+  const filesToThumbnail: [string, string][] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const parsedFilePath = path.parse(files[i]);
+    const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
+
+    filesToThumbnail.push([files[i], thumbnailDestPath]);
+  }
+
+  await makeThumbnails(filesToThumbnail, (progress) =>
+    notifyProgressImage(browserWindow, `Making thumbnails...`, progress),
+  );
 };
 
 export const scanImagesIpc = async (
@@ -199,7 +233,7 @@ export const scanImagesIpc = async (
       const progress = ((i + 1) / files.length) * 100;
       notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
-      const thumbnailDestPath = `${parsedFilePath.dir}\\${parsedFilePath.name}.thumbnail.webp`;
+      const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
       if (!thumbnailsFilesMap[thumbnailDestPath]) {
         filesToThumbnail.push([files[i], thumbnailDestPath]);
       }
