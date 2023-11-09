@@ -29,6 +29,7 @@ import {
   readImages,
   scanImages,
   setActiveTags,
+  setAutoImportTags,
   setImagesToDelete,
   tagImage,
   updateImage,
@@ -113,8 +114,12 @@ export default function Images() {
   const activeTags = useSelector(
     (state: RootState) => state.global.settings.activeTags,
   );
-
-  console.log(tagsMap, activeTags);
+  const autoTagImportImages = useSelector(
+    (state: RootState) => state.global.settings.autoTagImportImages,
+  );
+  const autoImportTags = useSelector(
+    (state: RootState) => state.global.settings.autoImportTags,
+  );
 
   const [imagesList, setImagesList] = useState<ImageRow[]>([...images]);
 
@@ -391,6 +396,13 @@ export default function Images() {
     await dispatch(setActiveTags(selectedTags));
   };
 
+  const onSetAutoImportTags = async (
+    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    selectedTags: SelectValue,
+  ) => {
+    await dispatch(setAutoImportTags(selectedTags));
+  };
+
   const addTag = async () => {
     if (addTagLabel !== '') {
       await dispatch(createTag({ label: addTagLabel, bgColor: addTagBgColor }));
@@ -633,6 +645,37 @@ export default function Images() {
                         <span className="ml-2">To tag image</span>
                       </div>
                     </div>
+                    {autoTagImportImages === '1' && (
+                      <>
+                        <div className="divider m-0 mt-2 p-0" />
+                        <div className="flex flex-col">
+                          <div className="form-control w-full max-w-xs">
+                            <label className="label">
+                              <span className="label-text">
+                                Auto import tag
+                              </span>
+                            </label>
+                            <MultiSelect
+                              options={tags.map((tag) => ({
+                                label: tag.label,
+                                value: tag.id,
+                              }))}
+                              onChange={(e, value) =>
+                                onSetAutoImportTags(e, value)
+                              }
+                              value={
+                                autoImportTags
+                                  ? autoImportTags.split(',').map((t) => ({
+                                      label: tagsMap[t].label,
+                                      value: tagsMap[t].id,
+                                    }))
+                                  : []
+                              }
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <div className="divider m-0 mt-2 p-0" />
                     <div className="mt-2">
                       <p className="">Click to filter: </p>
@@ -667,7 +710,7 @@ export default function Images() {
                       <input
                         type="text"
                         placeholder="Type tag label"
-                        className="input input-bordered rounded-none input-sm w-full mr-2 max-w-xs"
+                        className="input input-bordered input-sm w-full mr-2 max-w-xs"
                         value={addTagLabel}
                         onChange={(e) => setAddTagLabel(e.target.value)}
                         onKeyDown={(e) => onAddTagKeyPress(e)}

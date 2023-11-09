@@ -15,6 +15,8 @@ export type SettingsState = {
   theme: string | null;
   activeTags: string | null;
   autoImportImages: string | null;
+  autoImportTags: string | null;
+  autoTagImportImages: string | null;
 };
 
 export type UpdateState = {
@@ -53,6 +55,8 @@ const initialState: GlobalState = {
     theme: 'default',
     activeTags: null,
     autoImportImages: '0',
+    autoImportTags: null,
+    autoTagImportImages: null,
   },
   checkpoint: {
     models: {},
@@ -270,6 +274,10 @@ export const globalSlice = createSlice({
       // reload listener
       window.ipcHandler.watchImagesFolder();
     },
+    setAutoTagImportImages: (state, action) => {
+      state.settings.autoTagImportImages = action.payload;
+      saveSettings('autoTagImportImages', action.payload);
+    },
     setNavbarSearchInputValue: (state, action) => {
       if (!state.navbarDisabled) {
         state.navbarSearchInput = action.payload;
@@ -288,6 +296,13 @@ export const globalSlice = createSlice({
         : '';
       state.settings.activeTags = payload;
       saveSettings('activeTags', payload);
+    },
+    setAutoImportTags: (state, action) => {
+      const payload = action.payload
+        ? action.payload.map((t: Option) => t.value).join(',')
+        : '';
+      state.settings.autoImportTags = payload;
+      saveSettings('autoImportTags', payload);
     },
     setFilterCheckpoint: (state, action) => {
       state.filterCheckpoint = action.payload;
@@ -507,4 +522,6 @@ export const {
   setNavbarDisabled,
   setActiveTags,
   setAutoImportImages,
+  setAutoImportTags,
+  setAutoTagImportImages,
 } = globalSlice.actions;

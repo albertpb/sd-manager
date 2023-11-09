@@ -19,6 +19,7 @@ import {
   setScanImagesOnStart,
   setAutoImportImages,
   regenerateThumbnails,
+  setAutoTagImportImages,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog, {
   ConfirmDialogResponse,
@@ -101,6 +102,10 @@ export default function Settings() {
 
   const onAutoImportImages = async (value: boolean) => {
     dispatch(setAutoImportImages(value ? '1' : '0'));
+  };
+
+  const onAutoTagImportImages = async (value: boolean) => {
+    dispatch(setAutoTagImportImages(value ? '1' : '0'));
   };
 
   const changeTheme = async (theme: string) => {
@@ -314,16 +319,33 @@ export default function Settings() {
         <div className="mt-3 flex flex-row items-center form-control">
           <label
             className="label cursor-pointer ml-0 pl-0 w-full justify-start"
-            htmlFor="scanImagesOnStart"
+            htmlFor="autoImportImages"
           >
             <span className="label-text text-base w-2/3">
               Auto import images
             </span>
             <input
-              id="scanImagesOnStart"
+              id="autoImportImages"
               type="checkbox"
               checked={settings.autoImportImages === '1'}
               onChange={(e) => onAutoImportImages(e.target.checked)}
+              className="checkbox checkbox-primary"
+            />
+          </label>
+        </div>
+        <div className="mt-3 flex flex-row items-center form-control">
+          <label
+            className="label cursor-pointer ml-0 pl-0 w-full justify-start"
+            htmlFor="autoTagImportImages"
+          >
+            <span className="label-text text-base w-2/3">
+              Auto tag import images
+            </span>
+            <input
+              id="autoTagImportImages"
+              type="checkbox"
+              checked={settings.autoTagImportImages === '1'}
+              onChange={(e) => onAutoTagImportImages(e.target.checked)}
               className="checkbox checkbox-primary"
             />
           </label>
@@ -333,7 +355,7 @@ export default function Settings() {
             <p>Change theme</p>
           </div>
           <select
-            className="select select-bordered rounded-none w-1/3"
+            className="select select-bordered w-1/3"
             onChange={(e) => changeTheme(e.target.value)}
             value={settings.theme || 'default'}
           >
@@ -448,7 +470,7 @@ export default function Settings() {
               onChange={(e) => setAddTagLabel(e.target.value)}
               type="text"
               placeholder="Type tag label"
-              className="input input-bordered rounded-none input-secondary input-sm w-full"
+              className="input input-bordered input-secondary input-sm w-full"
               onKeyUp={(e) => (e.key === 'Enter' ? addTag() : null)}
             />
             <button
@@ -495,7 +517,7 @@ export default function Settings() {
                             }
                             type="text"
                             placeholder="Type here"
-                            className="input input-bordered rounded-none input-sm w-full"
+                            className="input input-bordered input-sm w-full"
                           />
                           <ColorPicker
                             className="ml-4"

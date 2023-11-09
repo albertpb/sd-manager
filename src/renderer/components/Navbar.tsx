@@ -164,7 +164,7 @@ export default function Navbar() {
           {location.pathname === '/images' ? (
             <div className="mx-2 hidden xl:block">
               <select
-                className="select select-bordered rounded-none w-full max-w-xs"
+                className="select select-bordered w-full max-w-xs"
                 value={filterCheckpoint}
                 onChange={(e) => changeFilterCheckpoint(e.target.value)}
               >
@@ -186,7 +186,7 @@ export default function Navbar() {
               type="text"
               placeholder="Search"
               className={classNames([
-                'input input-bordered rounded-none w-96',
+                'input input-bordered w-96',
                 {
                   'input-primary': searchValue !== '',
                 },

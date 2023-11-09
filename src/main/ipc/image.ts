@@ -240,12 +240,21 @@ export const scanImagesIpc = async (
 
       const metadata = filesMetadata[files[i]];
 
-      const activeTags = await db.get(
+      const autoTagImportImages = await db.get(
         `SELECT value FROM settings WHERE key = $key`,
         {
-          $key: 'activeTags',
+          $key: 'autoTagImportImages',
         },
       );
+
+      const autoImportTags =
+        autoTagImportImages.value === '1'
+          ? await db.get(`SELECT value FROM settings WHERE key = $key`, {
+              $key: 'autoImportTags',
+            })
+          : {
+              value: '',
+            };
 
       if (metadata && metadata.model) {
         const imageHash = filesHashes[files[i]];
@@ -266,13 +275,17 @@ export const scanImagesIpc = async (
               },
             );
 
-            if (activeTags && activeTags.value !== '') {
-              const activeTagsArr = activeTags.value.split(',');
-              for (let j = 0; j < activeTagsArr.length; j++) {
+            if (
+              autoTagImportImages.value === '1' &&
+              autoImportTags &&
+              autoImportTags.value !== ''
+            ) {
+              const autoImportTagsArr = autoImportTags.value.split(',');
+              for (let j = 0; j < autoImportTagsArr.length; j++) {
                 await db.run(
                   `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
                   {
-                    $tagId: activeTagsArr[i],
+                    $tagId: autoImportTagsArr[j],
                     $imageHash: imageHash,
                   },
                 );

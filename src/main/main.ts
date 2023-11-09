@@ -180,12 +180,21 @@ ipcMain.handle('watchImagesFolder', async () => {
 
       const hash = await calculateHashFile(detectedFile);
 
-      const activeTags = await db.get(
+      const autoTagImportImages = await db.get(
         `SELECT value from settings WHERE key = $key`,
         {
-          $key: 'activeTag',
+          $key: 'autoTagImportImages',
         },
       );
+
+      const activeTags =
+        autoTagImportImages.value === '1'
+          ? await db.get(`SELECT value from settings WHERE key = $key`, {
+              $key: 'activeTags',
+            })
+          : {
+              value: '',
+            };
       const activeTagsArr = activeTags?.value.split(',') || [];
 
       let imagesData: ImageRow = {

@@ -23,19 +23,19 @@ export default function MultiSelect({
     <ReactTwSelect
       classNames={{
         menuButton: (v) =>
-          `flex text-sm border border-base-content bg-base-100 border-opacity-20 shadow-sm transition-all duration-300 focus:outline-none ${
+          `flex text-sm border rounded-xl border-base-content bg-base-100 border-opacity-20 shadow-sm transition-all duration-300 focus:outline-none ${
             v?.isDisabled
               ? 'bg-neutral'
               : 'bg-base-100 focus:border-blue-500 focus:ring focus:ring-blue-500/20'
           }`,
-        menu: 'absolute z-10 w-full bg-base-100 shadow-lg border border-base-content border-opacity-20 rounded py-1 mt-1.5 text-sm text-gray-700',
+        menu: 'absolute z-10 w-full bg-base-100 shadow-sm rounded-xl border border-base-content border-opacity-20 py-1 mt-1.5 text-sm text-gray-700',
         listItem: (v) =>
-          `bg-base-100 block transition duration-200 px-2 py-2 cursor-pointer select-none truncate rounded ${
+          `bg-base-100 block transition duration-200 py-2 cursor-pointer select-none truncate rounded ${
             v?.isSelected
               ? `bg-neutral text-white`
               : `hover:bg-neutral-focus text-accent hover:text-secondary-500`
           }`,
-        list: 'bg-base-100',
+        list: 'bg-base-100 mx-2',
         ChevronIcon: (v) => `text-base-content ${v?.open ? `` : ``}`,
         tagItem: (v) => {
           let className = 'badge badge-outline badge-primary';
@@ -50,7 +50,7 @@ export default function MultiSelect({
           'flex items-center px-1 cursor-pointer rounded-r-sm hover:text-accent',
         tagItemText: 'text-primary',
         searchBox:
-          'w-full py-2 pl-8 text-sm text-gray-500 bg-base-100 border border-base-content rounded border-opacity-20 focus:ring-0 focus:outline-none',
+          'w-full py-2 pl-8 text-sm text-gray-500 bg-base-100 rounded-xl border border-base-content rounded border-opacity-20 focus:ring-0 focus:outline-none',
       }}
       options={options}
       value={value}
