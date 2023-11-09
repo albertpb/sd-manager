@@ -1,4 +1,5 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import './App.scss';
 
 import { ReduxProvider } from './redux/provider';
@@ -24,24 +25,32 @@ export default function App() {
           <SettingsLoader>
             <ModelsLoader>
               <ImagesLoader>
-                <Routes>
-                  <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Checkpoints />} />
-                    <Route
-                      path="/model-detail/:hash"
-                      element={<ModelDetail />}
-                    />
-                    <Route
-                      path="/image-detail/:hash"
-                      element={<ImageDetail />}
-                    />
-                    <Route path="/loras" element={<Loras />} />
-                    <Route path="/images" element={<Images />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/ar-helper" element={<AspectRatioHelper />} />
-                    <Route path="/image-metadata" element={<ImageMetadata />} />
-                  </Route>
-                </Routes>
+                <AnimatePresence mode="wait">
+                  <Routes>
+                    <Route path="/" element={<MainLayout />}>
+                      <Route index element={<Checkpoints />} />
+                      <Route
+                        path="/model-detail/:hash"
+                        element={<ModelDetail />}
+                      />
+                      <Route
+                        path="/image-detail/:hash"
+                        element={<ImageDetail />}
+                      />
+                      <Route path="/loras" element={<Loras />} />
+                      <Route path="/images" element={<Images />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route
+                        path="/ar-helper"
+                        element={<AspectRatioHelper />}
+                      />
+                      <Route
+                        path="/image-metadata"
+                        element={<ImageMetadata />}
+                      />
+                    </Route>
+                  </Routes>
+                </AnimatePresence>
               </ImagesLoader>
             </ModelsLoader>
           </SettingsLoader>

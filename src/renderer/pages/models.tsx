@@ -720,7 +720,7 @@ export default function Models({
               settings={{
                 buffer,
                 rowHeight: height,
-                tolerance: 3,
+                tolerance: 1,
                 rowMargin,
                 containerHeight,
               }}

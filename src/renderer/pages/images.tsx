@@ -978,7 +978,7 @@ export default function Images() {
               settings={{
                 buffer,
                 rowHeight: height,
-                tolerance: 3,
+                tolerance: 1,
                 rowMargin,
                 containerHeight,
               }}

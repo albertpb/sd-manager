@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { motion } from 'framer-motion';
 import { AppDispatch, RootState } from 'renderer/redux';
 import {
   setCheckpointsPath,
@@ -198,7 +199,12 @@ export default function Settings() {
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <ConfirmDialog
         response={confirmDialogResponse}
         isOpen={confirmIsOpen}
@@ -567,6 +573,6 @@ export default function Settings() {
           </div>
         </div>
       </section>
-    </>
+    </motion.div>
   );
 }

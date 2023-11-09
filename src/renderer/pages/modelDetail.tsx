@@ -476,10 +476,11 @@ export default function ModelDetail() {
                   data={chunks}
                   rowRenderer={rowRenderer}
                   settings={{
+                    containerHeight,
                     buffer,
                     rowHeight: height,
                     rowMargin: margin,
-                    tolerance: 2,
+                    tolerance: 1,
                   }}
                 />
               </div>

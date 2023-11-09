@@ -1,4 +1,5 @@
 import { DragEvent, ForwardedRef, forwardRef } from 'react';
+import { motion } from 'framer-motion';
 import classNames from 'classnames';
 import placeHolderImage from '../../../assets/images/notavailable.png';
 
@@ -24,24 +25,34 @@ export default forwardRef(
     };
 
     return (
-      <img
-        ref={ref}
-        src={`sd:///${src}`}
-        alt={alt}
-        onError={(event) => {
-          event.currentTarget.onerror = null;
-          event.currentTarget.src = placeHolderImage;
+      <motion.div
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          transition: { scale: { type: 'spring', duration: 0.5 } },
         }}
-        width={width}
-        height={height}
-        draggable={onDragPath !== undefined}
-        onDragStart={(event) => ondragstart(event)}
-        style={{
-          width: typeof width === 'number' ? `${width}px` : width,
-          height: typeof height === 'number' ? `${height}px` : height,
-        }}
-        className={classNames(className)}
-      />
+        className="w-full h-full"
+      >
+        <img
+          ref={ref}
+          src={`sd:///${src}`}
+          alt={alt}
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = placeHolderImage;
+          }}
+          width={width}
+          height={height}
+          draggable={onDragPath !== undefined}
+          onDragStart={(event) => ondragstart(event)}
+          style={{
+            width: typeof width === 'number' ? `${width}px` : width,
+            height: typeof height === 'number' ? `${height}px` : height,
+          }}
+          className={classNames(className)}
+        />
+      </motion.div>
     );
   },
 );

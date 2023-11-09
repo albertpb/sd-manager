@@ -1,6 +1,7 @@
+import { ChangeEvent, DragEvent, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import CodeMirror from '@uiw/react-codemirror';
 import { json as jsonLang } from '@codemirror/lang-json';
-import { ChangeEvent, DragEvent, useEffect, useState } from 'react';
 import Image from 'renderer/components/Image';
 
 export default function ImageMetadata() {
@@ -45,7 +46,13 @@ export default function ImageMetadata() {
   };
 
   return (
-    <div className="flex flex-col h-full px-10 pt-10">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col h-full px-10 pt-10"
+    >
       <div className="w-full">
         <p className="text-2xl font-bold text-gray-300">Image metadata</p>
       </div>
@@ -104,6 +111,6 @@ export default function ImageMetadata() {
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
