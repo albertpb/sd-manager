@@ -16,6 +16,7 @@ import {
   editTag,
   createTag,
   setScanImagesOnStart,
+  setAutoImportImages,
 } from 'renderer/redux/reducers/global';
 import ConfirmDialog, {
   ConfirmDialogResponse,
@@ -82,6 +83,10 @@ export default function Settings() {
 
   const onScanImagesOnStart = async (value: boolean) => {
     dispatch(setScanImagesOnStart(value ? '1' : '0'));
+  };
+
+  const onAutoImportImages = async (value: boolean) => {
+    dispatch(setAutoImportImages(value ? '1' : '0'));
   };
 
   const changeTheme = async (theme: string) => {
@@ -283,6 +288,23 @@ export default function Settings() {
               type="checkbox"
               checked={settings.scanImagesOnStart === '1'}
               onChange={(e) => onScanImagesOnStart(e.target.checked)}
+              className="checkbox checkbox-primary"
+            />
+          </label>
+        </div>
+        <div className="mt-3 flex flex-row items-center form-control">
+          <label
+            className="label cursor-pointer ml-0 pl-0 w-full justify-start"
+            htmlFor="scanImagesOnStart"
+          >
+            <span className="label-text text-base w-2/3">
+              Auto import images
+            </span>
+            <input
+              id="scanImagesOnStart"
+              type="checkbox"
+              checked={settings.autoImportImages === '1'}
+              onChange={(e) => onAutoImportImages(e.target.checked)}
               className="checkbox checkbox-primary"
             />
           </label>

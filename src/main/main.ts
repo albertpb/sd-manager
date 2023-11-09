@@ -121,11 +121,24 @@ ipcMain.on('ondragstart', (event: IpcMainInvokeEvent, filePath: string) => {
 });
 
 ipcMain.handle('watchImagesFolder', async () => {
+  worker.removeAllListeners();
+
   const db = await SqliteDB.getInstance().getdb();
 
   const foldersToWatch: { path: string }[] = await db.all(
     `SELECT * FROM watch_folders`,
   );
+
+  const autoImportImages = await db.get(
+    `SELECT value FROM settings WHERE key = $key`,
+    {
+      $key: 'autoImportImages',
+    },
+  );
+
+  if (autoImportImages && autoImportImages.value === '0') {
+    return;
+  }
 
   worker.postMessage(foldersToWatch);
 

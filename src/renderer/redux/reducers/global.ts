@@ -13,6 +13,7 @@ export type SettingsState = {
   lorasPath: string | null;
   theme: string | null;
   activeTag: string | null;
+  autoImportImages: string | null;
 };
 
 export type UpdateState = {
@@ -50,6 +51,7 @@ const initialState: GlobalState = {
     lorasPath: null,
     theme: 'default',
     activeTag: null,
+    autoImportImages: '0',
   },
   checkpoint: {
     models: {},
@@ -253,6 +255,12 @@ export const globalSlice = createSlice({
     setScanImagesOnStart: (state, action) => {
       state.settings.scanImagesOnStart = action.payload;
       saveSettings('scanImagesOnStart', action.payload);
+    },
+    setAutoImportImages: (state, action) => {
+      state.settings.autoImportImages = action.payload;
+      saveSettings('autoImportImages', action.payload);
+      // reload listener
+      window.ipcHandler.watchImagesFolder();
     },
     setNavbarSearchInputValue: (state, action) => {
       if (!state.navbarDisabled) {
@@ -476,4 +484,5 @@ export const {
   setCheckingModelsUpdate,
   setNavbarDisabled,
   setActiveTag,
+  setAutoImportImages,
 } = globalSlice.actions;
