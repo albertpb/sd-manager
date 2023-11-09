@@ -12,6 +12,7 @@ interface Settings {
   rowMargin: number;
   buffer: number;
   tolerance: number;
+  containerHeight: number;
 }
 
 export type VirtualScrollData = {
@@ -42,14 +43,10 @@ export default function VirtualScroll({
     () => settings.rowHeight + settings.rowMargin,
     [settings.rowHeight, settings.rowMargin],
   );
-  const containerHeight = useMemo(
-    () => rowHeight * settings.buffer,
-    [rowHeight, settings.buffer],
-  );
 
   const [visibleRange, setVisibleRange] = useState({
     start: 0,
-    end: Math.ceil(containerHeight / rowHeight),
+    end: Math.ceil(settings.containerHeight / rowHeight),
   });
   const [scroll, setScroll] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -62,7 +59,7 @@ export default function VirtualScroll({
 
       const start = Math.floor(scrollTop / rowHeight);
       const end = Math.min(
-        start + Math.ceil(containerHeight / rowHeight),
+        start + Math.ceil(settings.containerHeight / rowHeight),
         data.length,
       );
 
@@ -74,7 +71,7 @@ export default function VirtualScroll({
             : end + settings.tolerance,
       });
     }
-  }, [containerHeight, data.length, rowHeight, settings.tolerance]);
+  }, [settings.containerHeight, data.length, rowHeight, settings.tolerance]);
 
   useEffect(() => {
     handleScroll();
@@ -113,8 +110,8 @@ export default function VirtualScroll({
   return (
     <div
       ref={containerRef}
-      className="overflow-y-auto overflow-x-hidden"
-      style={{ height: containerHeight }}
+      className="overflow-y-auto overflow-x-hidden my-5"
+      style={{ height: settings.containerHeight }}
     >
       <div
         style={{

@@ -78,11 +78,12 @@ export default function Models({
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
-  const maxRows = 3;
+  const maxZoom = 8;
   const rowMargin = 10;
 
   const onModelCardClick = useCallback(
@@ -214,16 +215,18 @@ export default function Models({
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
-    setContainerHeight(windowHeight - 160);
+    setContainerHeight(windowHeight - 125);
+    setContainerWidth(windowWidth - 120);
 
-    const cardHeight = containerHeight / zoomLevel - rowMargin;
-    const cardWidth = (cardHeight * 2) / 3;
+    const cardWidth = (containerWidth - zoomLevel * 16) / zoomLevel; // (cardHeight * 2) / 3;
+    const cardHeight = (cardWidth * 3) / 2; // containerHeight / zoomLevel - rowMargin;
+
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
 
-    setPerChunk(Math.floor((windowWidth - 250) / cardWidth) || 1);
-  }, [containerHeight, zoomLevel]);
+    setPerChunk(zoomLevel);
+  }, [containerHeight, containerWidth, zoomLevel]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -232,16 +235,6 @@ export default function Models({
     },
     [calcImagesValues],
   );
-
-  const changeZoom = () => {
-    let newZoomLevel = zoomLevel;
-    if (zoomLevel >= maxRows) {
-      newZoomLevel = 1;
-    } else {
-      newZoomLevel += 1;
-    }
-    setZoomLevel(newZoomLevel);
-  };
 
   const onResize = useCallback(() => {
     calcImagesValues();
@@ -408,33 +401,11 @@ export default function Models({
     <div ref={setRef} className="w-full h-full flex">
       <div className="w-fit h-full">
         <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
-          <li>
-            <button type="button" disabled={modelsState.checkingUpdates}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-                />
-              </svg>
-            </button>
-          </li>
           <li
-            className="tooltip tooltip-right"
-            data-tip={`zoom level ${zoomLevel}`}
+            className="dropdown dropdown-right tooltip tooltip-right"
+            data-tip={`zoom level: ${zoomLevel}`}
           >
-            <button
-              disabled={modelsState.checkingUpdates}
-              type="button"
-              onClick={() => changeZoom()}
-            >
+            <button type="button">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -449,6 +420,18 @@ export default function Models({
                   d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"
                 />
               </svg>
+              <ul className="dropdown-content cursor-default z-[999] menu p-2 shadow-xl bg-base-200 rounded-box w-fit">
+                <div className="w-64 p-2 flex flex-col relative">
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxZoom}
+                    value={zoomLevel}
+                    onChange={(e) => setZoomLevel(parseInt(e.target.value, 10))}
+                    className="range range-primary range-xs"
+                  />
+                </div>
+              </ul>
             </button>
           </li>
           <li
@@ -728,7 +711,7 @@ export default function Models({
       </div>
       <div className="flex flex-col w-full">
         <div className="flex flex-col w-full">
-          <div className="px-10 pt-8 pb-10">
+          <div className="py-0 pl-5 pr-0">
             <VirtualScroll
               id={`${type}_virtualscroll`}
               saveState
@@ -738,6 +721,7 @@ export default function Models({
                 rowHeight: height,
                 tolerance: 3,
                 rowMargin,
+                containerHeight,
               }}
               rowRenderer={rowRenderer}
             />
