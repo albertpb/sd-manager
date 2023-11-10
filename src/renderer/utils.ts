@@ -56,3 +56,32 @@ export function getTextColorFromBackgroundColor(bgColorHex: string): string {
 
   return textColorHex;
 }
+
+type Box = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export function areBoxesIntersecting(box1: Box, box2: Box): boolean {
+  // Extracting coordinates of the first box
+  const x1 = box1.x;
+  const y1 = box1.y;
+  const width1 = box1.width;
+  const height1 = box1.height;
+
+  // Extracting coordinates of the second box
+  const x2 = box2.x;
+  const y2 = box2.y;
+  const width2 = box2.width;
+  const height2 = box2.height;
+
+  // Checking for intersection
+  return (
+    x1 < x2 + width2 &&
+    x1 + width1 > x2 &&
+    y1 < y2 + height2 &&
+    y1 + height1 > y2
+  );
+}

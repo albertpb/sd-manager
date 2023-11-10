@@ -409,7 +409,7 @@ export async function readModelByNameIpc(
   type: string,
 ) {
   const db = await SqliteDB.getInstance().getdb();
-  const models = await db.get(
+  const model = await db.get(
     `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE name = $name AND type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $name: name,
@@ -417,17 +417,17 @@ export async function readModelByNameIpc(
     },
   );
 
-  models.forEach((model: Model & { tags: string | Record<string, string> }) => {
-    model.tags =
-      typeof model.tags === 'string' && model.tags !== ''
-        ? model.tags.split(',').reduce((acc: Record<string, string>, tag) => {
+  model.tags =
+    typeof model.tags === 'string' && model.tags !== ''
+      ? model.tags
+          .split(',')
+          .reduce((acc: Record<string, string>, tag: string) => {
             acc[tag] = tag;
             return acc;
           }, {})
-        : {};
-  });
+      : {};
 
-  return models;
+  return model;
 }
 
 export async function checkModelsToUpdateIpc(

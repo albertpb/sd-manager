@@ -1,4 +1,6 @@
+import classNames from 'classnames';
 import React, {
+  MouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -32,6 +34,13 @@ export const clearSessionStorage = (id: string) => {
   window.sessionStorage.removeItem(`virtualScroll_${id}`);
 };
 
+type DraggableArea = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export default function VirtualScroll({
   id,
   saveState = false,
@@ -49,6 +58,18 @@ export default function VirtualScroll({
     end: Math.ceil(settings.containerHeight / rowHeight),
   });
   const [scroll, setScroll] = useState<number>(0);
+  const [startCoords, setStartCoords] = useState({
+    x: 0,
+    y: 0,
+  });
+  const [draggableArea, setDragableArea] = useState<DraggableArea>({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+
+  const [mouseDrawing, setMouseDrawing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleScroll = useCallback(() => {
@@ -107,18 +128,104 @@ export default function VirtualScroll({
   const paddingTop = visibleRange.start * rowHeight;
   const paddingBottom = (data.length - visibleRange.end) * rowHeight;
 
+  const onContainerClick = (e: MouseEvent<HTMLElement>) => {
+    if (mouseDrawing && containerRef.current) {
+      const width =
+        e.clientX +
+        containerRef.current.scrollLeft -
+        startCoords.x -
+        containerRef.current.offsetLeft;
+      const height =
+        e.clientY +
+        containerRef.current.scrollTop -
+        startCoords.y -
+        containerRef.current.offsetTop;
+
+      const box = {
+        width: Math.abs(width),
+        height: Math.abs(height),
+        x: width > 0 ? startCoords.x : startCoords.x + width,
+        y: height > 0 ? startCoords.y : startCoords.y + height,
+      };
+      setDragableArea(box);
+    }
+  };
+
+  const onStartDrawing = (e: MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    setMouseDrawing(true);
+    if (containerRef.current) {
+      setDragableArea({
+        height: 0,
+        width: 0,
+        x:
+          e.clientX +
+          containerRef.current.scrollLeft -
+          containerRef.current.offsetLeft,
+        y:
+          e.clientY +
+          containerRef.current.scrollTop -
+          containerRef.current.offsetTop,
+      });
+      setStartCoords({
+        x:
+          e.clientX +
+          containerRef.current.scrollLeft -
+          containerRef.current.offsetLeft,
+        y:
+          e.clientY +
+          containerRef.current.scrollTop -
+          containerRef.current.offsetTop,
+      });
+    }
+  };
+
+  const onStopDrawing = () => {
+    setMouseDrawing(false);
+    setDragableArea({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
+  };
+
+  useEffect(() => {
+    window.addEventListener('mouseup', onStopDrawing);
+
+    return () => window.removeEventListener('mouseup', onStopDrawing);
+  }, []);
+
   return (
     <div
       ref={containerRef}
-      className="overflow-y-auto overflow-x-hidden my-5"
+      className="overflow-y-auto overflow-x-hidden my-5 relative"
       style={{ height: settings.containerHeight }}
+      onMouseMove={(e) => onContainerClick(e)}
+      onMouseDown={(e) => onStartDrawing(e)}
+      aria-hidden
     >
+      <div
+        className={classNames([
+          'absolute z-50 border border-dashed bg-sky-600 opacity-50',
+          {
+            hidden: !mouseDrawing,
+          },
+        ])}
+        style={{
+          left: `${draggableArea.x}px`,
+          top: `${draggableArea.y}px`,
+          width: `${draggableArea.width}px`,
+          height: `${draggableArea.height}px`,
+        }}
+      />
       <div
         style={{
           height: data.length * rowHeight,
           paddingTop,
           paddingBottom,
         }}
+        className={classNames([{ noselect: mouseDrawing }])}
       >
         {visibleData.map((item, index) => (
           <div
@@ -132,6 +239,7 @@ export default function VirtualScroll({
             {rowRenderer(item, index)}
           </div>
         ))}
+        d
       </div>
     </div>
   );
