@@ -2,14 +2,7 @@ import { IpcMainInvokeEvent } from 'electron';
 import log from 'electron-log/main';
 import SqliteDB from '../db';
 
-export type Tag = {
-  id: string;
-  label: string;
-  color: string;
-  bgColor: string;
-};
-
-export const tagIpc = async (
+export const mtagIpc = async (
   event: IpcMainInvokeEvent,
   action: string,
   payload: any,
@@ -19,12 +12,12 @@ export const tagIpc = async (
 
     switch (action) {
       case 'read': {
-        return db.all(`SELECT * FROM tags`);
+        return db.all(`SELECT * FROM mtags`);
       }
 
       case 'add': {
         await db.run(
-          `INSERT INTO tags (id, label, color, bgColor) VALUES ($id, $label, $color, $bgColor)`,
+          `INSERT INTO mtags (id, label, color, bgColor) VALUES ($id, $label, $color, $bgColor)`,
           {
             $id: payload.id,
             $label: payload.label,
@@ -33,27 +26,27 @@ export const tagIpc = async (
           },
         );
 
-        const activeTags = await db.get(
+        const activeMTags = await db.get(
           `SELECT value FROM settings WHERE key = $key`,
           {
-            $key: 'activeTags',
+            $key: 'activeMTags',
           },
         );
 
-        if (activeTags) {
+        if (activeMTags) {
           const activeMTagsArr =
-            activeTags.value === '' ? [] : activeTags.value.split(',');
+            activeMTags.value === '' ? [] : activeMTags.value.split(',');
           activeMTagsArr.push(payload.id);
 
           await db.run(`UPDATE settings SET value = $tagId WHERE key = $key`, {
             $tagId: activeMTagsArr.join(','),
-            $key: 'activeTags',
+            $key: 'activeMTags',
           });
         } else {
           await db.run(
             `INSERT INTO settings (key, value) VALUES ($key, $value)`,
             {
-              $key: 'activeTags',
+              $key: 'activeMTags',
               $value: payload.id,
             },
           );
@@ -62,29 +55,29 @@ export const tagIpc = async (
       }
 
       case 'delete': {
-        const activeTags = await db.get(
+        const activeMTags = await db.get(
           `SELECT value FROM settings WHERE key = $key`,
           {
-            $key: 'activeTags',
+            $key: 'activeMTags',
           },
         );
 
-        const activeTagsArr =
-          activeTags !== '' ? activeTags.value.split(',') : [];
-        const index = activeTagsArr.findIndex((t: string) => t === payload.id);
+        const activeMTagsArr =
+          activeMTags !== '' ? activeMTags.value.split(',') : [];
+        const index = activeMTagsArr.findIndex((t: string) => t === payload.id);
 
         if (index !== -1) {
-          activeTagsArr.splice(index, 1);
+          activeMTagsArr.splice(index, 1);
 
           await db.run(
-            `UPDATE settings SET value = $activeTags WHERE key = $key`,
+            `UPDATE settings SET value = $activeMTags WHERE key = $key`,
             {
-              $activeTag: activeTagsArr.join(','),
-              $key: 'activeTags',
+              $activeMTags: activeMTagsArr.join(','),
+              $key: 'activeMTags',
             },
           );
         }
-        await db.run(`DELETE FROM tags WHERE id = $id`, {
+        await db.run(`DELETE FROM mtags WHERE id = $id`, {
           $id: payload.id,
         });
 
@@ -93,7 +86,7 @@ export const tagIpc = async (
 
       case 'edit': {
         await db.run(
-          `UPDATE tags SET label = $label, color = $color, bgColor = $bgColor WHERE id = $id`,
+          `UPDATE mtags SET label = $label, color = $color, bgColor = $bgColor WHERE id = $id`,
           {
             $id: payload.id,
             $label: payload.label,

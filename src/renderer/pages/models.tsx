@@ -3,7 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
-import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  KeyboardEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import VirtualScroll, {
   VirtualScrollData,
 } from 'renderer/components/VirtualScroll';
@@ -11,15 +18,22 @@ import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
 import {
   ModelState,
+  createMTag,
+  setActiveMTags,
   setCheckingModelsUpdate,
   setModelsCheckingUpdate,
   setModelsToUpdate,
   setNavbarDisabled,
+  tagModel,
   updateModel,
 } from 'renderer/redux/reducers/global';
 import { IpcRendererEvent } from 'electron';
 import { toast } from 'react-toastify';
 import StatusBar from 'renderer/components/StatusBar';
+import Tagger from 'renderer/components/Tagger';
+import { createSelector } from '@reduxjs/toolkit';
+import { Tag } from 'main/ipc/tag';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 interface RowData {
   row: Fuse.FuseResult<Model>[];
@@ -76,6 +90,21 @@ export default function Models({
       ? true
       : localStorage.getItem(`models-${type}-showBadge`) === 'true',
   );
+  const [filterByMTags, setFilterByMTags] = useState<Set<string>>(new Set());
+
+  const mtags = useSelector((state: RootState) => state.global.mtags);
+  const tagsMMap = createSelector(
+    (state: Tag[]) => state,
+    (t) =>
+      t.reduce((acc: Record<string, Tag>, tag) => {
+        acc[tag.id] = tag;
+        return acc;
+      }, {}),
+  )(mtags);
+
+  const activeMTags = useSelector(
+    (state: RootState) => state.global.settings.activeMTags,
+  );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -88,7 +117,7 @@ export default function Models({
   const rowMargin = 10;
 
   const onModelCardClick = useCallback(
-    (e: MouseEvent<HTMLDivElement>, hash: string) => {
+    async (e: MouseEvent<HTMLDivElement>, hash: string) => {
       const model = Object.values(modelsState.models).find(
         (m) => m.hash === hash,
       );
@@ -97,10 +126,22 @@ export default function Models({
           window.ipcHandler.openLink(
             `https://civitai.com/models/${model.modelId}`,
           );
-          return;
         }
-      }
-      if (!modelsState.checkingUpdates) {
+      } else if (e.shiftKey) {
+        if (model) {
+          const activeMTagsArr =
+            activeMTags !== '' ? activeMTags?.split(',') || [] : [];
+          for (let i = 0; i < activeMTagsArr.length; i++) {
+            await dispatch(
+              tagModel({
+                tagId: activeMTagsArr[i],
+                modelHash: model.hash,
+                type,
+              }),
+            );
+          }
+        }
+      } else if (!modelsState.checkingUpdates) {
         if (model?.modelId) {
           navigate(`/model-detail/${hash}`);
         } else {
@@ -108,7 +149,14 @@ export default function Models({
         }
       }
     },
-    [modelsState.checkingUpdates, navigate, modelsState.models],
+    [
+      modelsState.checkingUpdates,
+      navigate,
+      modelsState.models,
+      activeMTags,
+      dispatch,
+      type,
+    ],
   );
 
   const fuse = new Fuse(models, {
@@ -127,6 +175,22 @@ export default function Models({
         })
       : fuse.search(navbarSearchInput);
 
+  const filterByTagFunc = useCallback(
+    (model: Model) => {
+      console.log(model);
+      const modeltags = Object.values(model.tags);
+      if (modeltags.length > 0) {
+        return modeltags.every((t) => {
+          return (
+            filterByMTags.size === modeltags.length && filterByMTags.has(t)
+          );
+        });
+      }
+      return false;
+    },
+    [filterByMTags],
+  );
+
   const sortFilterModels = useCallback(
     (filter = 'none', sort = 'none') => {
       if (modelsState.checkingUpdates) {
@@ -134,6 +198,11 @@ export default function Models({
       }
 
       let filterSortedModels = Object.values(modelsState.models);
+
+      filterSortedModels =
+        filterByMTags.size > 0
+          ? filterSortedModels.filter(filterByTagFunc)
+          : filterSortedModels;
 
       switch (filter) {
         case 'Other': {
@@ -210,8 +279,24 @@ export default function Models({
       setFilterBy(filter);
       setModels(filterSortedModels);
     },
-    [modelsState.models, modelsState.update, modelsState.checkingUpdates],
+    [
+      modelsState.models,
+      modelsState.update,
+      modelsState.checkingUpdates,
+      filterByTagFunc,
+      filterByMTags.size,
+    ],
   );
+
+  const onFilterByMTag = (mtag: Tag) => {
+    if (filterByMTags.has(mtag.id)) {
+      filterByMTags.delete(mtag.id);
+    } else {
+      filterByMTags.add(mtag.id);
+    }
+    setFilterByMTags(new Set([...filterByMTags]));
+    sortFilterModels(filterBy, sortBy);
+  };
 
   const calcImagesValues = useCallback(() => {
     const windowHeight = window.innerHeight;
@@ -255,6 +340,19 @@ export default function Models({
         value,
       }),
     );
+  };
+
+  const onSetActiveMTags = async (
+    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    selectedTags: SelectValue,
+  ) => {
+    await dispatch(setActiveMTags(selectedTags));
+  };
+
+  const addMTag = async (label: string, bgColor: string) => {
+    if (label !== '') {
+      await dispatch(createMTag({ label, bgColor }));
+    }
   };
 
   useEffect(() => {
@@ -386,6 +484,7 @@ export default function Models({
             showBadge={showBadge}
             showName={showModelName}
             onRatingChange={(e, value) => onRatingChange(e, item.hash, value)}
+            tags={Object.keys(item.tags).map((tag: string) => tagsMMap[tag])}
           />
         </div>
       );
@@ -435,6 +534,15 @@ export default function Models({
               </ul>
             </button>
           </li>
+          <Tagger
+            filterByTags={filterByMTags}
+            tags={mtags}
+            activeTags={activeMTags}
+            tagsMap={tagsMMap}
+            onAddTag={addMTag}
+            onFilterByTag={onFilterByMTag}
+            onSetActiveTags={onSetActiveMTags}
+          />
           <li
             className="tooltip tooltip-right"
             data-tip={`show badge: ${showBadge ? 'on' : 'off'}`}

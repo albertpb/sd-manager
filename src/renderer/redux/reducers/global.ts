@@ -1,6 +1,6 @@
 import { createId } from '@paralleldrive/cuid2';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { Model } from 'main/ipc/model';
+import { Model, ModelType } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
 import { WatchFolder } from 'main/ipc/watchFolders';
 import { Tag } from 'main/ipc/tag';
@@ -14,6 +14,7 @@ export type SettingsState = {
   lorasPath: string | null;
   theme: string | null;
   activeTags: string | null;
+  activeMTags: string | null;
   autoImportImages: string | null;
   autoImportTags: string | null;
   autoTagImportImages: string | null;
@@ -43,6 +44,7 @@ export type GlobalState = {
   imagesToDelete: Record<string, ImageRow>;
   watchFolders: WatchFolder[];
   tags: Tag[];
+  mtags: Tag[];
 };
 
 const initialState: GlobalState = {
@@ -54,6 +56,7 @@ const initialState: GlobalState = {
     lorasPath: null,
     theme: 'default',
     activeTags: null,
+    activeMTags: null,
     autoImportImages: '0',
     autoImportTags: null,
     autoTagImportImages: null,
@@ -77,6 +80,7 @@ const initialState: GlobalState = {
   navbarSearchInput: '',
   watchFolders: [],
   tags: [],
+  mtags: [],
 };
 
 const readModelsAsync = async (
@@ -188,6 +192,11 @@ export const loadTags = createAsyncThunk('loadTags', async () => {
   return tags;
 });
 
+export const loadMTags = createAsyncThunk('loadMTags', async () => {
+  const mtags = await window.ipcHandler.mtag('read');
+  return mtags;
+});
+
 export const createTag = createAsyncThunk(
   'createTag',
   async ({ label, bgColor }: { label: string; bgColor: string }) => {
@@ -229,11 +238,71 @@ export const editTag = createAsyncThunk(
   },
 );
 
+export const createMTag = createAsyncThunk(
+  'createMTag',
+  async ({ label, bgColor }: { label: string; bgColor: string }) => {
+    const payload = {
+      id: createId(),
+      label,
+      color: getTextColorFromBackgroundColor(bgColor),
+      bgColor,
+    };
+    await window.ipcHandler.mtag('add', payload);
+    return payload;
+  },
+);
+
+export const deleteMTag = createAsyncThunk(
+  'deleteMTag',
+  async (arg: string) => {
+    await window.ipcHandler.mtag('delete', { id: arg });
+    return arg;
+  },
+);
+
+export const editMTag = createAsyncThunk(
+  'editMTag',
+  async ({
+    label,
+    bgColor,
+    id,
+  }: {
+    label: string;
+    bgColor: string;
+    id: string;
+  }) => {
+    const payload = {
+      label,
+      bgColor,
+      color: getTextColorFromBackgroundColor(bgColor),
+      id,
+    };
+    await window.ipcHandler.mtag('edit', payload);
+    return payload;
+  },
+);
+
 export const tagImage = createAsyncThunk(
   'tagImage',
   async ({ tagId, imageHash }: { tagId: string; imageHash: string }) => {
     await window.ipcHandler.tagImage(tagId, imageHash);
     return { tagId, imageHash };
+  },
+);
+
+export const tagModel = createAsyncThunk(
+  'tagModel',
+  async ({
+    tagId,
+    modelHash,
+    type,
+  }: {
+    tagId: string;
+    modelHash: string;
+    type: ModelType;
+  }) => {
+    await window.ipcHandler.tagModel(tagId, modelHash);
+    return { tagId, modelHash, type };
   },
 );
 
@@ -297,6 +366,13 @@ export const globalSlice = createSlice({
       state.settings.activeTags = payload;
       saveSettings('activeTags', payload);
     },
+    setActiveMTags: (state, action) => {
+      const payload = action.payload
+        ? action.payload.map((t: Option) => t.value).join(',')
+        : '';
+      state.settings.activeMTags = payload;
+      saveSettings('activeMTags', payload);
+    },
     setAutoImportTags: (state, action) => {
       const payload = action.payload
         ? action.payload.map((t: Option) => t.value).join(',')
@@ -316,7 +392,7 @@ export const globalSlice = createSlice({
     setCheckingModelsUpdate: (
       state,
       action: {
-        payload: { type: 'checkpoint' | 'lora'; updating: boolean };
+        payload: { type: ModelType; updating: boolean };
         type: string;
       },
     ) => {
@@ -325,7 +401,7 @@ export const globalSlice = createSlice({
     clearModelsToUpdate: (
       state,
       action: {
-        payload: { type: 'checkpoint' | 'lora' };
+        payload: { type: ModelType };
         type: string;
       },
     ) => {
@@ -335,7 +411,7 @@ export const globalSlice = createSlice({
       state,
       action: {
         payload: {
-          type: 'checkpoint' | 'lora';
+          type: ModelType;
           modelId: number;
           loading: boolean;
         };
@@ -355,7 +431,7 @@ export const globalSlice = createSlice({
     setModelsToUpdate: (
       state,
       action: {
-        payload: { type: 'checkpoint' | 'lora'; modelId: number };
+        payload: { type: ModelType; modelId: number };
         type: string;
       },
     ) => {
@@ -449,13 +525,38 @@ export const globalSlice = createSlice({
       state.watchFolders = action.payload;
     });
 
+    builder.addCase(loadTags.pending, (state) => {
+      state.imagesLoading = true;
+    });
+
     builder.addCase(loadTags.fulfilled, (state, action) => {
+      state.imagesLoading = false;
       state.tags = action.payload;
+    });
+
+    builder.addCase(loadMTags.pending, (state) => {
+      state.checkpoint.loading = true;
+      state.lora.loading = true;
+    });
+
+    builder.addCase(loadMTags.fulfilled, (state, action) => {
+      state.checkpoint.loading = false;
+      state.lora.loading = false;
+      state.mtags = action.payload;
     });
 
     builder.addCase(createTag.fulfilled, (state, action) => {
       state.tags.push(action.payload);
-      state.settings.activeTags = `${state.settings.activeTags},${action.payload}`;
+      if (
+        state.settings.activeTags === '' ||
+        state.settings.activeTags === null
+      ) {
+        state.settings.activeTags = action.payload.id;
+      } else {
+        const activeTagsArr = state.settings.activeTags.split(',');
+        activeTagsArr.push(action.payload.id);
+        state.settings.activeTags = activeTagsArr.join(',');
+      }
     });
 
     builder.addCase(deleteTag.fulfilled, (state, action) => {
@@ -464,7 +565,10 @@ export const globalSlice = createSlice({
         state.tags.splice(index, 1);
       }
 
-      const activeTagsSetting = state.settings.activeTags?.split(',') || [];
+      const activeTagsSetting =
+        state.settings.activeTags !== ''
+          ? state.settings.activeTags?.split(',') || []
+          : [];
       const activeTagsSettingIndex =
         activeTagsSetting.find((t) => t === action.payload) || -1;
       if (activeTagsSettingIndex !== -1) {
@@ -480,6 +584,45 @@ export const globalSlice = createSlice({
       }
     });
 
+    builder.addCase(createMTag.fulfilled, (state, action) => {
+      state.mtags.push(action.payload);
+      if (
+        state.settings.activeMTags === '' ||
+        state.settings.activeMTags === null
+      ) {
+        state.settings.activeMTags = action.payload.id;
+      } else {
+        const activeMTagsArr = state.settings.activeMTags.split(',');
+        activeMTagsArr.push(action.payload.id);
+        state.settings.activeMTags = activeMTagsArr.join(',');
+      }
+    });
+
+    builder.addCase(deleteMTag.fulfilled, (state, action) => {
+      const index = state.mtags.findIndex((tag) => tag.id === action.payload);
+      if (index !== -1) {
+        state.mtags.splice(index, 1);
+      }
+
+      const activeMTagsSetting =
+        state.settings.activeMTags !== ''
+          ? state.settings.activeMTags?.split(',') || []
+          : [];
+      const activeMTagsSettingIndex =
+        activeMTagsSetting.find((t) => t === action.payload) || -1;
+      if (activeMTagsSettingIndex !== -1) {
+        activeMTagsSetting.splice(index, 1);
+        state.settings.activeMTags = activeMTagsSetting.join(',');
+      }
+    });
+
+    builder.addCase(editMTag.fulfilled, (state, action) => {
+      const index = state.mtags.findIndex((t) => t.id === action.payload.id);
+      if (index !== -1) {
+        state.mtags[index] = action.payload;
+      }
+    });
+
     builder.addCase(tagImage.fulfilled, (state, action) => {
       const image = state.images.find(
         (img) => img.hash === action.payload.imageHash,
@@ -491,6 +634,32 @@ export const globalSlice = createSlice({
           image.tags = tags;
         } else {
           image.tags[action.payload.tagId] = action.payload.tagId;
+        }
+      }
+    });
+
+    builder.addCase(tagModel.fulfilled, (state, action) => {
+      let models: Record<string, Model> = {};
+      if (action.payload.type === 'lora') {
+        models = state.lora.models;
+      }
+      if (action.payload.type === 'checkpoint') {
+        models = state.checkpoint.models;
+      }
+
+      if (models) {
+        const model = Object.values(models).find(
+          (m) => m.hash === action.payload.modelHash,
+        );
+
+        if (model) {
+          if (model.tags[action.payload.tagId]) {
+            const mtags = { ...model.tags };
+            delete mtags[action.payload.tagId];
+            model.tags = mtags;
+          } else {
+            model.tags[action.payload.tagId] = action.payload.tagId;
+          }
         }
       }
     });
@@ -524,4 +693,5 @@ export const {
   setAutoImportImages,
   setAutoImportTags,
   setAutoTagImportImages,
+  setActiveMTags,
 } = globalSlice.actions;

@@ -38,6 +38,7 @@ import {
   readModelsIpc,
   readdirModelImagesIpc,
   readdirModelsIpc,
+  tagModelIpc,
   updateModelIpc,
 } from './ipc/model';
 import { openFolderLinkIpc, openLinkIpc } from './ipc/openLink';
@@ -63,6 +64,7 @@ import {
 import { readImageMetadata } from './ipc/metadata';
 import { watchFolderIpc } from './ipc/watchFolders';
 import { tagIpc } from './ipc/tag';
+import { mtagIpc } from './ipc/mtags';
 
 class AppUpdater {
   constructor() {
@@ -112,6 +114,8 @@ ipcMain.handle('tagImage', tagImageIpc);
 ipcMain.handle('regenerateThumbnails', () =>
   regenerateThumbnailsIpc(mainWindow),
 );
+ipcMain.handle('mtag', mtagIpc);
+ipcMain.handle('tagModel', tagModelIpc);
 
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
@@ -195,7 +199,8 @@ ipcMain.handle('watchImagesFolder', async () => {
           : {
               value: '',
             };
-      const activeTagsArr = activeTags?.value.split(',') || [];
+      const activeTagsArr =
+        activeTags !== '' ? activeTags?.value.split(',') || [] : [];
 
       let imagesData: ImageRow = {
         hash,

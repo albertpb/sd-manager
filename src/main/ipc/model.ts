@@ -16,23 +16,27 @@ import {
 import SqliteDB from '../db';
 import { ModelCivitaiInfo } from '../interfaces';
 
+export type ModelType = 'lora' | 'checkpoint';
+
 export type Model = {
+  rowNum?: number;
   hash: string;
   name: string;
   path: string;
-  type: string;
+  type: ModelType;
   rating: number;
   baseModel: string | null;
   modelId: number | null;
   modelVersionId: number | null;
   description: string;
+  tags: Record<string, string>;
 };
 
 export const removeModelsNotFound = async (files: string[], type: string) => {
   const db = await SqliteDB.getInstance().getdb();
 
-  const models: Model[] = await db.all(
-    `SELECT * FROM models WHERE type = $type`,
+  const models: { path: string }[] = await db.all(
+    `SELECT path FROM models WHERE type = $type`,
     { $type: type },
   );
 
@@ -64,14 +68,26 @@ const notifyProgressModel = (
 export const readdirModelsIpc = async (
   browserWindow: BrowserWindow | null,
   event: IpcMainInvokeEvent,
-  modelType: string,
+  modelType: ModelType,
   folderPath: string,
 ) => {
   const folderExists = await checkFolderExists(folderPath);
   if (!folderExists) return {};
 
   const db = await SqliteDB.getInstance().getdb();
-  const models: Model[] = await db.all(`SELECT * FROM models`);
+  const models: Model[] = await db.all(
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+  );
+  models.forEach((model: Model & { tags: string | Record<string, string> }) => {
+    model.tags =
+      typeof model.tags === 'string' && model.tags !== ''
+        ? model.tags.split(',').reduce((acc: Record<string, string>, tag) => {
+            acc[tag] = tag;
+            return acc;
+          }, {})
+        : {};
+  });
+
   const modelsHashMap = models.reduce((acc: Record<string, Model>, row) => {
     if (row.type === modelType) {
       acc[row.path] = row;
@@ -185,6 +201,7 @@ export const readdirModelsIpc = async (
         modelId: modelInfo?.id || null,
         modelVersionId: modelInfo?.modelId || null,
         description: '',
+        tags: {},
       };
     }
 
@@ -304,16 +321,31 @@ export const readdirModelImagesIpc = async (
 export async function readModelsIpc(event: IpcMainInvokeEvent, type: string) {
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(
-    `SELECT * FROM models WHERE type = $type`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $type: type,
     },
   );
 
-  return models.reduce((acc: Record<string, Model>, model: Model) => {
-    acc[model.hash] = model;
-    return acc;
-  }, {});
+  return models.reduce(
+    (
+      acc: Record<string, Model>,
+      model: Model & { tags: string | Record<string, string> },
+    ) => {
+      model.tags =
+        typeof model.tags === 'string' && model.tags !== ''
+          ? model.tags
+              .split(',')
+              .reduce((tagMap: Record<string, string>, tag) => {
+                tagMap[tag] = tag;
+                return tagMap;
+              }, {})
+          : {};
+      acc[model.hash] = model;
+      return acc;
+    },
+    {},
+  );
 }
 
 export const updateModel = async (
@@ -351,9 +383,24 @@ export const readModelInfoIpc = async (
 
 export async function readModelIpc(event: IpcMainInvokeEvent, hash: string) {
   const db = await SqliteDB.getInstance().getdb();
-  return db.get(`SELECT * FROM models WHERE hash = $hash`, {
-    $hash: hash,
+  const models = await db.get(
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE hash = $hash GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    {
+      $hash: hash,
+    },
+  );
+
+  models.forEach((model: Model & { tags: string | Record<string, string> }) => {
+    model.tags =
+      typeof model.tags === 'string' && model.tags !== ''
+        ? model.tags.split(',').reduce((acc: Record<string, string>, tag) => {
+            acc[tag] = tag;
+            return acc;
+          }, {})
+        : {};
   });
+
+  return models;
 }
 
 export async function readModelByNameIpc(
@@ -362,10 +409,25 @@ export async function readModelByNameIpc(
   type: string,
 ) {
   const db = await SqliteDB.getInstance().getdb();
-  return db.get(`SELECT * FROM models WHERE name = $name AND type = $type`, {
-    $name: name,
-    $type: type,
+  const models = await db.get(
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE name = $name AND type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    {
+      $name: name,
+      $type: type,
+    },
+  );
+
+  models.forEach((model: Model & { tags: string | Record<string, string> }) => {
+    model.tags =
+      typeof model.tags === 'string' && model.tags !== ''
+        ? model.tags.split(',').reduce((acc: Record<string, string>, tag) => {
+            acc[tag] = tag;
+            return acc;
+          }, {})
+        : {};
   });
+
+  return models;
 }
 
 export async function checkModelsToUpdateIpc(
@@ -375,7 +437,7 @@ export async function checkModelsToUpdateIpc(
 ) {
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(
-    `SELECT * FROM models WHERE type = $type`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $type: type,
     },
@@ -439,3 +501,50 @@ export async function checkModelsToUpdateIpc(
     }
   }
 }
+
+export const tagModelIpc = async (
+  event: IpcMainInvokeEvent,
+  tagId: string,
+  modelHash: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const tagExists = await db.get(`SELECT id FROM mtags WHERE id = $id`, {
+      $id: tagId,
+    });
+
+    if (tagExists) {
+      const modelIsTagged = await db.get(
+        `SELECT tagId FROM models_mtags WHERE tagId = $tagId AND modelHash = $modelHash`,
+        {
+          $tagId: tagId,
+          $modelHash: modelHash,
+        },
+      );
+
+      if (!modelIsTagged) {
+        await db.run(
+          `INSERT INTO models_mtags (tagId, modelHash) VALUES ($tagId, $modelHash)`,
+          {
+            $tagId: tagId,
+            $modelHash: modelHash,
+          },
+        );
+      } else {
+        await db.run(
+          `DELETE FROM models_mtags WHERE tagId = $tagId AND modelHash = $modelHash`,
+          {
+            $tagId: tagId,
+            $modelHash: modelHash,
+          },
+        );
+      }
+    } else {
+      throw Error('tag not exists');
+    }
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+  }
+};

@@ -1,5 +1,6 @@
 import { MouseEvent } from 'react';
 import classNames from 'classnames';
+import { Tag } from 'main/ipc/tag';
 import Image from './Image';
 import Rating from './Rating';
 
@@ -22,6 +23,7 @@ type ModelCardProps = {
   showBadge?: boolean;
   onDragPath?: string;
   onRatingChange?: (event: MouseEvent<HTMLInputElement>, value: number) => void;
+  tags?: Tag[];
 };
 
 export default function ModelCard({
@@ -43,6 +45,7 @@ export default function ModelCard({
   showBadge = true,
   onDragPath,
   onRatingChange,
+  tags,
 }: ModelCardProps) {
   const loadingOverlay = (
     <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
@@ -81,7 +84,21 @@ export default function ModelCard({
           <div className="flex flex-row justify-between">
             <div className="w-full h-full flex px-3 mt-1 flex-col">
               {showBadge && (
-                <div className="badge badge-accent mb-2">{type}</div>
+                <>
+                  <div className="badge badge-accent mb-2">{type}</div>
+                  {tags?.map((tag) => (
+                    <div
+                      key={`model-tag-${tag.id}-${id}`}
+                      className="badge badge-accent mb-2"
+                      style={{
+                        color: tag?.color,
+                        background: tag?.bgColor,
+                      }}
+                    >
+                      {tag?.label}
+                    </div>
+                  ))}
+                </>
               )}
               {needUpdate && (
                 <div className="badge badge-warning mb-2">update</div>

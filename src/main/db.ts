@@ -236,5 +236,32 @@ export default class SqliteDB {
 
       version.user_version = 11;
     }
+
+    if (version.user_version === 11) {
+      try {
+        await db.run(`CREATE TABLE mtags (
+          id TEXT NOT NULL,
+          label TEXT NOT NULL,
+          color TEXT NOT NULL,
+          bgColor TEXT NOT NULL,
+          PRIMARY KEY (id)
+        )`);
+
+        await db.run(`CREATE TABLE models_mtags (
+          tagId TEXT NOT NULL,
+          modelHash TEXT NOT NULL,
+          PRIMARY KEY (modelHash, tagId),
+          FOREIGN KEY (modelHash) REFERENCES models(hash) ON DELETE CASCADE,
+          FOREIGN KEY (tagId) REFERENCES mtags(id) ON DELETE CASCADE
+        )`);
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 12`);
+
+      version.user_version = 12;
+    }
   }
 }

@@ -43,7 +43,7 @@ export async function getImages(modelName: string | undefined) {
   images.forEach(
     (image: ImageRow & { tags: string | Record<string, string> }) => {
       image.tags =
-        typeof image.tags === 'string'
+        typeof image.tags === 'string' && image.tags !== ''
           ? image.tags.split(',').reduce((acc: Record<string, string>, tag) => {
               acc[tag] = tag;
               return acc;
@@ -280,7 +280,8 @@ export const scanImagesIpc = async (
               autoImportTags &&
               autoImportTags.value !== ''
             ) {
-              const autoImportTagsArr = autoImportTags.value.split(',');
+              const autoImportTagsArr =
+                autoImportTags !== '' ? autoImportTags.value.split(',') : [];
               for (let j = 0; j < autoImportTagsArr.length; j++) {
                 await db.run(
                   `INSERT INTO images_tags (tagId, imageHash) VALUES ($tagId, $imageHash)`,
