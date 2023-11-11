@@ -402,7 +402,7 @@ export default function Images() {
           id={`${item.hash}`}
           key={`${item.hash}`}
           className={classNames([
-            'cursor-pointer relative overflow-hidden rounded-md p-2',
+            'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
             {
               'opacity-50': imagesToDelete[item.hash],
             },
@@ -471,7 +471,7 @@ export default function Images() {
 
     return (
       <div
-        className="grid gap-2"
+        className="grid"
         style={{
           gridTemplateColumns: `repeat(${perChunk}, minmax(0, 1fr))`,
         }}

@@ -49,11 +49,18 @@ export default function ModelDetail() {
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const [carouselCards, setCarouselCards] = useState<number>(1);
+
   const [width, setWidth] = useState(320);
   const [height, setHeight] = useState(480);
   const [perChunk, setPerChunk] = useState(4);
   const [buffer, setBuffer] = useState(3);
   const margin = 20;
+
+  const maxWindowWith = 4000;
+  const minWindowWith = 700;
+  const maxZoom = 6;
+  const minZoom = 1;
 
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
 
@@ -104,9 +111,17 @@ export default function ModelDetail() {
   }, [userImagesList, modelData]);
 
   const calcImagesValues = useCallback(() => {
-    const zoomLevel = 5;
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
+    let zoomLevel = 1;
+
+    if (windowWidth < minWindowWith) {
+      zoomLevel = minZoom;
+    } else if (windowWidth > maxWindowWith) {
+      zoomLevel = maxZoom;
+    } else {
+      zoomLevel = Math.round((windowWidth / maxWindowWith) * maxZoom);
+    }
 
     let headHeight = showHead ? 380 : 0;
 
@@ -114,8 +129,11 @@ export default function ModelDetail() {
       headHeight = 0;
     }
 
+    // carousel cards
+    setCarouselCards((windowWidth * 0.6) / 230);
+
     setContainerHeight(windowHeight - headHeight - 300);
-    setContainerWidth(windowWidth - 350);
+    setContainerWidth(windowWidth * 0.9);
 
     const cardWidth = (containerWidth - zoomLevel * 16) / zoomLevel; // (cardHeight * 2) / 3;
     const cardHeight = (cardWidth * 3) / 2; // containerHeight / zoomLevel - rowMargin;
@@ -198,6 +216,7 @@ export default function ModelDetail() {
   };
 
   if (modelData && modelCivitaiInfo) {
+    // carousel
     const modelImages = modelImagesList.map((imgSrc, i) => {
       return (
         <div
@@ -236,7 +255,7 @@ export default function ModelDetail() {
                   id={`${item.hash}`}
                   key={`${item.hash || `${item.path}_row_${i}`}`}
                   className={classNames([
-                    'cursor-pointer',
+                    'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
                     {
                       'opacity-50':
                         item.hash !== null ? imagesToDelete[item.hash] : false,
@@ -246,11 +265,10 @@ export default function ModelDetail() {
                   aria-hidden="true"
                 >
                   <figure
-                    className="card__figure animated rounded-md p-0 m-2 overflow-hidden relative"
+                    className="card__figure animated rounded-md relative"
                     style={{
                       width: `${width}px`,
                       height: `${height}px`,
-                      marginRight: `${margin}px`,
                     }}
                   >
                     <div className="absolute top-2 right-2 z-20">
@@ -290,13 +308,13 @@ export default function ModelDetail() {
                   id={`${modelImage}_${i}`}
                   key={`${modelImage}_${i}`}
                   aria-hidden="true"
+                  className="cursor-pointer overflow-hidden rounded-md py-2 w-fit"
                 >
                   <figure
-                    className="card__figure animated rounded-md p-0 m-2 overflow-hidden relative"
+                    className="card__figure animated rounded-md relative"
                     style={{
                       width: `${width}px`,
                       height: `${height}px`,
-                      marginRight: `${margin}px`,
                     }}
                   >
                     <Image
@@ -324,32 +342,8 @@ export default function ModelDetail() {
             );
           };
 
-    const responsive = {
-      superLargeDesktop: {
-        // the naming can be any, depends on you.
-        breakpoint: { max: 4000, min: 2150 },
-        items: 5,
-      },
-      desktop: {
-        breakpoint: { max: 2150, min: 1600 },
-        items: 4,
-      },
-      laptop: {
-        breakpoint: { max: 1600, min: 1240 },
-        items: 3,
-      },
-      tablet: {
-        breakpoint: { max: 1240, min: 860 },
-        items: 2,
-      },
-      mobile: {
-        breakpoint: { max: 860, min: 0 },
-        items: 1,
-      },
-    };
-
     return (
-      <main className="px-4 pb-4 pt-10 flex justify-center relative h-full">
+      <main className="pb-4 pt-10 flex justify-center relative h-full">
         <div className="absolute top-10 right-10">
           <button
             className="btn btn-circle"
@@ -410,7 +404,19 @@ export default function ModelDetail() {
           >
             <div className="flex w-full mt-4">
               <div className="w-4/6">
-                <Carousel responsive={responsive}>{modelImages}</Carousel>
+                <Carousel
+                  responsive={{
+                    default: {
+                      breakpoint: {
+                        max: Number.POSITIVE_INFINITY,
+                        min: Number.NEGATIVE_INFINITY,
+                      },
+                      items: carouselCards,
+                    },
+                  }}
+                >
+                  {modelImages}
+                </Carousel>
               </div>
               <div
                 className="w-2/6 pl-4 overflow-y-auto"

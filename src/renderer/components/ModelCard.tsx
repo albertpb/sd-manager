@@ -24,6 +24,7 @@ type ModelCardProps = {
   onDragPath?: string;
   onRatingChange?: (event: MouseEvent<HTMLInputElement>, value: number) => void;
   tags?: Tag[];
+  onClick: (e: MouseEvent<HTMLDivElement>) => void;
 };
 
 export default function ModelCard({
@@ -46,6 +47,7 @@ export default function ModelCard({
   onDragPath,
   onRatingChange,
   tags,
+  onClick,
 }: ModelCardProps) {
   const loadingOverlay = (
     <div className="absolute top-0 right-0 w-full h-full flex justify-center items-center text-primary flex-col z-50">
@@ -57,15 +59,16 @@ export default function ModelCard({
   return (
     <div
       className={classNames([
-        'relative overflow-hidden rounded-md p-0 m-2 cursor-pointer',
+        'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
         className,
       ])}
-      style={{ width, height }}
+      onClick={(e) => onClick(e)}
+      aria-hidden
     >
       {loading && loadingOverlay}
       <figure
         className={classNames([
-          'card__figure rounded-md overflow-hidden',
+          'card__figure rounded-md overflow-hidden relative',
           { animated: !loading && hoverEffect },
           { 'blur-sm': loading },
           figureClassName,

@@ -429,35 +429,30 @@ export default function Models({
           : false;
 
       return (
-        <div
-          onClick={(e) => onModelCardClick(e, item.hash)}
+        <ModelCard
+          id={`model-card-models-${item.hash}`}
           key={`${item.hash}_${item.name}`}
-          aria-hidden="true"
-          className="w-fit"
-        >
-          <ModelCard
-            id={`model-card-models-${item.hash}`}
-            loading={loading}
-            needUpdate={needUpdate}
-            name={item.name}
-            rating={item.rating}
-            imagePath={imagePath}
-            width={`${width}px`}
-            height={`${height}px`}
-            type={type}
-            imageClassName="object-cover"
-            className={{
-              'max-w-fit': zoomLevel === 1,
-            }}
-            showRating={showRating}
-            onDragPath={imagePath}
-            hoverEffect={hoverEffect}
-            showBadge={showBadge}
-            showName={showModelName}
-            onRatingChange={(e, value) => onRatingChange(e, item.hash, value)}
-            tags={Object.keys(item.tags).map((tag: string) => tagsMMap[tag])}
-          />
-        </div>
+          onClick={(e) => onModelCardClick(e, item.hash)}
+          loading={loading}
+          needUpdate={needUpdate}
+          name={item.name}
+          rating={item.rating}
+          imagePath={imagePath}
+          width={`${width}px`}
+          height={`${height}px`}
+          type={type}
+          imageClassName="object-cover"
+          className={{
+            'max-w-fit': zoomLevel === 1,
+          }}
+          showRating={showRating}
+          onDragPath={imagePath}
+          hoverEffect={hoverEffect}
+          showBadge={showBadge}
+          showName={showModelName}
+          onRatingChange={(e, value) => onRatingChange(e, item.hash, value)}
+          tags={Object.keys(item.tags).map((tag: string) => tagsMMap[tag])}
+        />
       );
     });
 
