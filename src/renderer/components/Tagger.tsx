@@ -156,8 +156,8 @@ export default function Tagger({
                         value={
                           autoImportTags && autoImportTags !== ''
                             ? autoImportTags.split(',').map((t) => ({
-                                label: tagsMap[t].label,
-                                value: tagsMap[t].id,
+                                label: tagsMap[t]?.label,
+                                value: tagsMap[t]?.id,
                               }))
                             : []
                         }
