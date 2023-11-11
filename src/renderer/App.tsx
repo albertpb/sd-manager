@@ -29,8 +29,8 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <Routes>
                     <Route path="/" element={<MainLayout />}>
-                      <Route path="/test" element={<TestPage />} />
-                      <Route index element={<Checkpoints />} />
+                      <Route index element={<Images />} />
+                      <Route path="checkpoints" element={<Checkpoints />} />
                       <Route
                         path="/model-detail/:hash"
                         element={<ModelDetail />}
@@ -40,7 +40,6 @@ export default function App() {
                         element={<ImageDetail />}
                       />
                       <Route path="/loras" element={<Loras />} />
-                      <Route path="/images" element={<Images />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route
                         path="/ar-helper"
@@ -50,6 +49,7 @@ export default function App() {
                         path="/image-metadata"
                         element={<ImageMetadata />}
                       />
+                      <Route path="/test" element={<TestPage />} />
                     </Route>
                   </Routes>
                 </AnimatePresence>

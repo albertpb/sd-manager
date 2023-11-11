@@ -19,13 +19,6 @@ export default function SettingsLoader({ children }: { children: ReactNode }) {
           response.payload?.theme || 'default',
         );
         setLoaded(true);
-
-        if (
-          response.payload?.checkpointsPath === null ||
-          response.payload?.checkpointsPath === undefined
-        ) {
-          navigate('/settings');
-        }
       }
     };
 

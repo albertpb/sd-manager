@@ -20,13 +20,13 @@ import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import { AppDispatch, RootState } from 'renderer/redux';
+import { imagesToDelete } from 'renderer/signals/images';
 import {
   createTag,
   readImages,
   scanImages,
   setActiveTags,
   setAutoImportTags,
-  setImagesToDelete,
   tagImage,
   updateImage,
 } from 'renderer/redux/reducers/global';
@@ -82,9 +82,6 @@ export default function Images() {
   );
   const navbarSearchInput = useSelector(
     (state: RootState) => state.global.navbarSearchInput,
-  );
-  const imagesToDelete = useSelector(
-    (state: RootState) => state.global.imagesToDelete,
   );
   const filterCheckpoint = useSelector(
     (state: RootState) => state.global.filterCheckpoint,
@@ -321,12 +318,12 @@ export default function Images() {
     image: ImageRow,
   ) => {
     if (deleteActive) {
-      if (imagesToDelete[image.hash]) {
-        const imgs = { ...imagesToDelete };
+      if (imagesToDelete.value[image.hash]) {
+        const imgs = { ...imagesToDelete.value };
         delete imgs[image.hash];
-        dispatch(setImagesToDelete(imgs));
+        imagesToDelete.value = imgs;
       } else {
-        dispatch(setImagesToDelete({ ...imagesToDelete, [image.hash]: image }));
+        imagesToDelete.value = { ...imagesToDelete.value, [image.hash]: image };
       }
     } else if (e.shiftKey) {
       const activeTagsArr =
@@ -344,7 +341,7 @@ export default function Images() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      dispatch(setImagesToDelete({}));
+      imagesToDelete.value = {};
     }
   };
 
@@ -386,9 +383,9 @@ export default function Images() {
 
   useEffect(() => {
     return () => {
-      dispatch(setImagesToDelete({}));
+      imagesToDelete.value = {};
     };
-  }, [dispatch]);
+  }, [deleteActive]);
 
   const rowRenderer = (visibleData: ImageRow[], selectedItems: boolean[]) => {
     const rows = visibleData.map((item, i) => {
@@ -404,7 +401,7 @@ export default function Images() {
           className={classNames([
             'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
             {
-              'opacity-50': imagesToDelete[item.hash],
+              'opacity-50': imagesToDelete.value[item.hash],
             },
           ])}
           onClick={(e) => onImageClick(e, item)}

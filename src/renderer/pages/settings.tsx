@@ -28,6 +28,7 @@ import ConfirmDialog, {
   ConfirmDialogResponse,
 } from 'renderer/components/ConfirmDialog';
 import TagsTable from 'renderer/components/TagsTable';
+import StatusBar from 'renderer/components/StatusBar';
 import { FullLoader } from 'renderer/components/FullLoader';
 import { Tag } from 'main/ipc/tag';
 import themes from '../../../themes';
@@ -41,6 +42,13 @@ export default function Settings() {
   );
   const tags = useSelector((state: RootState) => state.global.tags);
   const mtags = useSelector((state: RootState) => state.global.mtags);
+
+  const checkpointsLoading = useSelector(
+    (state: RootState) => state.global.checkpoint.loading,
+  );
+  const lorasLoading = useSelector(
+    (state: RootState) => state.global.lora.loading,
+  );
 
   const [confirmIsOpen, setConfirmIsOpen] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
@@ -259,6 +267,7 @@ export default function Settings() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
+      className="relative min-h-full"
     >
       <ConfirmDialog
         response={confirmDialogResponse}
@@ -277,7 +286,7 @@ export default function Settings() {
               <span>Checkpoints folder:</span> {settings.checkpointsPath}{' '}
             </p>
           </div>
-          <div className="flex flex-row">
+          <div className="flex items-center">
             <button
               type="button"
               className="btn btn-sm"
@@ -288,9 +297,13 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm ml-2"
+              disabled={checkpointsLoading}
               onClick={() => scanModels('checkpoint')}
             >
-              Scan
+              {checkpointsLoading && (
+                <span className="loading loading-spinner" />
+              )}
+              {checkpointsLoading ? 'Importing...' : 'Import'}
             </button>
           </div>
         </div>
@@ -300,23 +313,23 @@ export default function Settings() {
               <span>Loras folder:</span> {settings.lorasPath}{' '}
             </p>
           </div>
-          <div className="flex">
-            <div className="mr-2">
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => onSelectLorasDir()}
-              >
-                Change
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm ml-2"
-                onClick={() => scanModels('lora')}
-              >
-                Scan
-              </button>
-            </div>
+          <div className="flex items-center">
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => onSelectLorasDir()}
+            >
+              Change
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm ml-2"
+              disabled={lorasLoading}
+              onClick={() => scanModels('lora')}
+            >
+              {lorasLoading && <span className="loading loading-spinner" />}
+              {lorasLoading ? 'Importing...' : 'Import'}
+            </button>
           </div>
         </div>
         <div className="mt-3 flex flex-row items-center form-control">
@@ -516,6 +529,9 @@ export default function Settings() {
           />
         </div>
       </section>
+      <div className="absolute bottom-0 left-0 w-full">
+        <StatusBar />
+      </div>
     </motion.div>
   );
 }

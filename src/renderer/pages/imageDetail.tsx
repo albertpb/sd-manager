@@ -12,14 +12,11 @@ import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
 import { AppDispatch, RootState } from 'renderer/redux';
-import {
-  deleteImages,
-  setImagesToDelete,
-  updateImage,
-} from 'renderer/redux/reducers/global';
+import { deleteImages, updateImage } from 'renderer/redux/reducers/global';
 import { generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
+import { imagesToDelete } from 'renderer/signals/images';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -102,15 +99,12 @@ export default function ImageDetail() {
 
   const deleteImage = useCallback(() => {
     if (imageData) {
-      dispatch(
-        setImagesToDelete({
-          [imageData.hash]: imageData,
-        }),
-      );
-
+      imagesToDelete.value = {
+        [imageData.hash]: imageData,
+      };
       setConfirmDialogIsOpen(true);
     }
-  }, [imageData, dispatch]);
+  }, [imageData]);
 
   const doDelete = useCallback(async () => {
     await dispatch(deleteImages());
@@ -199,7 +193,7 @@ export default function ImageDetail() {
   };
 
   const onCancelDelete = () => {
-    dispatch(setImagesToDelete({}));
+    imagesToDelete.value = {};
 
     setConfirmDialogIsOpen(false);
   };
@@ -242,7 +236,7 @@ export default function ImageDetail() {
         <div className="w-fit h-auto">
           <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
             <li>
-              <button type="button" onClick={() => navigate('/images')}>
+              <button type="button" onClick={() => navigate('/')}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"

@@ -2,20 +2,20 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export const tabs = {
+  images: {
+    id: 'images',
+    label: 'Images',
+    path: '',
+  },
   checkpoints: {
     id: 'checkpoints',
     label: 'Checkpoints',
-    path: '',
+    path: 'checkpoints',
   },
   loras: {
     id: 'loras',
     label: 'Loras',
     path: 'loras',
-  },
-  images: {
-    id: 'images',
-    label: 'Images',
-    path: 'images',
   },
   /*
   arHelper: {

@@ -12,7 +12,8 @@ import { AppDispatch, RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
-import { setImagesToDelete, updateModel } from 'renderer/redux/reducers/global';
+import { updateModel } from 'renderer/redux/reducers/global';
+import { imagesToDelete } from 'renderer/signals/images';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
@@ -22,9 +23,6 @@ export default function ModelDetail() {
   const selectedModelHash = navigatorParams.hash;
 
   const settings = useSelector((state: RootState) => state.global.settings);
-  const imagesToDelete = useSelector(
-    (state: RootState) => state.global.imagesToDelete,
-  );
   const modelData: Model | null = useSelector((state: RootState) => {
     if (selectedModelHash) {
       if (state.global.checkpoint.models[selectedModelHash]) {
@@ -153,9 +151,9 @@ export default function ModelDetail() {
 
   useEffect(() => {
     return () => {
-      dispatch(setImagesToDelete({}));
+      imagesToDelete.value = {};
     };
-  }, [dispatch]);
+  }, []);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -173,14 +171,15 @@ export default function ModelDetail() {
     if (modelData?.type === 'checkpoint') {
       if (item.hash !== null) {
         if (deleteActive) {
-          if (imagesToDelete[item.hash]) {
-            const imgs = { ...imagesToDelete };
+          if (imagesToDelete.value[item.hash]) {
+            const imgs = { ...imagesToDelete.value };
             delete imgs[item.hash];
-            dispatch(setImagesToDelete(imgs));
+            imagesToDelete.value = imgs;
           } else {
-            dispatch(
-              setImagesToDelete({ ...imagesToDelete, [item.hash]: item }),
-            );
+            imagesToDelete.value = {
+              ...imagesToDelete.value,
+              [item.hash]: item,
+            };
           }
         } else {
           navigate(`/image-detail/${item.hash}`);
@@ -199,7 +198,7 @@ export default function ModelDetail() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      dispatch(setImagesToDelete({}));
+      imagesToDelete.value = {};
     }
   };
 
@@ -258,7 +257,9 @@ export default function ModelDetail() {
                     'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
                     {
                       'opacity-50':
-                        item.hash !== null ? imagesToDelete[item.hash] : false,
+                        item.hash !== null
+                          ? imagesToDelete.value[item.hash]
+                          : false,
                     },
                   ])}
                   onClick={() => onSelectImage(item)}

@@ -248,7 +248,7 @@ export const scanImagesIpc = async (
       );
 
       const autoImportTags =
-        autoTagImportImages.value === '1'
+        autoTagImportImages?.value === '1'
           ? await db.get(`SELECT value FROM settings WHERE key = $key`, {
               $key: 'autoImportTags',
             })
@@ -276,7 +276,7 @@ export const scanImagesIpc = async (
             );
 
             if (
-              autoTagImportImages.value === '1' &&
+              autoTagImportImages?.value === '1' &&
               autoImportTags &&
               autoImportTags.value !== ''
             ) {

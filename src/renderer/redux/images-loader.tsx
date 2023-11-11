@@ -1,9 +1,10 @@
 import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect } from 'react';
-import { signal } from '@preact/signals-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { WatchFolder } from 'main/ipc/watchFolders';
+import { imagesImportProgress } from 'renderer/signals/images';
+import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '.';
 import {
   loadTags,
@@ -13,16 +14,9 @@ import {
   setImages,
 } from './reducers/global';
 
-export const imagesImportProgress = signal<{
-  progress: number;
-  message: string;
-}>({
-  progress: 0,
-  message: '',
-});
-
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
 
   const images = useSelector((state: RootState) => state.global.images);
   const scanImagesOnStart = useSelector(
@@ -39,15 +33,18 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
+      const wfs: WatchFolder[] = await window.ipcHandler.watchFolder('read');
       if (scanImagesOnStart === '1') {
-        const watchFolders: WatchFolder[] =
-          await window.ipcHandler.watchFolder('read');
-        await dispatch(scanImages(watchFolders.map((f) => f.path)));
+        await dispatch(scanImages(wfs.map((f) => f.path)));
       }
-      await dispatch(readImages());
+      if (wfs.length > 0) {
+        await dispatch(readImages());
+      } else {
+        navigate('/settings');
+      }
     };
     load();
-  }, [dispatch, scanImagesOnStart]);
+  }, [dispatch, navigate, scanImagesOnStart]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

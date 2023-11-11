@@ -75,15 +75,16 @@ export const tagIpc = async (
 
         if (index !== -1) {
           activeTagsArr.splice(index, 1);
-
           await db.run(
             `UPDATE settings SET value = $activeTags WHERE key = $key`,
             {
-              $activeTag: activeTagsArr.join(','),
+              $activeTags:
+                activeTagsArr.length === 0 ? '' : activeTagsArr.join(','),
               $key: 'activeTags',
             },
           );
         }
+
         await db.run(`DELETE FROM tags WHERE id = $id`, {
           $id: payload.id,
         });

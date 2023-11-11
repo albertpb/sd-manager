@@ -1,5 +1,5 @@
 import { Tag } from 'main/ipc/tag';
-import { useState } from 'react';
+import { KeyboardEvent, useState } from 'react';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import ColorPicker from './ColorPicker';
 
@@ -52,6 +52,24 @@ export default function TagsTable({
     addTag({ label: addTagLabel, bgColor: '#269310' });
   };
 
+  const onEditKeyUp = (e: KeyboardEvent<HTMLElement>, tag: Tag) => {
+    if (e.key === 'Enter') {
+      updateTag({
+        id: tag.id,
+        label: tagsEditState[tag.id].inputValue,
+        bgColor: tagsEditState[tag.id].bgColor,
+      });
+
+      setTagsEditState({
+        ...tagsEditState,
+        [tag.id]: {
+          ...tagsEditState[tag.id],
+          show: false,
+        },
+      });
+    }
+  };
+
   return (
     <div>
       <div className="mt-5 flex flex-row justify-between">
@@ -99,17 +117,9 @@ export default function TagsTable({
                             },
                           })
                         }
-                        onKeyUp={(e) =>
-                          e.key === 'Enter'
-                            ? updateTag({
-                                id: tag.id,
-                                label: tagsEditState[tag.id].inputValue,
-                                bgColor: tagsEditState[tag.id].bgColor,
-                              })
-                            : null
-                        }
+                        onKeyUp={(e) => onEditKeyUp(e, tag)}
                         type="text"
-                        placeholder="Type here"
+                        placeholder="Type tag"
                         className="input input-bordered input-sm w-full"
                       />
                       <ColorPicker

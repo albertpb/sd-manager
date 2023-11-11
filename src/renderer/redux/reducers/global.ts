@@ -6,6 +6,7 @@ import { WatchFolder } from 'main/ipc/watchFolders';
 import { Tag } from 'main/ipc/tag';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import { Option } from 'react-tailwindcss-select/dist/components/type';
+import { imagesToDelete } from 'renderer/signals/images';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
@@ -41,7 +42,6 @@ export type GlobalState = {
   filterCheckpoint: string;
   imagesLoading: boolean;
   navbarSearchInput: string;
-  imagesToDelete: Record<string, ImageRow>;
   watchFolders: WatchFolder[];
   tags: Tag[];
   mtags: Tag[];
@@ -76,7 +76,6 @@ const initialState: GlobalState = {
   images: [],
   filterCheckpoint: '',
   imagesLoading: false,
-  imagesToDelete: {},
   navbarSearchInput: '',
   watchFolders: [],
   tags: [],
@@ -155,10 +154,8 @@ export const scanImages = createAsyncThunk(
 
 export const deleteImages = createAsyncThunk(
   'deleteImages',
-  async (arg, { getState, dispatch }) => {
-    const state = getState() as { global: GlobalState };
-
-    await window.ipcHandler.removeImages(state.global.imagesToDelete);
+  async (arg, { dispatch }) => {
+    await window.ipcHandler.removeImages(imagesToDelete.value);
     await dispatch(readImages());
   },
 );
@@ -352,9 +349,6 @@ export const globalSlice = createSlice({
         state.navbarSearchInput = action.payload;
       }
     },
-    setImagesToDelete: (state, action) => {
-      state.imagesToDelete = action.payload;
-    },
     setTheme: (state, action) => {
       state.settings.theme = action.payload;
       saveSettings('theme', action.payload);
@@ -488,7 +482,7 @@ export const globalSlice = createSlice({
     });
     builder.addCase(deleteImages.fulfilled, (state) => {
       state.imagesLoading = false;
-      state.imagesToDelete = {};
+      imagesToDelete.value = {};
     });
 
     builder.addCase(updateModel.fulfilled, (state, action) => {
@@ -548,6 +542,7 @@ export const globalSlice = createSlice({
     builder.addCase(createTag.fulfilled, (state, action) => {
       state.tags.push(action.payload);
       if (
+        state.settings.activeTags === undefined ||
         state.settings.activeTags === '' ||
         state.settings.activeTags === null
       ) {
@@ -587,6 +582,7 @@ export const globalSlice = createSlice({
     builder.addCase(createMTag.fulfilled, (state, action) => {
       state.mtags.push(action.payload);
       if (
+        state.settings.activeMTags === undefined ||
         state.settings.activeMTags === '' ||
         state.settings.activeMTags === null
       ) {
@@ -680,7 +676,6 @@ export const {
   setNavbarSearchInputValue,
   setScanModelsOnStart,
   setScanImagesOnStart,
-  setImagesToDelete,
   setTheme,
   setFilterCheckpoint,
   setImages,

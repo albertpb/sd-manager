@@ -266,7 +266,7 @@ export async function hashFilesInBackground(
     progressCb(0.1);
   }
 
-  const filesHashes: Record<string, string> = {};
+  let filesHashes: Record<string, string> = {};
   const filesChunks = chunkArray(files, HashWorkerManager.getInstance().size());
 
   for (let i = 0; i < filesChunks.length; i++) {
@@ -292,7 +292,10 @@ export async function hashFilesInBackground(
     const hashes = await Promise.all(promises);
 
     for (let j = 0; j < hashes.length; j++) {
-      Object.assign(filesHashes, hashes[j]);
+      filesHashes = {
+        ...filesHashes,
+        ...hashes[j],
+      };
     }
 
     const progress = ((i + 1) / filesChunks.length) * 100;
@@ -344,7 +347,7 @@ export async function parseImagesMetadata(
     files,
     ImageMetadataWorkerManager.getInstance().size(),
   );
-  const filesMetadata: Record<string, ImageMetaData> = {};
+  let filesMetadata: Record<string, ImageMetaData> = {};
   for (let i = 0; i < filesChunks.length; i++) {
     const promises: Promise<Record<string, ImageMetaData> | null>[] = [];
     for (let j = 0; j < filesChunks[i].length; j++) {
@@ -353,7 +356,10 @@ export async function parseImagesMetadata(
     const response = await Promise.all(promises);
     for (let j = 0; j < response.length; j++) {
       if (response[j] !== null) {
-        Object.assign(filesMetadata, response[j]);
+        filesMetadata = {
+          ...filesMetadata,
+          ...response[j],
+        };
       }
     }
 
