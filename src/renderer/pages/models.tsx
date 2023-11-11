@@ -11,9 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import VirtualScroll, {
-  VirtualScrollData,
-} from 'renderer/components/VirtualScroll';
+import VirtualScroll from 'renderer/components/VirtualScroll';
 import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
 import {
@@ -34,11 +32,6 @@ import Tagger from 'renderer/components/Tagger';
 import { createSelector } from '@reduxjs/toolkit';
 import { Tag } from 'main/ipc/tag';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
-
-interface RowData {
-  row: Fuse.FuseResult<Model>[];
-  id: string;
-}
 
 export default function Models({
   modelsState,
@@ -165,19 +158,11 @@ export default function Models({
 
   const resultCards =
     navbarSearchInput === ''
-      ? models.map((model, i) => {
-          return {
-            item: model,
-            matches: [],
-            score: 1,
-            refIndex: i,
-          };
-        })
-      : fuse.search(navbarSearchInput);
+      ? models
+      : fuse.search(navbarSearchInput).map((result) => result.item);
 
   const filterByTagFunc = useCallback(
     (model: Model) => {
-      console.log(model);
       const modeltags = Object.values(model.tags);
       if (modeltags.length > 0) {
         return modeltags.every((t) => {
@@ -427,23 +412,8 @@ export default function Models({
     return () => remove();
   }, [dispatch, type]);
 
-  const chunks = resultCards.reduce((resultArr: RowData[], item, index) => {
-    const chunkIndex = Math.floor(index / perChunk);
-
-    if (!resultArr[chunkIndex]) {
-      resultArr[chunkIndex] = {
-        row: [],
-        id: '',
-      };
-    }
-    resultArr[chunkIndex].row.push(item);
-    resultArr[chunkIndex].id += `${item.item.hash}_${index}`;
-
-    return resultArr;
-  }, []);
-
-  const rowRenderer = (row: VirtualScrollData) => {
-    const items = row.row.map(({ item }: Fuse.FuseResult<Model>) => {
+  const rowRenderer = (visibleData: Model[]) => {
+    const items = visibleData.map((item) => {
       const imagePath =
         type === 'checkpoint'
           ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
@@ -463,6 +433,7 @@ export default function Models({
           onClick={(e) => onModelCardClick(e, item.hash)}
           key={`${item.hash}_${item.name}`}
           aria-hidden="true"
+          className="w-fit"
         >
           <ModelCard
             id={`model-card-models-${item.hash}`}
@@ -491,7 +462,12 @@ export default function Models({
     });
 
     return (
-      <div key={row.id} className="flex w-full">
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${perChunk}, minmax(0, 1fr))`,
+        }}
+      >
         {items}
       </div>
     );
@@ -819,22 +795,21 @@ export default function Models({
         </ul>
       </div>
       <div className="flex flex-col w-full">
-        <div className="flex flex-col w-full">
-          <div className="py-0 pl-5 pr-0">
-            <VirtualScroll
-              id={`${type}_virtualscroll`}
-              saveState
-              data={chunks}
-              settings={{
-                buffer,
-                rowHeight: height,
-                tolerance: 1,
-                rowMargin,
-                containerHeight,
-              }}
-              rowRenderer={rowRenderer}
-            />
-          </div>
+        <div className="py-0 pl-5 pr-0">
+          <VirtualScroll
+            id={`${type}_virtualscroll`}
+            saveState
+            data={resultCards}
+            settings={{
+              buffer,
+              rowHeight: height,
+              tolerance: 1,
+              rowMargin,
+              containerHeight,
+              cols: perChunk,
+            }}
+            render={rowRenderer}
+          />
         </div>
         <StatusBar
           totalCards={Object.values(modelsState.models).length}

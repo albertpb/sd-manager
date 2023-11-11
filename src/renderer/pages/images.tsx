@@ -18,9 +18,7 @@ import Image from 'renderer/components/Image';
 import Rating from 'renderer/components/Rating';
 import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
-import VirtualScroll, {
-  VirtualScrollData,
-} from 'renderer/components/VirtualScroll';
+import VirtualScroll from 'renderer/components/VirtualScroll';
 import { AppDispatch, RootState } from 'renderer/redux';
 import {
   createTag,
@@ -33,14 +31,7 @@ import {
   updateImage,
 } from 'renderer/redux/reducers/global';
 
-interface RowData {
-  row: Fuse.FuseResult<ImageRow>[];
-  id: string;
-}
-
 export default function Images() {
-  console.log('rendering images page');
-
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -322,30 +313,8 @@ export default function Images() {
 
   const imagesResult =
     navbarSearchInput === ''
-      ? imagesList.map((image, i) => {
-          return {
-            item: image,
-            matches: [],
-            score: 1,
-            refIndex: i,
-          };
-        })
-      : fuse.search(navbarSearchInput);
-
-  const chunks = imagesResult.reduce((resultArr: RowData[], item, index) => {
-    const chunkIndex = Math.floor(index / perChunk);
-
-    if (!resultArr[chunkIndex]) {
-      resultArr[chunkIndex] = {
-        id: '',
-        row: [],
-      };
-    }
-
-    resultArr[chunkIndex].row.push(item);
-    resultArr[chunkIndex].id = item.item.hash;
-    return resultArr;
-  }, []);
+      ? imagesList
+      : fuse.search(navbarSearchInput).map((result) => result.item);
 
   const onImageClick = async (
     e: MouseEvent<HTMLDivElement>,
@@ -421,8 +390,8 @@ export default function Images() {
     };
   }, [dispatch]);
 
-  const rowRenderer = (row: VirtualScrollData) => {
-    const items = row.row.map(({ item }: Fuse.FuseResult<ImageRow>) => {
+  const rowRenderer = (visibleData: ImageRow[], selectedItems: boolean[]) => {
+    const rows = visibleData.map((item, i) => {
       const imageSrc =
         zoomLevel <= 2
           ? `${item.path}\\${item.name}.png`
@@ -433,7 +402,7 @@ export default function Images() {
           id={`${item.hash}`}
           key={`${item.hash}`}
           className={classNames([
-            'cursor-pointer relative overflow-hidden rounded-md p-0 m-2',
+            'cursor-pointer relative overflow-hidden rounded-md p-2',
             {
               'opacity-50': imagesToDelete[item.hash],
             },
@@ -446,9 +415,8 @@ export default function Images() {
               'card__figure rounded-md overflow-hidden relative',
               {
                 animated: hoverEffect,
-              },
-              {
                 'max-w-fit': zoomLevel === 1,
+                'opacity-50': selectedItems[i],
               },
             ])}
             style={{
@@ -502,8 +470,13 @@ export default function Images() {
     });
 
     return (
-      <div key={row.id} className="flex flex-nowrap w-full">
-        {items}
+      <div
+        className="grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${perChunk}, minmax(0, 1fr))`,
+        }}
+      >
+        {rows}
       </div>
     );
   };
@@ -906,22 +879,27 @@ export default function Images() {
         </ul>
       </div>
       <div className="flex flex-col w-full">
-        <div className="flex flex-col w-full">
-          <div className="py-0 pl-5 pr-0">
-            <VirtualScroll
-              id={virtualScrollId}
-              saveState
-              data={chunks}
-              settings={{
-                buffer,
-                rowHeight: height,
-                tolerance: 1,
-                rowMargin,
-                containerHeight,
-              }}
-              rowRenderer={rowRenderer}
-            />
-          </div>
+        <div className="py-0 pl-5 pr-0">
+          <VirtualScroll
+            id={virtualScrollId}
+            saveState
+            data={imagesResult}
+            settings={{
+              buffer,
+              rowHeight: height,
+              tolerance: 1,
+              rowMargin,
+              containerHeight,
+              cols: perChunk,
+              selectable: {
+                enabled: false,
+                itemHeight: height,
+                itemWidth: width,
+                total: imagesResult.length,
+              },
+            }}
+            render={rowRenderer}
+          />
         </div>
         <StatusBar
           totalCards={images.length}

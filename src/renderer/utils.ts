@@ -1,6 +1,6 @@
 export function debounce<T extends any[]>(
   func: (...args: T) => void,
-  delay: number,
+  d: number,
 ) {
   let timerId: ReturnType<typeof setTimeout>;
 
@@ -9,7 +9,7 @@ export function debounce<T extends any[]>(
 
     timerId = setTimeout(() => {
       func(...args);
-    }, delay);
+    }, d);
   };
 }
 
@@ -65,23 +65,16 @@ type Box = {
 };
 
 export function areBoxesIntersecting(box1: Box, box2: Box): boolean {
-  // Extracting coordinates of the first box
-  const x1 = box1.x;
-  const y1 = box1.y;
-  const width1 = box1.width;
-  const height1 = box1.height;
-
-  // Extracting coordinates of the second box
-  const x2 = box2.x;
-  const y2 = box2.y;
-  const width2 = box2.width;
-  const height2 = box2.height;
-
-  // Checking for intersection
   return (
-    x1 < x2 + width2 &&
-    x1 + width1 > x2 &&
-    y1 < y2 + height2 &&
-    y1 + height1 > y2
+    box1.x < box2.x + box2.width &&
+    box1.x + box1.width > box2.x &&
+    box1.y < box2.y + box2.height &&
+    box1.y + box1.height > box2.y
   );
+}
+
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }

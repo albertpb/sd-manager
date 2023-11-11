@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import useOnUnmount from 'renderer/hooks/useOnUnmount';
+import { areBoxesIntersecting } from 'renderer/utils';
 
 interface Settings {
   rowHeight: number;
@@ -15,19 +16,24 @@ interface Settings {
   buffer: number;
   tolerance: number;
   containerHeight: number;
+  cols: number;
+  selectable?: {
+    enabled: boolean;
+    itemWidth: number;
+    itemHeight: number;
+    total: number;
+  };
 }
-
-export type VirtualScrollData = {
-  id: string;
-  [key: string]: any;
-};
 
 type VirtualScrollProps = {
   id: string;
   saveState?: boolean;
   settings: Settings;
-  data: VirtualScrollData[];
-  rowRenderer: (row: VirtualScrollData, index: number) => React.JSX.Element;
+  data: any[];
+  render(
+    visibleData: any[],
+    selectedItems?: boolean[],
+  ): React.JSX.Element | React.JSX.Element[];
 };
 
 export const clearSessionStorage = (id: string) => {
@@ -46,7 +52,7 @@ export default function VirtualScroll({
   saveState = false,
   settings,
   data,
-  rowRenderer,
+  render,
 }: VirtualScrollProps) {
   const rowHeight = useMemo(
     () => settings.rowHeight + settings.rowMargin,
@@ -68,9 +74,144 @@ export default function VirtualScroll({
     width: 0,
     height: 0,
   });
+  const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
 
   const [mouseDrawing, setMouseDrawing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const rows = Math.ceil(data.length / settings.cols);
+
+  const visibleData = data.slice(
+    Math.max(0, visibleRange.start * settings.cols),
+    Math.min(data.length, visibleRange.end * settings.cols),
+  );
+
+  const visibleSelected = settings.selectable?.enabled
+    ? selectedItems.slice(
+        Math.max(0, visibleRange.start * settings.cols),
+        Math.min(data.length, visibleRange.end * settings.cols),
+      )
+    : [];
+
+  const paddingTop = visibleRange.start * rowHeight;
+  const paddingBottom = (rows - visibleRange.end) * rowHeight;
+
+  const detectSelectableItems = useCallback(() => {
+    if (
+      settings.selectable &&
+      settings.selectable.enabled &&
+      containerRef.current
+    ) {
+      const itemWidth = settings.selectable.itemWidth + 18.5;
+      const itemHeight = settings.selectable.itemHeight + 18.5;
+
+      const startIndex = Math.max(0, visibleRange.start);
+
+      const arr = new Array(data.length).fill(false);
+      visibleData.forEach((row, i) => {
+        const currentRow = Math.floor(i / settings.cols) + startIndex;
+        const coords = {
+          x: (i % settings.cols) * itemWidth,
+          y: currentRow * itemHeight,
+          width: itemWidth,
+          height: itemHeight,
+        };
+
+        const isSelected = areBoxesIntersecting(coords, draggableArea);
+
+        const realIndex = i + startIndex * settings.cols;
+        arr[realIndex] = isSelected;
+      });
+
+      setSelectedItems(arr);
+    }
+  }, [
+    data.length,
+    draggableArea,
+    settings.cols,
+    settings.selectable,
+    visibleData,
+    visibleRange.start,
+  ]);
+
+  const onMouseMoving = (e: MouseEvent<HTMLElement>) => {
+    if (settings.selectable?.enabled) {
+      if (mouseDrawing && containerRef.current) {
+        const containerElement = containerRef.current;
+
+        const width =
+          e.clientX +
+          containerElement.scrollLeft -
+          startCoords.x -
+          containerElement.offsetLeft;
+        const height =
+          e.clientY +
+          containerElement.scrollTop -
+          startCoords.y -
+          containerElement.offsetTop;
+
+        const box = {
+          width: Math.abs(width),
+          height: Math.abs(height),
+          x: width > 0 ? startCoords.x : startCoords.x + width,
+          y: height > 0 ? startCoords.y : startCoords.y + height,
+        };
+        setDragableArea(box);
+
+        detectSelectableItems();
+      }
+    }
+  };
+
+  const onStartDrawing = (e: MouseEvent<HTMLElement>) => {
+    if (settings.selectable?.enabled) {
+      if (containerRef.current) {
+        setMouseDrawing(true);
+        setDragableArea({
+          height: 0,
+          width: 0,
+          x:
+            e.clientX +
+            containerRef.current.scrollLeft -
+            containerRef.current.offsetLeft,
+          y:
+            e.clientY +
+            containerRef.current.scrollTop -
+            containerRef.current.offsetTop,
+        });
+        setStartCoords({
+          x:
+            e.clientX +
+            containerRef.current.scrollLeft -
+            containerRef.current.offsetLeft,
+          y:
+            e.clientY +
+            containerRef.current.scrollTop -
+            containerRef.current.offsetTop,
+        });
+
+        setSelectedItems([]);
+      }
+    }
+  };
+
+  const onStopDrawing = useCallback(() => {
+    if (settings.selectable?.enabled) {
+      setMouseDrawing(false);
+      setDragableArea({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      });
+    }
+  }, [settings.selectable?.enabled]);
+
+  useEffect(() => {
+    window.addEventListener('mouseup', onStopDrawing);
+
+    return () => window.removeEventListener('mouseup', onStopDrawing);
+  }, [onStopDrawing]);
 
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
@@ -81,18 +222,15 @@ export default function VirtualScroll({
       const start = Math.floor(scrollTop / rowHeight);
       const end = Math.min(
         start + Math.ceil(settings.containerHeight / rowHeight),
-        data.length,
+        rows,
       );
 
       setVisibleRange({
         start: start - settings.tolerance < 0 ? 0 : start - settings.tolerance,
-        end:
-          end + settings.tolerance > data.length
-            ? data.length
-            : end + settings.tolerance,
+        end: end + settings.tolerance > rows ? rows : end + settings.tolerance,
       });
     }
-  }, [settings.containerHeight, data.length, rowHeight, settings.tolerance]);
+  }, [settings.containerHeight, rowHeight, settings.tolerance, rows]);
 
   useEffect(() => {
     handleScroll();
@@ -120,88 +258,12 @@ export default function VirtualScroll({
     }
   }, [id, scroll, saveState]);
 
-  const visibleData = data.slice(
-    Math.max(0, visibleRange.start),
-    Math.min(data.length, visibleRange.end),
-  );
-
-  const paddingTop = visibleRange.start * rowHeight;
-  const paddingBottom = (data.length - visibleRange.end) * rowHeight;
-
-  const onContainerClick = (e: MouseEvent<HTMLElement>) => {
-    if (mouseDrawing && containerRef.current) {
-      const width =
-        e.clientX +
-        containerRef.current.scrollLeft -
-        startCoords.x -
-        containerRef.current.offsetLeft;
-      const height =
-        e.clientY +
-        containerRef.current.scrollTop -
-        startCoords.y -
-        containerRef.current.offsetTop;
-
-      const box = {
-        width: Math.abs(width),
-        height: Math.abs(height),
-        x: width > 0 ? startCoords.x : startCoords.x + width,
-        y: height > 0 ? startCoords.y : startCoords.y + height,
-      };
-      setDragableArea(box);
-    }
-  };
-
-  const onStartDrawing = (e: MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
-    setMouseDrawing(true);
-    if (containerRef.current) {
-      setDragableArea({
-        height: 0,
-        width: 0,
-        x:
-          e.clientX +
-          containerRef.current.scrollLeft -
-          containerRef.current.offsetLeft,
-        y:
-          e.clientY +
-          containerRef.current.scrollTop -
-          containerRef.current.offsetTop,
-      });
-      setStartCoords({
-        x:
-          e.clientX +
-          containerRef.current.scrollLeft -
-          containerRef.current.offsetLeft,
-        y:
-          e.clientY +
-          containerRef.current.scrollTop -
-          containerRef.current.offsetTop,
-      });
-    }
-  };
-
-  const onStopDrawing = () => {
-    setMouseDrawing(false);
-    setDragableArea({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    });
-  };
-
-  useEffect(() => {
-    window.addEventListener('mouseup', onStopDrawing);
-
-    return () => window.removeEventListener('mouseup', onStopDrawing);
-  }, []);
-
   return (
     <div
       ref={containerRef}
       className="overflow-y-auto overflow-x-hidden my-5 relative"
       style={{ height: settings.containerHeight }}
-      onMouseMove={(e) => onContainerClick(e)}
+      onMouseMove={(e) => onMouseMoving(e)}
       onMouseDown={(e) => onStartDrawing(e)}
       aria-hidden
     >
@@ -221,25 +283,20 @@ export default function VirtualScroll({
       />
       <div
         style={{
-          height: data.length * rowHeight,
+          height: rows * rowHeight,
           paddingTop,
           paddingBottom,
         }}
         className={classNames([{ noselect: mouseDrawing }])}
       >
-        {visibleData.map((item, index) => (
-          <div
-            id={`vs_${item.id}`}
-            key={`vs_${item.id}`}
-            style={{
-              height: rowHeight - settings.rowMargin,
-              marginBottom: settings.rowMargin,
-            }}
-          >
-            {rowRenderer(item, index)}
-          </div>
-        ))}
-        d
+        <div
+          style={{
+            height: rowHeight - settings.rowMargin,
+            marginBottom: settings.rowMargin,
+          }}
+        >
+          {render(visibleData, visibleSelected)}
+        </div>
       </div>
     </div>
   );

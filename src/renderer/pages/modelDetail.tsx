@@ -10,23 +10,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
 import { AppDispatch, RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
-import VirtualScroll, {
-  VirtualScrollData,
-} from 'renderer/components/VirtualScroll';
+import VirtualScroll from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
 import { setImagesToDelete, updateModel } from 'renderer/redux/reducers/global';
 import Image from '../components/Image';
-
-type Row = {
-  id: string;
-  path: string;
-  hash: string | null;
-  rating: number;
-};
-interface RowData {
-  row: Row[];
-  id: string;
-}
 
 export default function ModelDetail() {
   const navigate = useNavigate();
@@ -52,6 +39,7 @@ export default function ModelDetail() {
 
   const [showHead, setShowHead] = useState<boolean>(true);
   const [containerHeight, setContainerHeight] = useState<number>(0);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
   const [modelCivitaiInfo, setModelCivitaiInfo] =
     useState<ModelCivitaiInfo | null>(null);
@@ -92,7 +80,7 @@ export default function ModelDetail() {
             await window.ipcHandler.getImages(modelData.name);
           setUserImagesList(userImagesListsResponse);
 
-          const modelImagesListResponse =
+          const modelImagesListResponse: string[] =
             await window.ipcHandler.readdirModelImages(
               modelData.name,
               modelsPath,
@@ -116,25 +104,26 @@ export default function ModelDetail() {
   }, [userImagesList, modelData]);
 
   const calcImagesValues = useCallback(() => {
+    const zoomLevel = 5;
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
 
-    const descriptionHeight = descriptionRef.current?.clientHeight || 0;
     let headHeight = showHead ? 380 : 0;
 
     if (windowWidth < 1024) {
       headHeight = 0;
     }
 
-    setContainerHeight(windowHeight - descriptionHeight - headHeight - 250);
+    setContainerHeight(windowHeight - headHeight - 300);
+    setContainerWidth(windowWidth - 350);
 
-    const cardHeight = containerHeight / 1 - margin;
-    const cardWidth = (cardHeight * 2) / 3 + margin;
+    const cardWidth = (containerWidth - zoomLevel * 16) / zoomLevel; // (cardHeight * 2) / 3;
+    const cardHeight = (cardWidth * 3) / 2; // containerHeight / zoomLevel - rowMargin;
     setHeight(cardHeight);
     setWidth(cardWidth);
     setBuffer(Math.floor(containerHeight / cardHeight));
-    setPerChunk(Math.floor((windowWidth - windowWidth * 0.15) / cardWidth));
-  }, [containerHeight, showHead]);
+    setPerChunk(zoomLevel);
+  }, [containerHeight, containerWidth, showHead]);
 
   useEffect(() => {
     calcImagesValues();
@@ -238,96 +227,102 @@ export default function ModelDetail() {
       );
     });
 
-    const chunks =
+    const rowRenderer =
       userImagesList.length > 0
-        ? userImagesList.reduce((resultArr: RowData[], item, index) => {
-            const chunkIndex = Math.floor(index / perChunk);
-
-            if (!resultArr[chunkIndex]) {
-              resultArr[chunkIndex] = {
-                row: [],
-                id: '',
-              };
-            }
-
-            resultArr[chunkIndex].row.push({
-              path: `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`,
-              hash: item.hash,
-              rating: item.rating,
-              id: item.hash,
+        ? (visibleData: ImageRow[]) => {
+            const items = visibleData.map((item: ImageRow, i: number) => {
+              return (
+                <div
+                  id={`${item.hash}`}
+                  key={`${item.hash || `${item.path}_row_${i}`}`}
+                  className={classNames([
+                    'cursor-pointer',
+                    {
+                      'opacity-50':
+                        item.hash !== null ? imagesToDelete[item.hash] : false,
+                    },
+                  ])}
+                  onClick={() => onSelectImage(item)}
+                  aria-hidden="true"
+                >
+                  <figure
+                    className="card__figure animated rounded-md p-0 m-2 overflow-hidden relative"
+                    style={{
+                      width: `${width}px`,
+                      height: `${height}px`,
+                      marginRight: `${margin}px`,
+                    }}
+                  >
+                    <div className="absolute top-2 right-2 z-20">
+                      <Rating
+                        id={`model-detail-rating-${item.hash}`}
+                        value={item.rating}
+                      />
+                    </div>
+                    <Image
+                      src={item.sourcePath}
+                      alt={`model_detail_model_image_${i}`}
+                      height="100%"
+                      width="100%"
+                      className="object-cover"
+                      onDragPath={item.sourcePath}
+                    />
+                  </figure>
+                </div>
+              );
             });
-            resultArr[chunkIndex].id = item.hash;
-            return resultArr;
-          }, [])
-        : modelImagesList.reduce((resultArr: RowData[], item, index) => {
-            const chunkIndex = Math.floor(index / perChunk);
 
-            if (!resultArr[chunkIndex]) {
-              resultArr[chunkIndex] = {
-                row: [],
-                id: '',
-              };
-            }
-
-            resultArr[chunkIndex].row.push({
-              path: item,
-              rating: 1,
-              hash: null,
-              id: item,
-            });
-            resultArr[chunkIndex].id = `${item}_${index}`;
-            return resultArr;
-          }, []);
-
-    const rowRenderer = (row: VirtualScrollData) => {
-      const items = row.row.map((item: ImageRow, j: number) => {
-        return (
-          <div
-            id={`${item.hash}`}
-            key={`${item.hash || `${item.path}_row_${j}`}`}
-            className={classNames([
-              'cursor-pointer',
-              {
-                'opacity-50':
-                  item.hash !== null ? imagesToDelete[item.hash] : false,
-              },
-            ])}
-            onClick={() => onSelectImage(item)}
-            aria-hidden="true"
-          >
-            <figure
-              className="card__figure animated rounded-md overflow-hidden relative"
-              style={{
-                width: `${width}px`,
-                height: `${height}px`,
-                marginRight: `${margin}px`,
-              }}
-            >
-              <div className="absolute top-2 right-2 z-20">
-                <Rating
-                  id={`model-detail-rating-${item.hash}`}
-                  value={item.rating}
-                />
+            return (
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${perChunk}, minmax(0, 1fr))`,
+                }}
+              >
+                {items}
               </div>
-              <Image
-                src={item.path}
-                alt={`model_detail_model_image_${j}`}
-                height="100%"
-                width="100%"
-                className="object-cover"
-                onDragPath={item.path}
-              />
-            </figure>
-          </div>
-        );
-      });
+            );
+          }
+        : (visibleData: string[]) => {
+            const items = visibleData.map((modelImage: string, i: number) => {
+              return (
+                <div
+                  id={`${modelImage}_${i}`}
+                  key={`${modelImage}_${i}`}
+                  aria-hidden="true"
+                >
+                  <figure
+                    className="card__figure animated rounded-md p-0 m-2 overflow-hidden relative"
+                    style={{
+                      width: `${width}px`,
+                      height: `${height}px`,
+                      marginRight: `${margin}px`,
+                    }}
+                  >
+                    <Image
+                      src={modelImage}
+                      alt={`model_detail_model_image_${i}`}
+                      height="100%"
+                      width="100%"
+                      className="object-cover"
+                      onDragPath={modelImage}
+                    />
+                  </figure>
+                </div>
+              );
+            });
 
-      return (
-        <div key={row.id} className="flex w-full">
-          {items}
-        </div>
-      );
-    };
+            return (
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${perChunk}, minmax(0, 1fr))`,
+                }}
+              >
+                {items}
+              </div>
+            );
+          };
 
     const responsive = {
       superLargeDesktop: {
@@ -430,62 +425,78 @@ export default function ModelDetail() {
           <div ref={descriptionRef} className="pt-2">
             {ReactHtmlParser(modelData.description || '')}
           </div>
-          {chunks.length > 0 ? (
-            <div className="pt-4">
-              <div className="flex items-center">
-                <div className="w-1/3"> </div>
-                <h3 className="text-xl font-bold text-center w-1/3">Images</h3>
-                <div className="w-1/3 flex items-center justify-end pr-10">
-                  {userImagesList.length > 0 ? (
-                    <ul className="menu menu-horizontal bg-base-200 rounded-box">
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => toggleImagesDeleteState()}
+
+          <div className="pt-4">
+            <div className="flex items-center">
+              <div className="w-1/3"> </div>
+              <h3 className="text-xl font-bold text-center w-1/3">Images</h3>
+              <div className="w-1/3 flex items-center justify-end pr-10">
+                {userImagesList.length > 0 ? (
+                  <ul className="menu menu-horizontal bg-base-200 rounded-box">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => toggleImagesDeleteState()}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                          className={classNames([
+                            'w-5 h-5',
+                            { 'stroke-red-500': deleteActive },
+                          ])}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth="1.5"
-                            stroke="currentColor"
-                            className={classNames([
-                              'w-5 h-5',
-                              { 'stroke-red-500': deleteActive },
-                            ])}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                            />
-                          </svg>
-                        </button>
-                      </li>
-                    </ul>
-                  ) : null}
-                </div>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                          />
+                        </svg>
+                      </button>
+                    </li>
+                  </ul>
+                ) : null}
               </div>
-              <div
-                ref={setRef}
-                className="mt-12 w-full"
-                style={{ height: `${containerHeight}px` }}
-              >
+            </div>
+            <div
+              ref={setRef}
+              className="mt-12 w-full"
+              style={{ height: `${containerHeight}px` }}
+            >
+              {userImagesList.length > 0 ? (
                 <VirtualScroll
-                  id="model_detail_virtualscroll"
-                  data={chunks}
-                  rowRenderer={rowRenderer}
+                  id="model_detail_user_images_virtualscroll"
+                  data={userImagesList}
+                  render={rowRenderer}
                   settings={{
                     containerHeight,
                     buffer,
                     rowHeight: height,
                     rowMargin: margin,
                     tolerance: 1,
+                    cols: perChunk,
                   }}
                 />
-              </div>
+              ) : (
+                <VirtualScroll
+                  id="model_detail_model_images_virtualscroll"
+                  data={modelImagesList}
+                  render={rowRenderer}
+                  settings={{
+                    containerHeight,
+                    buffer,
+                    rowHeight: height,
+                    rowMargin: margin,
+                    tolerance: 1,
+                    cols: perChunk,
+                  }}
+                />
+              )}
             </div>
-          ) : null}
+          </div>
         </section>
       </main>
     );
