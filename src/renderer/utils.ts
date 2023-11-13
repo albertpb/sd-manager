@@ -13,6 +13,31 @@ export function debounce<T extends any[]>(
   };
 }
 
+export function throttle(func: Function, d: number): Function {
+  let lastExecTime = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | null;
+
+  return function (...args: any[]) {
+    const now = Date.now();
+
+    if (now - lastExecTime < d) {
+      // Cancel the previous setTimeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Set a new setTimeout
+      timeoutId = setTimeout(() => {
+        lastExecTime = now;
+        func(...args);
+      }, d);
+    } else {
+      lastExecTime = now;
+      func(...args);
+    }
+  };
+}
+
 const saveMd = async (path: string, value: string) => {
   await window.ipcHandler.saveMD(path, value);
 };

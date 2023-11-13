@@ -1,4 +1,4 @@
-import { DragEvent, ForwardedRef, forwardRef } from 'react';
+import { ForwardedRef, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import classNames from 'classnames';
 import placeHolderImage from '../../../assets/images/notavailable.png';
@@ -17,7 +17,7 @@ export default forwardRef(
     { src, alt, width, height, className, onDragPath }: ImageProps,
     ref: ForwardedRef<HTMLImageElement>,
   ) => {
-    const ondragstart = (event: DragEvent<HTMLImageElement>) => {
+    const ondragstart = (event: MouseEvent | TouchEvent | PointerEvent) => {
       event.preventDefault();
       if (onDragPath) {
         window.ipcOn.startDrag(onDragPath);
@@ -25,16 +25,15 @@ export default forwardRef(
     };
 
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.6 }}
-        animate={{
-          opacity: 1,
-          scale: 1,
-          transition: { scale: { type: 'spring', duration: 0.5 } },
-        }}
-        className="w-full h-full"
-      >
-        <img
+      <motion.div className="w-full h-full">
+        <motion.img
+          key={src}
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            transition: { scale: { type: 'spring', duration: 0.1 } },
+          }}
           ref={ref}
           src={`sd:///${src}`}
           alt={alt}

@@ -438,14 +438,14 @@ export default function Settings() {
               className="btn btn-sm mr-2"
               onClick={() => onRegenerateThumbnails()}
             >
-              regenerate thumbnails
+              Regenerate thumbnails
             </button>
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => updateImagesDb()}
             >
-              update images database
+              Update images database
             </button>
           </div>
         </div>

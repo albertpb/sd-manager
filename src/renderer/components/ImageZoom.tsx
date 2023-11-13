@@ -1,8 +1,27 @@
-import { createRef, useCallback } from 'react';
+import classNames from 'classnames';
+import { MouseEvent, createRef, useCallback } from 'react';
 import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom';
 import Image from './Image';
 
-export default function ImageZoom({ src, alt }: { src: string; alt: string }) {
+type ImageZoomProps = {
+  src: string;
+  alt: string;
+  className?: any;
+  imgClassName?: any;
+  width?: number | string;
+  height?: number | string;
+  onClick?: (e: MouseEvent<HTMLElement>) => void;
+};
+
+export default function ImageZoom({
+  src,
+  alt,
+  className,
+  imgClassName,
+  width,
+  height,
+  onClick,
+}: ImageZoomProps) {
   const imgRef = createRef<HTMLImageElement>();
   const onUpdate = useCallback(
     ({ x, y, scale }: { x: number; y: number; scale: number }) => {
@@ -22,13 +41,25 @@ export default function ImageZoom({ src, alt }: { src: string; alt: string }) {
   };
 
   return (
-    <div className="tooltip" data-tip="Use ctrl + wheel to zoom in/out">
+    <div
+      className={classNames(['tooltip', className])}
+      data-tip="Use ctrl + wheel to zoom in/out"
+      onClick={(e) => onClick && onClick(e)}
+      aria-hidden
+    >
       <QuickPinchZoom
         onUpdate={onUpdate}
         wheelScaleFactor={500}
         onDragStart={() => ondragstart()}
       >
-        <Image ref={imgRef} src={src} alt={alt} />
+        <Image
+          ref={imgRef}
+          src={src}
+          alt={alt}
+          className={imgClassName}
+          width={width}
+          height={height}
+        />
       </QuickPinchZoom>
     </div>
   );

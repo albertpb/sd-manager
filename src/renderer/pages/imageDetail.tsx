@@ -17,6 +17,10 @@ import { generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
 import { imagesToDelete } from 'renderer/signals/images';
+import {
+  lightboxCurrentHash,
+  lightboxOpen,
+} from 'renderer/components/LightBox';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -198,6 +202,19 @@ export default function ImageDetail() {
     setConfirmDialogIsOpen(false);
   };
 
+  const onClickImage = () => {
+    if (imageData) {
+      lightboxOpen.value = true;
+      lightboxCurrentHash.value = imageData.hash;
+      navigate('/');
+    }
+  };
+
+  const goToImages = () => {
+    lightboxOpen.value = false;
+    navigate('/');
+  };
+
   if (!imageData) return null;
 
   if (showExif) {
@@ -236,7 +253,7 @@ export default function ImageDetail() {
         <div className="w-fit h-auto">
           <ul className="menu bg-base-200 border-t border-base-300 h-full pt-10">
             <li>
-              <button type="button" onClick={() => navigate('/')}>
+              <button type="button" onClick={() => goToImages()}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -355,7 +372,11 @@ export default function ImageDetail() {
                 Exif Metadata
               </button>
             </div>
-            <div className="flex w-full my-4">
+            <div
+              className="flex w-full my-4 cursor-pointer"
+              onClick={() => onClickImage()}
+              aria-hidden
+            >
               <ImageZoom src={imageData.sourcePath} alt={imageData.name} />
             </div>
             <div className="w-full mt-6 pt-5 pb-10 relative">

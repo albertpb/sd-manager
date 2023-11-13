@@ -35,6 +35,7 @@ module.exports = {
     'jsx-a11y/no-noninteractive-tabindex': 'off',
     'react/jsx-props-no-spreading': 'off',
     'jsx-a11y/control-has-associated-label': 'off',
+    'func-names': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

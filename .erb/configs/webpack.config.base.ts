@@ -5,6 +5,7 @@
 import webpack from 'webpack';
 import TsconfigPathsPlugins from 'tsconfig-paths-webpack-plugin';
 import webpackPaths from './webpack.paths';
+import secrets from './secrets';
 
 const configuration: webpack.Configuration = {
   stats: 'errors-only',
@@ -49,6 +50,10 @@ const configuration: webpack.Configuration = {
   plugins: [
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'production',
+    }),
+
+    new webpack.DefinePlugin({
+      ENV: JSON.stringify(secrets),
     }),
   ],
 
