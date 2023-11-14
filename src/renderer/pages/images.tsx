@@ -448,8 +448,8 @@ export default function Images() {
               src={imageSrc}
               onDragPath={item.sourcePath}
               alt={`model_detail_model_image_${item.hash}`}
-              height="100%"
-              width="100%"
+              height={height}
+              width={width}
               className="object-cover"
             />
             {showModelName && (

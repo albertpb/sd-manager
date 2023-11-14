@@ -153,20 +153,6 @@ export default function ImageDetail() {
     return () => document.removeEventListener('mousedown', onMouseClick);
   }, [goToNextOrPrevImage]);
 
-  useEffect(() => {
-    const onScroll = (e: WheelEvent) => {
-      if (e.deltaY > 0) {
-        goToNextOrPrevImage(true);
-      } else if (e.deltaY < 0) {
-        goToNextOrPrevImage(false);
-      }
-    };
-
-    document.addEventListener('wheel', onScroll);
-
-    return () => document.removeEventListener('wheel', onScroll);
-  }, [goToNextOrPrevImage]);
-
   const goBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
@@ -401,12 +387,12 @@ export default function ImageDetail() {
                 Exif Metadata
               </button>
             </div>
-            <div
-              className="flex w-full my-4 cursor-pointer"
-              onClick={() => onClickImage()}
-              aria-hidden
-            >
-              <ImageZoom src={imageData.sourcePath} alt={imageData.name} />
+            <div className="flex w-full my-4 cursor-pointer">
+              <ImageZoom
+                src={imageData.sourcePath}
+                alt={imageData.name}
+                onClick={() => onClickImage()}
+              />
             </div>
             <div className="w-full mt-6 pt-5 pb-10 relative">
               <div className="absolute top-0 right-0 z-40">

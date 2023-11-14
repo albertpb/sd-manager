@@ -74,7 +74,9 @@ export default function VirtualScroll({
     width: 0,
     height: 0,
   });
-  const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
+  const [selectedItems, setSelectedItems] = useState<boolean[]>(
+    new Array(data.length).fill(false),
+  );
 
   const [mouseDrawing, setMouseDrawing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -102,12 +104,12 @@ export default function VirtualScroll({
       settings.selectable.enabled &&
       containerRef.current
     ) {
-      const itemWidth = settings.selectable.itemWidth + 18.5;
-      const itemHeight = settings.selectable.itemHeight + 18.5;
+      const itemWidth = settings.selectable.itemWidth + 17.5;
+      const itemHeight = settings.selectable.itemHeight + 10.3;
 
       const startIndex = Math.max(0, visibleRange.start);
 
-      const arr = new Array(data.length).fill(false);
+      const arr = selectedItems;
       visibleData.forEach((row, i) => {
         const currentRow = Math.floor(i / settings.cols) + startIndex;
         const coords = {
@@ -120,18 +122,19 @@ export default function VirtualScroll({
         const isSelected = areBoxesIntersecting(coords, draggableArea);
 
         const realIndex = i + startIndex * settings.cols;
+
         arr[realIndex] = isSelected;
       });
 
       setSelectedItems(arr);
     }
   }, [
-    data.length,
     draggableArea,
     settings.cols,
     settings.selectable,
     visibleData,
     visibleRange.start,
+    selectedItems,
   ]);
 
   const onMouseMoving = (e: MouseEvent<HTMLElement>) => {
@@ -190,7 +193,7 @@ export default function VirtualScroll({
             containerRef.current.offsetTop,
         });
 
-        setSelectedItems([]);
+        setSelectedItems(new Array(data.length).fill(false));
       }
     }
   };
