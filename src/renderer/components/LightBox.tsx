@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals-react';
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from 'react';
+import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { throttle } from 'renderer/utils';
 import { ImageRow } from 'main/ipc/image';
 
@@ -11,7 +11,7 @@ export const lightboxOpen = signal(false);
 
 type LightBoxProps = {
   images: ImageRow[];
-  onClickImage?: (e: MouseEvent<HTMLElement>, index: number) => void;
+  onClickImage?: (e: React.MouseEvent<HTMLElement>, index: number) => void;
 };
 
 export default function LightBox({ images, onClickImage }: LightBoxProps) {
@@ -39,7 +39,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
     }
   };
 
-  const onImageClick = (e: MouseEvent<HTMLElement>) => {
+  const onImageClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     if (onClickImage) {
       onClickImage(e, lightboxCurrentIndex.value);
@@ -59,7 +59,10 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
     localStorage.setItem('lightbox-backdrop', !backdrop ? 'true' : 'false');
   };
 
-  const onClickThumbnail = (e: MouseEvent<HTMLElement>, index: number) => {
+  const onClickThumbnail = (
+    e: React.MouseEvent<HTMLElement>,
+    index: number,
+  ) => {
     e.stopPropagation();
 
     let newIndex = lightboxCurrentIndex.value;
@@ -77,7 +80,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
     lightboxCurrentIndex.value = newIndex;
   };
 
-  const onNext = throttle((e?: MouseEvent<HTMLElement>) => {
+  const onNext = throttle((e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
     if (lightboxCurrentIndex.value > images.length - 1) {
       lightboxCurrentIndex.value = 0;
@@ -86,7 +89,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
     }
   }, 1000);
 
-  const onPrev = throttle((e?: MouseEvent<HTMLElement>) => {
+  const onPrev = throttle((e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
     if (lightboxCurrentIndex.value === 0) {
       lightboxCurrentIndex.value = images.length - 1;
@@ -105,6 +108,10 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
         setIsFullscreen(false);
       }
     }
+  };
+
+  const onDragImage = (image: ImageRow) => {
+    window.ipcOn.startDrag(image.sourcePath);
   };
 
   useEffect(() => {
@@ -201,6 +208,21 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
 
     return () => document.removeEventListener('keyup', onKeyPress);
   });
+
+  useEffect(() => {
+    const onMouseClick = (e: MouseEvent) => {
+      if (e.button === 3) {
+        onNext();
+      }
+      if (e.button === 4) {
+        onPrev();
+      }
+    };
+
+    document.addEventListener('mousedown', onMouseClick);
+
+    return () => document.removeEventListener('mousedown', onMouseClick);
+  }, [onNext, onPrev]);
 
   return (
     <div ref={containerRef}>
@@ -403,6 +425,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
                       alt={slicedImages[halfIndex]?.fileName || ''}
                       className="max-h-full object-cover rounded cursor-pointer"
                       onClick={(e) => onImageClick(e)}
+                      onDragStart={() => onDragImage(slicedImages[halfIndex])}
                     />
                   </motion.div>
                 </div>

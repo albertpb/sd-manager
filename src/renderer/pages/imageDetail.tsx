@@ -138,6 +138,35 @@ export default function ImageDetail() {
     return () => window.removeEventListener('keydown', listener);
   }, [goToNextOrPrevImage, deleteImage, confirmDialogIsOpen, doDelete]);
 
+  useEffect(() => {
+    const onMouseClick = (e: MouseEvent) => {
+      if (e.button === 3) {
+        goToNextOrPrevImage(true);
+      }
+      if (e.button === 4) {
+        goToNextOrPrevImage(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onMouseClick);
+
+    return () => document.removeEventListener('mousedown', onMouseClick);
+  }, [goToNextOrPrevImage]);
+
+  useEffect(() => {
+    const onScroll = (e: WheelEvent) => {
+      if (e.deltaY > 0) {
+        goToNextOrPrevImage(true);
+      } else if (e.deltaY < 0) {
+        goToNextOrPrevImage(false);
+      }
+    };
+
+    document.addEventListener('wheel', onScroll);
+
+    return () => document.removeEventListener('wheel', onScroll);
+  }, [goToNextOrPrevImage]);
+
   const goBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
