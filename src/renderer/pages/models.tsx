@@ -442,9 +442,11 @@ export default function Models({
           height={`${height}px`}
           type={type}
           imageClassName="object-cover"
-          className={{
-            'max-w-fit': zoomLevel === 1,
-          }}
+          className={classNames([
+            {
+              'max-w-fit': zoomLevel === 1,
+            },
+          ])}
           showRating={showRating}
           onDragPath={imagePath}
           hoverEffect={hoverEffect}

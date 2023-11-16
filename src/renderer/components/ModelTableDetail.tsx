@@ -37,8 +37,9 @@ export default function ModelTableDetail({ modelInfo }: ModelTableDetailProps) {
           <td>Trained words</td>
           <td>
             <div className="px-5">
-              {modelInfo?.trainedWords?.map((words) => (
+              {modelInfo?.trainedWords?.map((words, i) => (
                 <BadgeCopyWords
+                  key={`model_detail_table_${words}_${i}`}
                   words={words.split(',').filter((w) => w.trim() !== '')}
                 />
               ))}

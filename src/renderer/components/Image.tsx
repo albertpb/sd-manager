@@ -25,37 +25,35 @@ export default forwardRef(
     };
 
     return (
-      <div>
-        <motion.div
-          className="w-full h-full"
-          key={src}
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            transition: { scale: { type: 'spring', duration: 0.1 } },
+      <motion.div
+        className="w-full h-full"
+        key={src}
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          transition: { scale: { type: 'spring', duration: 0.1 } },
+        }}
+      >
+        <img
+          ref={ref}
+          src={`sd:///${src}`}
+          alt={alt}
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = placeHolderImage;
           }}
-        >
-          <img
-            ref={ref}
-            src={`sd:///${src}`}
-            alt={alt}
-            onError={(event) => {
-              event.currentTarget.onerror = null;
-              event.currentTarget.src = placeHolderImage;
-            }}
-            width={width}
-            height={height}
-            draggable={onDragPath !== undefined}
-            onDragStart={(event) => ondragstart(event)}
-            style={{
-              width: typeof width === 'number' ? `${width}px` : width,
-              height: typeof height === 'number' ? `${height}px` : height,
-            }}
-            className={classNames(className)}
-          />
-        </motion.div>
-      </div>
+          width={width}
+          height={height}
+          draggable={onDragPath !== undefined}
+          onDragStart={(event) => ondragstart(event)}
+          style={{
+            width: typeof width === 'number' ? `${width}px` : width,
+            height: typeof height === 'number' ? `${height}px` : height,
+          }}
+          className={classNames(className)}
+        />
+      </motion.div>
     );
   },
 );
