@@ -338,6 +338,22 @@ export const tagModel = createAsyncThunk(
   },
 );
 
+export const removeAllImagesTags = createAsyncThunk(
+  'removeAllImageTags',
+  async ({ imageHash }: { imageHash: string }) => {
+    await window.ipcHandler.removeAllImageTags(imageHash);
+    return imageHash;
+  },
+);
+
+export const removeAllModelsTags = createAsyncThunk(
+  'removeAllModelsTags',
+  async ({ modelHash, type }: { modelHash: string; type: ModelType }) => {
+    await window.ipcHandler.removeAllModelsTags(modelHash);
+    return { modelHash, type };
+  },
+);
+
 export const regenerateThumbnails = createAsyncThunk(
   'regenerateThumbnails',
   async () => {
@@ -708,6 +724,20 @@ export const globalSlice = createSlice({
           }
         }
       }
+    });
+
+    builder.addCase(removeAllImagesTags.fulfilled, (state, action) => {
+      const index = state.image.images.findIndex(
+        (img) => img.hash === action.payload,
+      );
+
+      if (index !== -1) {
+        state.image.images[index].tags = {};
+      }
+    });
+
+    builder.addCase(removeAllModelsTags.fulfilled, (state, action) => {
+      state[action.payload.type].models[action.payload.modelHash].tags = {};
     });
 
     builder.addCase(regenerateThumbnails.pending, (state) => {

@@ -554,3 +554,19 @@ export const tagModelIpc = async (
     log.error(error);
   }
 };
+
+export const removeAllModelsTagsIpc = async (
+  event: IpcMainInvokeEvent,
+  modelHash: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    await db.run(`DELETE FROM models_mtags WHERE modelHash = $modelHash`, {
+      $modelHash: modelHash,
+    });
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+  }
+};

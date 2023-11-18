@@ -1,6 +1,5 @@
 import classNames from 'classnames';
 import React, {
-  MouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -34,6 +33,7 @@ type VirtualScrollProps = {
     visibleData: any[],
     selectedItems?: boolean[],
   ): React.JSX.Element | React.JSX.Element[];
+  onSelectItems?: (selectedItems: boolean[]) => void;
 };
 
 export const clearSessionStorage = (id: string) => {
@@ -53,6 +53,7 @@ export default function VirtualScroll({
   settings,
   data,
   render,
+  onSelectItems,
 }: VirtualScrollProps) {
   const rowHeight = useMemo(
     () => settings.rowHeight + settings.rowMargin,
@@ -74,12 +75,12 @@ export default function VirtualScroll({
     width: 0,
     height: 0,
   });
-  const [selectedItems, setSelectedItems] = useState<boolean[]>(
-    new Array(data.length).fill(false),
-  );
+  const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
+  const [isShiftPressed, setIsShiftPressed] = useState<boolean>(false);
 
   const [mouseDrawing, setMouseDrawing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectedItemsRef = useRef<boolean[]>([]);
 
   const rows = Math.ceil(data.length / settings.cols);
 
@@ -109,8 +110,10 @@ export default function VirtualScroll({
 
       const startIndex = Math.max(0, visibleRange.start);
 
-      const arr = selectedItems;
+      const arr = [...selectedItems];
       visibleData.forEach((row, i) => {
+        const realIndex = i + startIndex * settings.cols;
+
         const currentRow = Math.floor(i / settings.cols) + startIndex;
         const coords = {
           x: (i % settings.cols) * itemWidth,
@@ -121,12 +124,28 @@ export default function VirtualScroll({
 
         const isSelected = areBoxesIntersecting(coords, draggableArea);
 
-        const realIndex = i + startIndex * settings.cols;
+        if (isShiftPressed) {
+          if (
+            (selectedItemsRef.current[realIndex] === false ||
+              selectedItemsRef.current[realIndex] === undefined) &&
+            isSelected
+          ) {
+            arr[realIndex] = true;
+          }
 
-        arr[realIndex] = isSelected;
+          if (selectedItemsRef.current[realIndex] === true && isSelected) {
+            arr[realIndex] = false;
+          }
+        } else {
+          arr[realIndex] = isSelected;
+        }
       });
 
       setSelectedItems(arr);
+
+      if (onSelectItems) {
+        onSelectItems(arr);
+      }
     }
   }, [
     draggableArea,
@@ -135,9 +154,30 @@ export default function VirtualScroll({
     visibleData,
     visibleRange.start,
     selectedItems,
+    onSelectItems,
+    isShiftPressed,
   ]);
 
-  const onMouseMoving = (e: MouseEvent<HTMLElement>) => {
+  const autoScroll = (
+    e: React.MouseEvent<HTMLElement>,
+    containerElement: HTMLDivElement,
+  ) => {
+    if (e.clientY > containerElement.clientHeight - 100) {
+      containerElement.scrollTo({
+        top: containerElement.scrollTop + 10,
+        behavior: 'instant',
+      });
+    }
+
+    if (e.clientY < 100) {
+      containerElement.scrollTo({
+        top: containerElement.scrollTop - 10,
+        behavior: 'instant',
+      });
+    }
+  };
+
+  const onMouseMoving = (e: React.MouseEvent<HTMLElement>) => {
     if (settings.selectable?.enabled) {
       if (mouseDrawing && containerRef.current) {
         const containerElement = containerRef.current;
@@ -162,13 +202,15 @@ export default function VirtualScroll({
         setDragableArea(box);
 
         detectSelectableItems();
+
+        autoScroll(e, containerElement);
       }
     }
   };
 
-  const onStartDrawing = (e: MouseEvent<HTMLElement>) => {
+  const onStartDrawing = (e: React.MouseEvent<HTMLElement>) => {
     if (settings.selectable?.enabled) {
-      if (containerRef.current) {
+      if (containerRef.current && e.button === 0) {
         setMouseDrawing(true);
         setDragableArea({
           height: 0,
@@ -193,7 +235,7 @@ export default function VirtualScroll({
             containerRef.current.offsetTop,
         });
 
-        setSelectedItems(new Array(data.length).fill(false));
+        selectedItemsRef.current = [...selectedItems];
       }
     }
   };
@@ -209,6 +251,62 @@ export default function VirtualScroll({
       });
     }
   }, [settings.selectable?.enabled]);
+
+  const onContextMenu = async (e: React.MouseEvent<HTMLDivElement>) => {
+    if (
+      containerRef.current &&
+      settings.selectable &&
+      selectedItems.length === 0
+    ) {
+      const containerElement = containerRef.current;
+
+      const sCoords = {
+        x:
+          e.clientX + containerElement.scrollLeft - containerElement.offsetLeft,
+        y: e.clientY + containerElement.scrollTop - containerElement.offsetTop,
+      };
+
+      selectedItemsRef.current = [];
+
+      const width = 10;
+      const height = 10;
+
+      const box = {
+        width: Math.abs(width),
+        height: Math.abs(height),
+        x: width > 0 ? sCoords.x : sCoords.x + width,
+        y: height > 0 ? sCoords.y : sCoords.y + height,
+      };
+
+      const itemWidth = settings.selectable.itemWidth + 17.5;
+      const itemHeight = settings.selectable.itemHeight + 10.3;
+
+      const startIndex = Math.max(0, visibleRange.start);
+
+      const arr = [...selectedItems];
+      visibleData.forEach((row, i) => {
+        const realIndex = i + startIndex * settings.cols;
+
+        const currentRow = Math.floor(i / settings.cols) + startIndex;
+        const coords = {
+          x: (i % settings.cols) * itemWidth,
+          y: currentRow * itemHeight,
+          width: itemWidth,
+          height: itemHeight,
+        };
+
+        const isSelected = areBoxesIntersecting(coords, box);
+
+        arr[realIndex] = isSelected;
+      });
+
+      setSelectedItems(arr);
+
+      if (onSelectItems) {
+        onSelectItems(arr);
+      }
+    }
+  };
 
   useEffect(() => {
     window.addEventListener('mouseup', onStopDrawing);
@@ -255,6 +353,59 @@ export default function VirtualScroll({
     }
   }, [handleScroll, id]);
 
+  useEffect(() => {
+    const keydownCb = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(true);
+      }
+
+      if (e.ctrlKey && e.key === 'f') {
+        setSelectedItems([]);
+        if (onSelectItems) {
+          onSelectItems([]);
+        }
+      }
+    };
+
+    const keyupCb = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(false);
+      }
+    };
+
+    document.addEventListener('keydown', keydownCb);
+    document.addEventListener('keyup', keyupCb);
+
+    return () => {
+      document.removeEventListener('keydown', keydownCb);
+      document.removeEventListener('keyup', keyupCb);
+    };
+  }, [onSelectItems]);
+
+  useEffect(() => {
+    const windowClickCb = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const boundingBox = containerRef.current.getBoundingClientRect();
+        // clicked outside
+        if (
+          e.clientX < boundingBox.left ||
+          e.clientX > boundingBox.right ||
+          e.clientY < boundingBox.top ||
+          e.clientY > boundingBox.bottom
+        ) {
+          setSelectedItems([]);
+          if (onSelectItems) {
+            onSelectItems([]);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('click', windowClickCb);
+
+    return () => document.removeEventListener('click', windowClickCb);
+  }, [mouseDrawing, onSelectItems]);
+
   useOnUnmount(() => {
     if (saveState) {
       window.sessionStorage.setItem(`virtualScroll_${id}`, `${scroll}`);
@@ -268,6 +419,7 @@ export default function VirtualScroll({
       style={{ height: settings.containerHeight }}
       onMouseMove={(e) => onMouseMoving(e)}
       onMouseDown={(e) => onStartDrawing(e)}
+      onContextMenu={(e) => onContextMenu(e)}
       aria-hidden
     >
       <div
@@ -282,6 +434,7 @@ export default function VirtualScroll({
           top: `${draggableArea.y}px`,
           width: `${draggableArea.width}px`,
           height: `${draggableArea.height}px`,
+          pointerEvents: 'none',
         }}
       />
       <div
@@ -289,6 +442,7 @@ export default function VirtualScroll({
           height: rows * rowHeight,
           paddingTop,
           paddingBottom,
+          pointerEvents: 'auto',
         }}
         className={classNames([{ noselect: mouseDrawing }])}
       >

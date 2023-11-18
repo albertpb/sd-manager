@@ -36,6 +36,8 @@ const channels = [
   'regenerateThumbnails',
   'mtag',
   'tagModel',
+  'removeAllImageTags',
+  'removeAllModelsTags',
 ] as const;
 export type Channels = (typeof channels)[number];
 

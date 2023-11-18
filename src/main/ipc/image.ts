@@ -392,3 +392,19 @@ export const tagImageIpc = async (
     log.error(error);
   }
 };
+
+export const removeAllImageTagsIpc = async (
+  event: IpcMainInvokeEvent,
+  imageHash: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    await db.run(`DELETE FROM images_tags WHERE imageHash = $imageHash`, {
+      $imageHash: imageHash,
+    });
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+  }
+};

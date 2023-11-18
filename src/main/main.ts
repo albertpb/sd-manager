@@ -38,6 +38,7 @@ import {
   readModelsIpc,
   readdirModelImagesIpc,
   readdirModelsIpc,
+  removeAllModelsTagsIpc,
   tagModelIpc,
   updateModelIpc,
 } from './ipc/model';
@@ -52,6 +53,7 @@ import {
   tagImageIpc,
   getImage,
   regenerateThumbnailsIpc,
+  removeAllImageTagsIpc,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
@@ -111,6 +113,8 @@ ipcMain.handle('readImageMetadata', readImageMetadata);
 ipcMain.handle('watchFolder', watchFolderIpc);
 ipcMain.handle('tag', tagIpc);
 ipcMain.handle('tagImage', tagImageIpc);
+ipcMain.handle('removeAllImageTags', removeAllImageTagsIpc);
+ipcMain.handle('removeAllModelsTags', removeAllModelsTagsIpc);
 ipcMain.handle('regenerateThumbnails', () =>
   regenerateThumbnailsIpc(mainWindow),
 );

@@ -3,14 +3,7 @@ import classNames from 'classnames';
 import Fuse from 'fuse.js';
 import { ImageRow } from 'main/ipc/image';
 import { Tag } from 'main/ipc/tag';
-import {
-  KeyboardEvent,
-  MouseEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
@@ -23,6 +16,7 @@ import { AppDispatch, RootState } from 'renderer/redux';
 import {
   createTag,
   readImages,
+  removeAllImagesTags,
   scanImages,
   setActiveTags,
   setAutoImportTags,
@@ -32,12 +26,17 @@ import {
   updateImage,
 } from 'renderer/redux/reducers/global';
 import LightBox from 'renderer/components/LightBox';
+import ContextMenu from 'renderer/components/ContextMenu';
 
 export default function Images() {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
 
-  const virtualScrollId = 'images_virtualscroll';
+  const CONTEXT_MENU_ID = 'images_context_menu';
+  const VIRTUAL_SCROLL_ID = 'images_virtualscroll';
+  const VIRTUAL_SCROLL_CONTAINER_ID = 'images_container';
+
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
 
   const localStorageZoomLevel = localStorage.getItem('images-zoomLevel');
   const [zoomLevel, setZoomLevel] = useState<number>(
@@ -123,6 +122,7 @@ export default function Images() {
   );
 
   const [imagesList, setImagesList] = useState<ImageRow[]>([...images]);
+  const [selectedImages, setSelectedImages] = useState<boolean[]>([]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -330,7 +330,14 @@ export default function Images() {
       ? imagesList
       : fuse.search(navbarSearchInput).map((result) => result.item);
 
-  const onImageClick = async (e: MouseEvent<HTMLElement>, image: ImageRow) => {
+  const onImageClick = async (
+    e: React.MouseEvent<HTMLElement>,
+    image: ImageRow,
+  ) => {
+    if (isContextMenuOpen) {
+      return;
+    }
+
     if (deleteActive) {
       if (imagesToDelete[image.hash]) {
         const imgs = { ...imagesToDelete };
@@ -357,6 +364,37 @@ export default function Images() {
     }
   };
 
+  const onContextMenuTag = async (
+    e: React.MouseEvent<HTMLElement>,
+    tagId: string,
+  ) => {
+    e.stopPropagation();
+    console.log(selectedImages);
+    const imagesHashes = selectedImages.reduce(
+      (acc: string[], isSelected, i) => {
+        if (isSelected) {
+          acc.push(imagesResult[i].hash);
+        }
+        return acc;
+      },
+      [],
+    );
+
+    for (let i = 0; i < imagesHashes.length; i++) {
+      await dispatch(tagImage({ tagId, imageHash: imagesHashes[i] }));
+    }
+  };
+
+  const removeTagsFromSelected = async () => {
+    for (let i = 0; i < selectedImages.length; i++) {
+      if (selectedImages[i]) {
+        await dispatch(
+          removeAllImagesTags({ imageHash: imagesResult[i].hash }),
+        );
+      }
+    }
+  };
+
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
@@ -370,14 +408,14 @@ export default function Images() {
   };
 
   const onSetActiveTags = async (
-    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
     await dispatch(setActiveTags(selectedTags));
   };
 
   const onSetAutoImportTags = async (
-    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
     await dispatch(setAutoImportTags(selectedTags));
@@ -390,7 +428,7 @@ export default function Images() {
   };
 
   const onRatingChange = async (
-    event: MouseEvent<HTMLInputElement>,
+    event: React.MouseEvent<HTMLInputElement>,
     hash: string,
     value: number,
   ) => {
@@ -467,7 +505,6 @@ export default function Images() {
             )}
             <Image
               src={imageSrc}
-              onDragPath={item.sourcePath}
               alt={`model_detail_model_image_${item.hash}`}
               height={height}
               width={width}
@@ -933,10 +970,40 @@ export default function Images() {
             </li>
           </ul>
         </div>
-        <div className="flex flex-col w-full">
+        <div id={VIRTUAL_SCROLL_CONTAINER_ID} className="flex flex-col w-full">
+          <ContextMenu
+            id={CONTEXT_MENU_ID}
+            containerId={VIRTUAL_SCROLL_CONTAINER_ID}
+            isOpen={isContextMenuOpen}
+            onClose={() => setIsContextMenuOpen(false)}
+            onOpen={() => setIsContextMenuOpen(true)}
+          >
+            <li>
+              <button type="button">Tags</button>
+              <ul>
+                <li className="max-h-56 overflow-y-auto">
+                  {tags.map((tag) => (
+                    <button
+                      type="button"
+                      className=""
+                      key={`images_context_tags_${tag.id}`}
+                      onClick={(e) => onContextMenuTag(e, tag.id)}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </li>
+              </ul>
+            </li>
+            <li>
+              <button type="button" onClick={() => removeTagsFromSelected()}>
+                Remove all tags
+              </button>
+            </li>
+          </ContextMenu>
           <div className="py-0 pl-5 pr-0">
             <VirtualScroll
-              id={virtualScrollId}
+              id={VIRTUAL_SCROLL_ID}
               saveState
               data={imagesResult}
               settings={{
@@ -947,13 +1014,14 @@ export default function Images() {
                 containerHeight,
                 cols: perChunk,
                 selectable: {
-                  enabled: false,
+                  enabled: true,
                   itemHeight: height,
                   itemWidth: width,
                   total: imagesResult.length,
                 },
               }}
               render={rowRenderer}
+              onSelectItems={(imgs) => setSelectedImages(imgs)}
             />
           </div>
           <StatusBar

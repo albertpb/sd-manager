@@ -3,20 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
-import {
-  KeyboardEvent,
-  MouseEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
 import {
   ModelState,
   createMTag,
+  removeAllModelsTags,
   setActiveMTags,
   setCheckingModelsUpdate,
   setModelsCheckingUpdate,
@@ -32,6 +26,7 @@ import Tagger from 'renderer/components/Tagger';
 import { createSelector } from '@reduxjs/toolkit';
 import { Tag } from 'main/ipc/tag';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
+import ContextMenu from 'renderer/components/ContextMenu';
 
 export default function Models({
   modelsState,
@@ -42,6 +37,12 @@ export default function Models({
 }) {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+
+  const CONTEXT_MENU_ID = `${type}_models_context_menu`;
+  const VIRTUAL_SCROLL_ID = `${type}_models_virtualscroll`;
+  const VIRTUAL_SCROLL_CONTAINER_ID = `${type}_models_container`;
+
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
 
   const settings = useSelector((state: RootState) => state.global.settings);
   const navbarSearchInput = useSelector(
@@ -109,6 +110,8 @@ export default function Models({
     (state: RootState) => state.global.settings.activeMTags,
   );
 
+  const [selectedModels, setSelectedModels] = useState<boolean[]>([]);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -120,7 +123,7 @@ export default function Models({
   const rowMargin = 10;
 
   const onModelCardClick = useCallback(
-    async (e: MouseEvent<HTMLDivElement>, hash: string) => {
+    async (e: React.MouseEvent<HTMLDivElement>, hash: string) => {
       const model = Object.values(modelsState.models).find(
         (m) => m.hash === hash,
       );
@@ -322,7 +325,7 @@ export default function Models({
   }, [calcImagesValues]);
 
   const onRatingChange = async (
-    event: MouseEvent<HTMLInputElement>,
+    event: React.MouseEvent<HTMLInputElement>,
     hash: string,
     value: number,
   ) => {
@@ -338,7 +341,7 @@ export default function Models({
   };
 
   const onSetActiveMTags = async (
-    e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
     await dispatch(setActiveMTags(selectedTags));
@@ -347,6 +350,36 @@ export default function Models({
   const addMTag = async (label: string, bgColor: string) => {
     if (label !== '') {
       await dispatch(createMTag({ label, bgColor }));
+    }
+  };
+
+  const onContextMenuTag = async (
+    e: React.MouseEvent<HTMLElement>,
+    tagId: string,
+  ) => {
+    e.stopPropagation();
+    const modelsHashes = selectedModels.reduce(
+      (acc: string[], isSelected, i) => {
+        if (isSelected) {
+          acc.push(resultCards[i].hash);
+        }
+        return acc;
+      },
+      [],
+    );
+
+    for (let i = 0; i < modelsHashes.length; i++) {
+      await dispatch(tagModel({ tagId, modelHash: modelsHashes[i], type }));
+    }
+  };
+
+  const removeTagsFromSelected = async () => {
+    for (let i = 0; i < selectedModels.length; i++) {
+      if (selectedModels[i]) {
+        await dispatch(
+          removeAllModelsTags({ modelHash: resultCards[i].hash, type }),
+        );
+      }
     }
   };
 
@@ -422,8 +455,8 @@ export default function Models({
     return () => remove();
   }, [dispatch, type]);
 
-  const rowRenderer = (visibleData: Model[]) => {
-    const items = visibleData.map((item) => {
+  const rowRenderer = (visibleData: Model[], selectedItems: boolean[]) => {
+    const items = visibleData.map((item, i) => {
       const imagePath =
         type === 'checkpoint'
           ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
@@ -455,10 +488,10 @@ export default function Models({
           className={classNames([
             {
               'max-w-fit': zoomLevel === 1,
+              'opacity-50': selectedItems[i],
             },
           ])}
           showRating={showRating}
-          onDragPath={imagePath}
           hoverEffect={hoverEffect}
           showBadge={showBadge}
           showName={showModelName}
@@ -801,10 +834,40 @@ export default function Models({
           </li>
         </ul>
       </div>
-      <div className="flex flex-col w-full">
+      <div id={VIRTUAL_SCROLL_CONTAINER_ID} className="flex flex-col w-full">
+        <ContextMenu
+          id={CONTEXT_MENU_ID}
+          containerId={VIRTUAL_SCROLL_CONTAINER_ID}
+          isOpen={isContextMenuOpen}
+          onClose={() => setIsContextMenuOpen(false)}
+          onOpen={() => selectedModels.length > 0 && setIsContextMenuOpen(true)}
+        >
+          <li>
+            <button type="button">Tags</button>
+            <ul>
+              <li className="max-h-56 overflow-y-auto">
+                {mtags.map((tag) => (
+                  <button
+                    type="button"
+                    className=""
+                    key={`images_context_tags_${tag.id}`}
+                    onClick={(e) => onContextMenuTag(e, tag.id)}
+                  >
+                    {tag.label}
+                  </button>
+                ))}
+              </li>
+            </ul>
+          </li>
+          <li>
+            <button type="button" onClick={() => removeTagsFromSelected()}>
+              Remove all tags
+            </button>
+          </li>
+        </ContextMenu>
         <div className="py-0 pl-5 pr-0">
           <VirtualScroll
-            id={`${type}_virtualscroll`}
+            id={VIRTUAL_SCROLL_ID}
             saveState
             data={resultCards}
             settings={{
@@ -814,8 +877,15 @@ export default function Models({
               rowMargin,
               containerHeight,
               cols: perChunk,
+              selectable: {
+                enabled: true,
+                itemHeight: height,
+                itemWidth: width,
+                total: resultCards.length,
+              },
             }}
             render={rowRenderer}
+            onSelectItems={(m) => setSelectedModels(m)}
           />
         </div>
         <StatusBar
