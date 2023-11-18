@@ -162,7 +162,7 @@ export default function Navbar() {
         </div>
         <div className="navbar-end">
           {imagesToDeleteButton}
-          {location.pathname === '/images' ? (
+          {location.pathname === '/' ? (
             <div className="mx-2 hidden xl:block">
               <select
                 className="select select-bordered w-full max-w-xs"
