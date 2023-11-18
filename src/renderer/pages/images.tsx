@@ -20,17 +20,18 @@ import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import { AppDispatch, RootState } from 'renderer/redux';
-import { imagesToDelete } from 'renderer/signals/images';
 import {
   createTag,
   readImages,
   scanImages,
   setActiveTags,
   setAutoImportTags,
+  setImagesToDelete,
+  setLightboxState,
   tagImage,
   updateImage,
 } from 'renderer/redux/reducers/global';
-import LightBox, { lightboxOpen } from 'renderer/components/LightBox';
+import LightBox from 'renderer/components/LightBox';
 
 export default function Images() {
   const navigate = useNavigate();
@@ -77,7 +78,10 @@ export default function Images() {
       : localStorage.getItem('images-showTag') === 'true',
   );
 
-  const images = useSelector((state: RootState) => state.global.images);
+  const images = useSelector((state: RootState) => state.global.image.images);
+  const imagesToDelete = useSelector(
+    (state: RootState) => state.global.image.toDelete,
+  );
   const watchFolders = useSelector(
     (state: RootState) => state.global.watchFolders,
   );
@@ -104,6 +108,18 @@ export default function Images() {
   );
   const autoImportTags = useSelector(
     (state: RootState) => state.global.settings.autoImportTags,
+  );
+  const imagesImportProgress = useSelector(
+    (state: RootState) => state.global.image.importProgress,
+  );
+  const lorasImportProgress = useSelector(
+    (state: RootState) => state.global.lora.importProgress,
+  );
+  const checkpointImportProgress = useSelector(
+    (state: RootState) => state.global.checkpoint.importProgress,
+  );
+  const lightboxState = useSelector(
+    (state: RootState) => state.global.image.lightbox,
   );
 
   const [imagesList, setImagesList] = useState<ImageRow[]>([...images]);
@@ -316,12 +332,17 @@ export default function Images() {
 
   const onImageClick = async (e: MouseEvent<HTMLElement>, image: ImageRow) => {
     if (deleteActive) {
-      if (imagesToDelete.value[image.hash]) {
-        const imgs = { ...imagesToDelete.value };
+      if (imagesToDelete[image.hash]) {
+        const imgs = { ...imagesToDelete };
         delete imgs[image.hash];
-        imagesToDelete.value = imgs;
+        dispatch(setImagesToDelete(imgs));
       } else {
-        imagesToDelete.value = { ...imagesToDelete.value, [image.hash]: image };
+        dispatch(
+          setImagesToDelete({
+            ...imagesToDelete,
+            [image.hash]: image,
+          }),
+        );
       }
     } else if (e.shiftKey) {
       const activeTagsArr =
@@ -339,7 +360,7 @@ export default function Images() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      imagesToDelete.value = {};
+      dispatch(setImagesToDelete({}));
     }
   };
 
@@ -381,9 +402,9 @@ export default function Images() {
 
   useEffect(() => {
     return () => {
-      imagesToDelete.value = {};
+      dispatch(setImagesToDelete({}));
     };
-  }, [deleteActive]);
+  }, [deleteActive, dispatch]);
 
   const rowRenderer = (visibleData: ImageRow[], selectedItems: boolean[]) => {
     const rows = visibleData.map((item, i) => {
@@ -399,7 +420,7 @@ export default function Images() {
           className={classNames([
             'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
             {
-              'opacity-50': imagesToDelete.value[item.hash],
+              'opacity-50': imagesToDelete[item.hash],
             },
           ])}
           onClick={(e) => onImageClick(e, item)}
@@ -481,6 +502,11 @@ export default function Images() {
       <LightBox
         images={imagesList}
         onClickImage={(e, i) => onImageClick(e, imagesList[i])}
+        isOpen={lightboxState.isOpen}
+        currentHash={lightboxState.currentHash}
+        onClose={() =>
+          dispatch(setLightboxState({ ...lightboxState, isOpen: false }))
+        }
       />
       <div ref={setRef} className="w-full h-full flex">
         <div className="w-fit h-full">
@@ -489,9 +515,9 @@ export default function Images() {
               <button
                 type="button"
                 aria-label="lightbox"
-                onClick={() => {
-                  lightboxOpen.value = true;
-                }}
+                onClick={() =>
+                  dispatch(setLightboxState({ ...lightboxState, isOpen: true }))
+                }
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -933,6 +959,9 @@ export default function Images() {
           <StatusBar
             totalCards={images.length}
             filteredCards={imagesResult.length}
+            checkpointsImportProgress={checkpointImportProgress}
+            lorasImportProgress={lorasImportProgress}
+            imagesImportProgress={imagesImportProgress}
           />
         </div>
       </div>

@@ -12,15 +12,15 @@ import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
 import { AppDispatch, RootState } from 'renderer/redux';
-import { deleteImages, updateImage } from 'renderer/redux/reducers/global';
+import {
+  deleteImages,
+  setImagesToDelete,
+  setLightboxState,
+  updateImage,
+} from 'renderer/redux/reducers/global';
 import { generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
-import { imagesToDelete } from 'renderer/signals/images';
-import {
-  lightboxCurrentHash,
-  lightboxOpen,
-} from 'renderer/components/LightBox';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
@@ -28,7 +28,10 @@ export default function ImageDetail() {
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
 
-  const images = useSelector((state: RootState) => state.global.images);
+  const images = useSelector((state: RootState) => state.global.image.images);
+  const lightboxState = useSelector(
+    (state: RootState) => state.global.image.lightbox,
+  );
 
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null,
@@ -103,12 +106,14 @@ export default function ImageDetail() {
 
   const deleteImage = useCallback(() => {
     if (imageData) {
-      imagesToDelete.value = {
-        [imageData.hash]: imageData,
-      };
+      dispatch(
+        setImagesToDelete({
+          [imageData.hash]: imageData,
+        }),
+      );
       setConfirmDialogIsOpen(true);
     }
-  }, [imageData]);
+  }, [imageData, dispatch]);
 
   const doDelete = useCallback(async () => {
     await dispatch(deleteImages());
@@ -212,21 +217,30 @@ export default function ImageDetail() {
   };
 
   const onCancelDelete = () => {
-    imagesToDelete.value = {};
+    dispatch(setImagesToDelete({}));
 
     setConfirmDialogIsOpen(false);
   };
 
   const onClickImage = () => {
     if (imageData) {
-      lightboxOpen.value = true;
-      lightboxCurrentHash.value = imageData.hash;
+      dispatch(
+        setLightboxState({
+          currentHash: imageData.hash,
+          isOpen: true,
+        }),
+      );
       navigate('/');
     }
   };
 
   const goToImages = () => {
-    lightboxOpen.value = false;
+    dispatch(
+      setLightboxState({
+        ...lightboxState,
+        isOpen: false,
+      }),
+    );
     navigate('/');
   };
 

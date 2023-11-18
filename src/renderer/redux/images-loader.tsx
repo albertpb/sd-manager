@@ -3,7 +3,6 @@ import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { WatchFolder } from 'main/ipc/watchFolders';
-import { imagesImportProgress } from 'renderer/signals/images';
 import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '.';
 import {
@@ -12,13 +11,14 @@ import {
   readImages,
   scanImages,
   setImages,
+  setImagesImportProgress,
 } from './reducers/global';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const images = useSelector((state: RootState) => state.global.images);
+  const images = useSelector((state: RootState) => state.global.image.images);
   const scanImagesOnStart = useSelector(
     (state: RootState) => state.global.settings.scanImagesOnStart,
   );
@@ -48,15 +48,17 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
-      imagesImportProgress.value = {
-        progress: p,
-        message: m,
-      };
+      dispatch(
+        setImagesImportProgress({
+          progress: p,
+          message: m,
+        }),
+      );
     };
     const remove = window.ipcOn.imagesProgress(cb);
 
     return () => remove();
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {

@@ -1,18 +1,22 @@
 import { useSelector } from 'react-redux';
 import { RootState } from 'renderer/redux';
-import {
-  lorasImportProgress,
-  checkpointsImportProgress,
-} from 'renderer/signals/models';
-import { imagesImportProgress } from 'renderer/signals/images';
+import { ImportProgress } from 'renderer/redux/reducers/global';
+
+type StatusBarProps = {
+  filteredCards?: number;
+  totalCards?: number;
+  checkpointsImportProgress: ImportProgress;
+  lorasImportProgress: ImportProgress;
+  imagesImportProgress: ImportProgress;
+};
 
 export default function StatusBar({
   filteredCards,
   totalCards,
-}: {
-  filteredCards?: number;
-  totalCards?: number;
-}) {
+  checkpointsImportProgress,
+  lorasImportProgress,
+  imagesImportProgress,
+}: StatusBarProps) {
   const checkpointsLoading = useSelector(
     (state: RootState) => state.global.checkpoint.loading,
   );
@@ -21,7 +25,7 @@ export default function StatusBar({
     (state: RootState) => state.global.lora.loading,
   );
   const imagesLoading = useSelector(
-    (state: RootState) => state.global.imagesLoading,
+    (state: RootState) => state.global.image.loading,
   );
 
   return (
@@ -33,12 +37,12 @@ export default function StatusBar({
         {checkpointsLoading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
-              Loading checkpoints: {checkpointsImportProgress.value.message}{' '}
-              {checkpointsImportProgress.value.progress}%
+              Loading checkpoints: {checkpointsImportProgress.message}{' '}
+              {checkpointsImportProgress.progress}%
             </span>
             <progress
               className="progress progress-primary w-56"
-              value={checkpointsImportProgress.value.progress}
+              value={checkpointsImportProgress.progress}
               max="100"
             />
           </div>
@@ -46,12 +50,12 @@ export default function StatusBar({
         {lorasLoading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
-              Loading loras: {lorasImportProgress.value.message}{' '}
-              {lorasImportProgress.value.progress.toFixed(2)}%
+              Loading loras: {lorasImportProgress.message}{' '}
+              {lorasImportProgress.progress.toFixed(2)}%
             </span>
             <progress
               className="progress progress-primary w-56"
-              value={lorasImportProgress.value.progress}
+              value={lorasImportProgress.progress}
               max="100"
             />
           </div>
@@ -59,8 +63,8 @@ export default function StatusBar({
         {imagesLoading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
-              Loading images: {imagesImportProgress.value.message}{' '}
-              {imagesImportProgress.value.progress.toFixed(2)}%
+              Loading images: {imagesImportProgress.message}{' '}
+              {imagesImportProgress.progress.toFixed(2)}%
             </span>
             <progress
               className="progress progress-primary w-56"

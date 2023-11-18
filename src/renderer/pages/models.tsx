@@ -48,6 +48,16 @@ export default function Models({
     (state: RootState) => state.global.navbarSearchInput,
   );
 
+  const imagesImportProgress = useSelector(
+    (state: RootState) => state.global.image.importProgress,
+  );
+  const lorasImportProgress = useSelector(
+    (state: RootState) => state.global.lora.importProgress,
+  );
+  const checkpointImportProgress = useSelector(
+    (state: RootState) => state.global.checkpoint.importProgress,
+  );
+
   const [models, setModels] = useState<Model[]>(
     Object.values(modelsState.models).sort((a, b) => b.rating - a.rating),
   );
@@ -811,6 +821,9 @@ export default function Models({
         <StatusBar
           totalCards={Object.values(modelsState.models).length}
           filteredCards={resultCards.length}
+          checkpointsImportProgress={checkpointImportProgress}
+          lorasImportProgress={lorasImportProgress}
+          imagesImportProgress={imagesImportProgress}
         />
       </div>
     </div>

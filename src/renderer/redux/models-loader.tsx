@@ -2,10 +2,12 @@ import { IpcRendererEvent } from 'electron';
 import { ReactNode, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  checkpointsImportProgress,
-  lorasImportProgress,
-} from '../signals/models';
-import { loadMTags, readCheckpoints, readLoras } from './reducers/global';
+  loadMTags,
+  readCheckpoints,
+  readLoras,
+  setCheckpointsImportProgress,
+  setLorasImportProgress,
+} from './reducers/global';
 import { AppDispatch, RootState } from '.';
 
 export default function ModelsLoader({ children }: { children: ReactNode }) {
@@ -30,23 +32,25 @@ export default function ModelsLoader({ children }: { children: ReactNode }) {
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number, t: string) => {
       if (t === 'lora') {
-        lorasImportProgress.value = {
-          progress: p,
-          message: m,
-        };
+        dispatch(
+          setLorasImportProgress({
+            progress: p,
+            message: m,
+          }),
+        );
       }
       if (t === 'checkpoint') {
-        checkpointsImportProgress.value = {
+        setCheckpointsImportProgress({
           progress: p,
           message: m,
-        };
+        });
       }
     };
 
     const remove = window.ipcOn.modelsProgress(cb);
 
     return () => remove();
-  }, []);
+  }, [dispatch]);
 
   return children;
 }

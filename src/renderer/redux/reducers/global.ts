@@ -6,7 +6,6 @@ import { WatchFolder } from 'main/ipc/watchFolders';
 import { Tag } from 'main/ipc/tag';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import { Option } from 'react-tailwindcss-select/dist/components/type';
-import { imagesToDelete } from 'renderer/signals/images';
 
 export type SettingsState = {
   scanModelsOnStart: string | null;
@@ -26,11 +25,28 @@ export type UpdateState = {
   loading: boolean;
 };
 
+export type ImportProgress = {
+  progress: number;
+  message: string;
+};
+
 export type ModelState = {
   models: Record<string, Model>;
   update: Record<string, UpdateState>;
   loading: boolean;
   checkingUpdates: boolean;
+  importProgress: ImportProgress;
+};
+
+export type ImagesState = {
+  images: ImageRow[];
+  loading: boolean;
+  importProgress: ImportProgress;
+  toDelete: Record<string, boolean>;
+  lightbox: {
+    currentHash: string;
+    isOpen: boolean;
+  };
 };
 
 export type GlobalState = {
@@ -38,9 +54,8 @@ export type GlobalState = {
   settings: SettingsState;
   checkpoint: ModelState;
   lora: ModelState;
-  images: ImageRow[];
+  image: ImagesState;
   filterCheckpoint: string;
-  imagesLoading: boolean;
   navbarSearchInput: string;
   watchFolders: WatchFolder[];
   tags: Tag[];
@@ -66,16 +81,35 @@ const initialState: GlobalState = {
     update: {},
     loading: false,
     checkingUpdates: false,
+    importProgress: {
+      message: '',
+      progress: 0,
+    },
   },
   lora: {
     models: {},
     update: {},
     loading: false,
     checkingUpdates: false,
+    importProgress: {
+      message: '',
+      progress: 0,
+    },
   },
-  images: [],
+  image: {
+    images: [],
+    loading: false,
+    importProgress: {
+      message: '',
+      progress: 0,
+    },
+    toDelete: {},
+    lightbox: {
+      currentHash: '',
+      isOpen: false,
+    },
+  },
   filterCheckpoint: '',
-  imagesLoading: false,
   navbarSearchInput: '',
   watchFolders: [],
   tags: [],
@@ -154,8 +188,9 @@ export const scanImages = createAsyncThunk(
 
 export const deleteImages = createAsyncThunk(
   'deleteImages',
-  async (arg, { dispatch }) => {
-    await window.ipcHandler.removeImages(imagesToDelete.value);
+  async (arg, { dispatch, getState }) => {
+    const state = getState() as { global: GlobalState };
+    await window.ipcHandler.removeImages(state.global.image.toDelete);
     await dispatch(readImages());
   },
 );
@@ -378,7 +413,10 @@ export const globalSlice = createSlice({
       state.filterCheckpoint = action.payload;
     },
     setImages: (state, action) => {
-      state.images = action.payload;
+      state.image.images = action.payload;
+    },
+    setImagesToDelete: (state, action) => {
+      state.image.toDelete = action.payload;
     },
     setNavbarDisabled: (state, action) => {
       state.navbarDisabled = action.payload;
@@ -441,6 +479,18 @@ export const globalSlice = createSlice({
           false;
       }
     },
+    setImagesImportProgress: (state, action) => {
+      state.image.importProgress = action.payload;
+    },
+    setCheckpointsImportProgress: (state, action) => {
+      state.checkpoint.importProgress = action.payload;
+    },
+    setLorasImportProgress: (state, action) => {
+      state.lora.importProgress = action.payload;
+    },
+    setLightboxState: (state, action) => {
+      state.image.lightbox = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(readCheckpoints.pending, (state) => {
@@ -460,7 +510,7 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(readImages.fulfilled, (state, action) => {
-      state.images = action.payload;
+      state.image.images = action.payload;
     });
 
     builder.addCase(loadSettings.fulfilled, (state, action) => {
@@ -471,18 +521,18 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(scanImages.pending, (state) => {
-      state.imagesLoading = true;
+      state.image.loading = true;
     });
     builder.addCase(scanImages.fulfilled, (state) => {
-      state.imagesLoading = false;
+      state.image.loading = false;
     });
 
     builder.addCase(deleteImages.pending, (state) => {
-      state.imagesLoading = true;
+      state.image.loading = true;
     });
     builder.addCase(deleteImages.fulfilled, (state) => {
-      state.imagesLoading = false;
-      imagesToDelete.value = {};
+      state.image.loading = false;
+      state.image.toDelete = {};
     });
 
     builder.addCase(updateModel.fulfilled, (state, action) => {
@@ -504,12 +554,12 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(updateImage.fulfilled, (state, action) => {
-      const index = state.images.findIndex(
+      const index = state.image.images.findIndex(
         (img) => img.hash === action.payload.hash,
       );
       if (index !== -1) {
-        state.images[index] = {
-          ...state.images[index],
+        state.image.images[index] = {
+          ...state.image.images[index],
           [action.payload.field]: action.payload.value,
         };
       }
@@ -520,11 +570,11 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(loadTags.pending, (state) => {
-      state.imagesLoading = true;
+      state.image.loading = true;
     });
 
     builder.addCase(loadTags.fulfilled, (state, action) => {
-      state.imagesLoading = false;
+      state.image.loading = false;
       state.tags = action.payload;
     });
 
@@ -620,7 +670,7 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(tagImage.fulfilled, (state, action) => {
-      const image = state.images.find(
+      const image = state.image.images.find(
         (img) => img.hash === action.payload.imageHash,
       );
       if (image) {
@@ -661,11 +711,11 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(regenerateThumbnails.pending, (state) => {
-      state.imagesLoading = true;
+      state.image.loading = true;
     });
 
     builder.addCase(regenerateThumbnails.fulfilled, (state) => {
-      state.imagesLoading = false;
+      state.image.loading = false;
     });
   },
 });
@@ -679,6 +729,7 @@ export const {
   setTheme,
   setFilterCheckpoint,
   setImages,
+  setImagesToDelete,
   clearModelsToUpdate,
   setModelsCheckingUpdate,
   setModelsToUpdate,
@@ -689,4 +740,8 @@ export const {
   setAutoImportTags,
   setAutoTagImportImages,
   setActiveMTags,
+  setImagesImportProgress,
+  setCheckpointsImportProgress,
+  setLorasImportProgress,
+  setLightboxState,
 } = globalSlice.actions;

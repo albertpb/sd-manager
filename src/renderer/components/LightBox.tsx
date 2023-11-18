@@ -1,21 +1,26 @@
-import { signal } from '@preact/signals-react';
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { throttle } from 'renderer/utils';
 import { ImageRow } from 'main/ipc/image';
 
-const lightboxCurrentIndex = signal(0);
-export const lightboxCurrentHash = signal('');
-export const lightboxOpen = signal(false);
-
 type LightBoxProps = {
   images: ImageRow[];
   onClickImage?: (e: React.MouseEvent<HTMLElement>, index: number) => void;
+  isOpen: boolean;
+  currentHash: string;
+  onClose?: () => void;
 };
 
-export default function LightBox({ images, onClickImage }: LightBoxProps) {
+export default function LightBox({
+  images,
+  onClickImage,
+  isOpen,
+  currentHash,
+  onClose,
+}: LightBoxProps) {
   const MAX_IMAGES_VISIBLE = 9;
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [maxImagesVisible, setMaxImagesVisible] = useState<number>(0);
   const [halfIndex, setHalfIndex] = useState<number>(0);
   const [slicedImages, setSlicedImages] = useState<ImageRow[]>([]);
@@ -34,15 +39,15 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const onClickBackdrop = () => {
-    if (backdrop) {
-      lightboxOpen.value = false;
+    if (backdrop && onClose) {
+      onClose();
     }
   };
 
   const onImageClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     if (onClickImage) {
-      onClickImage(e, lightboxCurrentIndex.value);
+      onClickImage(e, currentIndex);
     }
   };
 
@@ -65,36 +70,36 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
   ) => {
     e.stopPropagation();
 
-    let newIndex = lightboxCurrentIndex.value;
+    let newIndex = currentIndex;
     if (index > halfIndex) {
-      newIndex = lightboxCurrentIndex.value + index - halfIndex;
+      newIndex = currentIndex + index - halfIndex;
     } else if (index < halfIndex) {
-      newIndex = lightboxCurrentIndex.value - (halfIndex - index);
+      newIndex = currentIndex - (halfIndex - index);
     }
 
     if (newIndex > images.length) {
-      newIndex = lightboxCurrentIndex.value;
+      newIndex = currentIndex;
     } else if (newIndex < 0) {
       newIndex = images.length - 1;
     }
-    lightboxCurrentIndex.value = newIndex;
+    setCurrentIndex(newIndex);
   };
 
   const onNext = throttle((e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
-    if (lightboxCurrentIndex.value > images.length - 1) {
-      lightboxCurrentIndex.value = 0;
+    if (currentIndex > images.length - 1) {
+      setCurrentIndex(0);
     } else {
-      lightboxCurrentIndex.value++;
+      setCurrentIndex(currentIndex + 1);
     }
   }, 1000);
 
   const onPrev = throttle((e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
-    if (lightboxCurrentIndex.value === 0) {
-      lightboxCurrentIndex.value = images.length - 1;
+    if (currentIndex === 0) {
+      setCurrentIndex(images.length - 1);
     } else {
-      lightboxCurrentIndex.value--;
+      setCurrentIndex(currentIndex - 1);
     }
   }, 1000);
 
@@ -132,44 +137,39 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
   }, [images, maxImagesVisible]);
 
   useEffect(() => {
-    if (lightboxCurrentIndex.value - halfIndex < 0) {
+    if (currentIndex - halfIndex < 0) {
       setSlicedImages(
         images
-          .slice(halfIndex * -1 + lightboxCurrentIndex.value)
-          .concat(images.slice(0, halfIndex + lightboxCurrentIndex.value + 1)),
+          .slice(halfIndex * -1 + currentIndex)
+          .concat(images.slice(0, halfIndex + currentIndex + 1)),
       );
-    } else if (lightboxCurrentIndex.value + halfIndex >= images.length) {
+    } else if (currentIndex + halfIndex >= images.length) {
       setSlicedImages(
         images
-          .slice(lightboxCurrentIndex.value - halfIndex, images.length)
+          .slice(currentIndex - halfIndex, images.length)
           .concat(
-            images.slice(
-              0,
-              lightboxCurrentIndex.value - images.length + halfIndex + 1,
-            ),
+            images.slice(0, currentIndex - images.length + halfIndex + 1),
           ),
       );
     } else {
       setSlicedImages(
         images.slice(
-          lightboxCurrentIndex.value - halfIndex,
-          lightboxCurrentIndex.value - halfIndex + maxImagesVisible,
+          currentIndex - halfIndex,
+          currentIndex - halfIndex + maxImagesVisible,
         ),
       );
     }
 
     // eslint-disable-next-line
-  }, [images, halfIndex, maxImagesVisible, lightboxCurrentIndex.value]);
+  }, [images, halfIndex, maxImagesVisible, currentIndex]);
 
   useEffect(() => {
-    const index = images.findIndex(
-      (img) => img.hash === lightboxCurrentHash.value,
-    );
+    const index = images.findIndex((img) => img.hash === currentHash);
     if (index !== -1) {
-      lightboxCurrentIndex.value = index;
+      setCurrentIndex(index);
     }
     // eslint-disable-next-line
-  }, [images, lightboxCurrentHash.value]);
+  }, [images, currentHash]);
 
   useEffect(() => {
     const onScroll = (e: WheelEvent) => {
@@ -191,8 +191,8 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
         if (isFullscreen) {
           setIsFullscreen(false);
           document.exitFullscreen();
-        } else {
-          lightboxOpen.value = false;
+        } else if (onClose) {
+          onClose();
         }
       }
 
@@ -227,7 +227,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
   return (
     <div ref={containerRef}>
       <AnimatePresence mode="wait">
-        {lightboxOpen.value && (
+        {isOpen && (
           <motion.div key="lightbox-container">
             <motion.div
               className={classNames([
@@ -362,9 +362,7 @@ export default function LightBox({ images, onClickImage }: LightBoxProps) {
                   <button
                     type="button"
                     className="mx-2"
-                    onClick={() => {
-                      lightboxOpen.value = false;
-                    }}
+                    onClick={() => onClose && onClose()}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

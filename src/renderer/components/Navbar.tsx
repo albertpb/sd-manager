@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from 'renderer/redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { imagesToDelete } from 'renderer/signals/images';
 import {
   deleteImages,
   readImages,
@@ -36,7 +35,14 @@ export default function Navbar() {
     (state: RootState) => state.global.filterCheckpoint,
   );
 
-  const imagesToDeleteCount = Object.values(imagesToDelete.value).length;
+  const imagesToDelete = useSelector(
+    (state: RootState) => state.global.image.toDelete,
+  );
+
+  const imagesToDeleteCount = createSelector(
+    (toDelete: Record<string, boolean>) => toDelete,
+    (toDelete) => Object.keys(toDelete).length,
+  )(imagesToDelete);
 
   const [cofirmDialogIsOpen, setConfirmDialogIsOpen] = useState<boolean>(false);
 

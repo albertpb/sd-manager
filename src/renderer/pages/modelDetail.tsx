@@ -12,8 +12,7 @@ import { AppDispatch, RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
-import { updateModel } from 'renderer/redux/reducers/global';
-import { imagesToDelete } from 'renderer/signals/images';
+import { setImagesToDelete, updateModel } from 'renderer/redux/reducers/global';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
@@ -34,6 +33,10 @@ export default function ModelDetail() {
     }
     return null;
   });
+
+  const imagesToDelete = useSelector(
+    (state: RootState) => state.global.image.toDelete,
+  );
 
   const [showHead, setShowHead] = useState<boolean>(true);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -151,9 +154,9 @@ export default function ModelDetail() {
 
   useEffect(() => {
     return () => {
-      imagesToDelete.value = {};
+      dispatch(setImagesToDelete({}));
     };
-  }, []);
+  }, [dispatch]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -171,15 +174,17 @@ export default function ModelDetail() {
     if (modelData?.type === 'checkpoint') {
       if (item.hash !== null) {
         if (deleteActive) {
-          if (imagesToDelete.value[item.hash]) {
-            const imgs = { ...imagesToDelete.value };
+          if (imagesToDelete[item.hash]) {
+            const imgs = { ...imagesToDelete };
             delete imgs[item.hash];
-            imagesToDelete.value = imgs;
+            dispatch(setImagesToDelete(imgs));
           } else {
-            imagesToDelete.value = {
-              ...imagesToDelete.value,
-              [item.hash]: item,
-            };
+            dispatch(
+              setImagesToDelete({
+                ...imagesToDelete,
+                [item.hash]: item,
+              }),
+            );
           }
         } else {
           navigate(`/image-detail/${item.hash}`);
@@ -198,7 +203,7 @@ export default function ModelDetail() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      imagesToDelete.value = {};
+      dispatch(setImagesToDelete({}));
     }
   };
 
@@ -257,9 +262,7 @@ export default function ModelDetail() {
                     'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
                     {
                       'opacity-50':
-                        item.hash !== null
-                          ? imagesToDelete.value[item.hash]
-                          : false,
+                        item.hash !== null ? imagesToDelete[item.hash] : false,
                     },
                   ])}
                   onClick={() => onSelectImage(item)}

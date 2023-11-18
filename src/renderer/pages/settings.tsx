@@ -50,6 +50,16 @@ export default function Settings() {
     (state: RootState) => state.global.lora.loading,
   );
 
+  const imagesImportProgress = useSelector(
+    (state: RootState) => state.global.image.importProgress,
+  );
+  const lorasImportProgress = useSelector(
+    (state: RootState) => state.global.lora.importProgress,
+  );
+  const checkpointImportProgress = useSelector(
+    (state: RootState) => state.global.checkpoint.importProgress,
+  );
+
   const [confirmIsOpen, setConfirmIsOpen] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
   const [confirmDialogResponse, setConfirmDialogResponse] =
@@ -530,7 +540,11 @@ export default function Settings() {
         </div>
       </section>
       <div className="absolute bottom-0 left-0 w-full">
-        <StatusBar />
+        <StatusBar
+          checkpointsImportProgress={checkpointImportProgress}
+          lorasImportProgress={lorasImportProgress}
+          imagesImportProgress={imagesImportProgress}
+        />
       </div>
     </motion.div>
   );
