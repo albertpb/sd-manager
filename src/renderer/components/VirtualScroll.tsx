@@ -78,6 +78,12 @@ export default function VirtualScroll({
   const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
   const [isShiftPressed, setIsShiftPressed] = useState<boolean>(false);
 
+  const [holdStarter, setHoldStarter] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const [holdActive, setHoldActive] = useState<boolean>(false);
+  const HOLD_DELAY = 200;
+
   const [mouseDrawing, setMouseDrawing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedItemsRef = useRef<boolean[]>([]);
@@ -208,9 +214,27 @@ export default function VirtualScroll({
     }
   };
 
-  const onStartDrawing = (e: React.MouseEvent<HTMLElement>) => {
+  const onStopDrawing = useCallback(() => {
+    if (settings.selectable?.enabled) {
+      setMouseDrawing(false);
+      setDragableArea({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      });
+    }
+  }, [settings.selectable?.enabled]);
+
+  const onMouseDown = (e: React.MouseEvent<HTMLElement>) => {
     if (settings.selectable?.enabled) {
       if (containerRef.current && e.button === 0) {
+        setHoldStarter(
+          setTimeout(() => {
+            setHoldStarter(null);
+            setHoldActive(true);
+          }, HOLD_DELAY),
+        );
         setMouseDrawing(true);
         setDragableArea({
           height: 0,
@@ -240,23 +264,29 @@ export default function VirtualScroll({
     }
   };
 
-  const onStopDrawing = useCallback(() => {
-    if (settings.selectable?.enabled) {
-      setMouseDrawing(false);
-      setDragableArea({
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      });
+  const onMouseUp = (e: React.MouseEvent<HTMLElement>) => {
+    if (e.button === 0) {
+      if (holdStarter) {
+        clearTimeout(holdStarter);
+        // clicked immediately
+
+        setSelectedItems([]);
+        if (onSelectItems) {
+          onSelectItems([]);
+        }
+        onStopDrawing();
+      } else if (holdActive) {
+        // beeing held, cancel held
+        setHoldActive(false);
+      }
     }
-  }, [settings.selectable?.enabled]);
+  };
 
   const onContextMenu = async (e: React.MouseEvent<HTMLDivElement>) => {
     if (
       containerRef.current &&
       settings.selectable &&
-      selectedItems.length === 0
+      selectedItems.filter((s) => s === true).length <= 1
     ) {
       const containerElement = containerRef.current;
 
@@ -418,7 +448,8 @@ export default function VirtualScroll({
       className="overflow-y-auto overflow-x-hidden my-5 relative"
       style={{ height: settings.containerHeight }}
       onMouseMove={(e) => onMouseMoving(e)}
-      onMouseDown={(e) => onStartDrawing(e)}
+      onMouseDown={(e) => onMouseDown(e)}
+      onMouseUp={(e) => onMouseUp(e)}
       onContextMenu={(e) => onContextMenu(e)}
       aria-hidden
     >

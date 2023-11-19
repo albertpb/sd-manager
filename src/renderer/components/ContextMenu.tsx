@@ -61,9 +61,9 @@ export default function ContextMenu({
       }
     };
 
-    document.addEventListener('mousedown', clickCb);
+    document.addEventListener('click', clickCb);
 
-    return () => document.removeEventListener('mousedown', clickCb);
+    return () => document.removeEventListener('click', clickCb);
   }, [onClose]);
 
   return (

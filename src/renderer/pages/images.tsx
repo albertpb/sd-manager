@@ -355,33 +355,39 @@ export default function Images() {
     e: React.MouseEvent<HTMLElement>,
     image: ImageWithTags,
   ) => {
-    if (isContextMenuOpen) {
-      return;
-    }
+    if (e.button === 0) {
+      if (isContextMenuOpen) {
+        return;
+      }
 
-    if (deleteActive) {
-      if (imagesToDelete[image.hash]) {
-        const imgs = { ...imagesToDelete };
-        delete imgs[image.hash];
-        dispatch(setImagesToDelete(imgs));
+      if (selectedImages.length > 0) {
+        return;
+      }
+
+      if (deleteActive) {
+        if (imagesToDelete[image.hash]) {
+          const imgs = { ...imagesToDelete };
+          delete imgs[image.hash];
+          dispatch(setImagesToDelete(imgs));
+        } else {
+          dispatch(
+            setImagesToDelete({
+              ...imagesToDelete,
+              [image.hash]: image,
+            }),
+          );
+        }
+      } else if (e.shiftKey) {
+        const activeTagsArr =
+          activeTags !== '' ? activeTags?.split(',') || [] : [];
+        for (let i = 0; i < activeTagsArr.length; i++) {
+          await dispatch(
+            tagImage({ tagId: activeTagsArr[i], imageHash: image.hash }),
+          );
+        }
       } else {
-        dispatch(
-          setImagesToDelete({
-            ...imagesToDelete,
-            [image.hash]: image,
-          }),
-        );
+        navigate(`/image-detail/${image.hash}`);
       }
-    } else if (e.shiftKey) {
-      const activeTagsArr =
-        activeTags !== '' ? activeTags?.split(',') || [] : [];
-      for (let i = 0; i < activeTagsArr.length; i++) {
-        await dispatch(
-          tagImage({ tagId: activeTagsArr[i], imageHash: image.hash }),
-        );
-      }
-    } else {
-      navigate(`/image-detail/${image.hash}`);
     }
   };
 
@@ -482,7 +488,7 @@ export default function Images() {
               'opacity-50': imagesToDelete[item.hash],
             },
           ])}
-          onClick={(e) => onImageClick(e, item)}
+          onMouseUp={(e) => onImageClick(e, item)}
           aria-hidden="true"
         >
           <figure
