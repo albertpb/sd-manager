@@ -58,8 +58,8 @@ export type GlobalState = {
   filterCheckpoint: string;
   navbarSearchInput: string;
   watchFolders: WatchFolder[];
-  tags: Tag[];
-  mtags: Tag[];
+  tags: Record<string, Tag>;
+  mtags: Record<string, Tag>;
 };
 
 const initialState: GlobalState = {
@@ -112,8 +112,8 @@ const initialState: GlobalState = {
   filterCheckpoint: '',
   navbarSearchInput: '',
   watchFolders: [],
-  tags: [],
-  mtags: [],
+  tags: {},
+  mtags: {},
 };
 
 const readModelsAsync = async (
@@ -606,7 +606,7 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(createTag.fulfilled, (state, action) => {
-      state.tags.push(action.payload);
+      state.tags[action.payload.id] = action.payload;
       if (
         state.settings.activeTags === undefined ||
         state.settings.activeTags === '' ||
@@ -621,32 +621,28 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(deleteTag.fulfilled, (state, action) => {
-      const index = state.tags.findIndex((tag) => tag.id === action.payload);
-      if (index !== -1) {
-        state.tags.splice(index, 1);
-      }
+      const tags = { ...state.tags };
+      delete tags[action.payload];
+      state.tags = tags;
 
       const activeTagsSetting =
         state.settings.activeTags !== ''
           ? state.settings.activeTags?.split(',') || []
           : [];
       const activeTagsSettingIndex =
-        activeTagsSetting.find((t) => t === action.payload) || -1;
+        activeTagsSetting.findIndex((t) => t === action.payload) || -1;
       if (activeTagsSettingIndex !== -1) {
-        activeTagsSetting.splice(index, 1);
+        activeTagsSetting.splice(activeTagsSettingIndex, 1);
         state.settings.activeTags = activeTagsSetting.join(',');
       }
     });
 
     builder.addCase(editTag.fulfilled, (state, action) => {
-      const index = state.tags.findIndex((t) => t.id === action.payload.id);
-      if (index !== -1) {
-        state.tags[index] = action.payload;
-      }
+      state.tags[action.payload.id] = action.payload;
     });
 
     builder.addCase(createMTag.fulfilled, (state, action) => {
-      state.mtags.push(action.payload);
+      state.mtags[action.payload.id] = action.payload;
       if (
         state.settings.activeMTags === undefined ||
         state.settings.activeMTags === '' ||
@@ -661,28 +657,24 @@ export const globalSlice = createSlice({
     });
 
     builder.addCase(deleteMTag.fulfilled, (state, action) => {
-      const index = state.mtags.findIndex((tag) => tag.id === action.payload);
-      if (index !== -1) {
-        state.mtags.splice(index, 1);
-      }
+      const mtags = { ...state.mtags };
+      delete mtags[action.payload];
+      state.mtags = mtags;
 
       const activeMTagsSetting =
         state.settings.activeMTags !== ''
           ? state.settings.activeMTags?.split(',') || []
           : [];
       const activeMTagsSettingIndex =
-        activeMTagsSetting.find((t) => t === action.payload) || -1;
+        activeMTagsSetting.findIndex((t) => t === action.payload) || -1;
       if (activeMTagsSettingIndex !== -1) {
-        activeMTagsSetting.splice(index, 1);
+        activeMTagsSetting.splice(activeMTagsSettingIndex, 1);
         state.settings.activeMTags = activeMTagsSetting.join(',');
       }
     });
 
     builder.addCase(editMTag.fulfilled, (state, action) => {
-      const index = state.mtags.findIndex((t) => t.id === action.payload.id);
-      if (index !== -1) {
-        state.mtags[index] = action.payload;
-      }
+      state.mtags[action.payload.id] = action.payload;
     });
 
     builder.addCase(tagImage.fulfilled, (state, action) => {

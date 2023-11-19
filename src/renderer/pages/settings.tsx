@@ -521,7 +521,7 @@ export default function Settings() {
         <div className="divider" />
         <div className="">
           <TagsTable
-            tags={tags}
+            tags={Object.values(tags)}
             updateTag={updateTag}
             deleteTag={confirmDeleteTag}
             addTag={addTag}
@@ -531,7 +531,7 @@ export default function Settings() {
         <div className="divider" />
         <div className="">
           <TagsTable
-            tags={mtags}
+            tags={Object.values(mtags)}
             updateTag={updateMTag}
             deleteTag={confirmDeleteMTag}
             addTag={addMTag}

@@ -5,7 +5,6 @@ import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import VirtualScroll from 'renderer/components/VirtualScroll';
-import { Model } from 'main/ipc/model';
 import classNames from 'classnames';
 import {
   ModelState,
@@ -23,10 +22,13 @@ import { IpcRendererEvent } from 'electron';
 import { toast } from 'react-toastify';
 import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
-import { createSelector } from '@reduxjs/toolkit';
 import { Tag } from 'main/ipc/tag';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import ContextMenu from 'renderer/components/ContextMenu';
+import {
+  ModelWithTags,
+  modelsWithTags,
+} from 'renderer/redux/reducers/selectors';
 
 export default function Models({
   modelsState,
@@ -59,9 +61,7 @@ export default function Models({
     (state: RootState) => state.global.checkpoint.importProgress,
   );
 
-  const [models, setModels] = useState<Model[]>(
-    Object.values(modelsState.models).sort((a, b) => b.rating - a.rating),
-  );
+  const [models, setModels] = useState<ModelWithTags[]>([]);
 
   const [filterBy, setFilterBy] = useState<string>(
     localStorage.getItem(`models-${type}-filterBy`) || 'none',
@@ -97,18 +97,12 @@ export default function Models({
   const [filterByMTags, setFilterByMTags] = useState<Set<string>>(new Set());
 
   const mtags = useSelector((state: RootState) => state.global.mtags);
-  const tagsMMap = createSelector(
-    (state: Tag[]) => state,
-    (t) =>
-      t.reduce((acc: Record<string, Tag>, tag) => {
-        acc[tag.id] = tag;
-        return acc;
-      }, {}),
-  )(mtags);
 
   const activeMTags = useSelector(
     (state: RootState) => state.global.settings.activeMTags,
   );
+
+  const modelsWTags = modelsWithTags(Object.values(modelsState.models), mtags);
 
   const [selectedModels, setSelectedModels] = useState<boolean[]>([]);
 
@@ -165,22 +159,22 @@ export default function Models({
     ],
   );
 
-  const fuse = new Fuse(models, {
+  const fuse = new Fuse(modelsWTags, {
     keys: ['name'],
   });
 
-  const resultCards =
+  const modelsResult =
     navbarSearchInput === ''
-      ? models
+      ? modelsWTags
       : fuse.search(navbarSearchInput).map((result) => result.item);
 
   const filterByTagFunc = useCallback(
-    (model: Model) => {
+    (model: ModelWithTags) => {
       const modeltags = Object.values(model.tags);
       if (modeltags.length > 0) {
         return modeltags.every((t) => {
           return (
-            filterByMTags.size === modeltags.length && filterByMTags.has(t)
+            filterByMTags.size === modeltags.length && filterByMTags.has(t.id)
           );
         });
       }
@@ -195,7 +189,7 @@ export default function Models({
         return;
       }
 
-      let filterSortedModels = Object.values(modelsState.models);
+      let filterSortedModels = [...modelsResult];
 
       filterSortedModels =
         filterByMTags.size > 0
@@ -278,7 +272,7 @@ export default function Models({
       setModels(filterSortedModels);
     },
     [
-      modelsState.models,
+      modelsResult,
       modelsState.update,
       modelsState.checkingUpdates,
       filterByTagFunc,
@@ -361,7 +355,7 @@ export default function Models({
     const modelsHashes = selectedModels.reduce(
       (acc: string[], isSelected, i) => {
         if (isSelected) {
-          acc.push(resultCards[i].hash);
+          acc.push(models[i].hash);
         }
         return acc;
       },
@@ -377,7 +371,7 @@ export default function Models({
     for (let i = 0; i < selectedModels.length; i++) {
       if (selectedModels[i]) {
         await dispatch(
-          removeAllModelsTags({ modelHash: resultCards[i].hash, type }),
+          removeAllModelsTags({ modelHash: models[i].hash, type }),
         );
       }
     }
@@ -428,7 +422,7 @@ export default function Models({
   const checkingModelUpdateCb = useCallback(
     (event: IpcRendererEvent, loading: boolean, modelId: number) => {
       if (models.findIndex((model) => model.modelId === modelId) === -1) {
-        const updatingModels = Object.values(modelsState.models).filter(
+        const updatingModels = modelsWTags.filter(
           (model) => model.modelId === modelId,
         );
         setModels([...updatingModels, ...models]);
@@ -436,7 +430,7 @@ export default function Models({
 
       dispatch(setModelsCheckingUpdate({ type, modelId, loading }));
     },
-    [dispatch, modelsState.models, type, models],
+    [dispatch, type, models, modelsWTags],
   );
 
   useEffect(() => {
@@ -455,7 +449,10 @@ export default function Models({
     return () => remove();
   }, [dispatch, type]);
 
-  const rowRenderer = (visibleData: Model[], selectedItems: boolean[]) => {
+  const rowRenderer = (
+    visibleData: ModelWithTags[],
+    selectedItems: boolean[],
+  ) => {
     const items = visibleData.map((item, i) => {
       const imagePath =
         type === 'checkpoint'
@@ -496,7 +493,7 @@ export default function Models({
           showBadge={showBadge}
           showName={showModelName}
           onRatingChange={(e, value) => onRatingChange(e, item.hash, value)}
-          tags={Object.keys(item.tags).map((tag: string) => tagsMMap[tag])}
+          tags={item.tags}
         />
       );
     });
@@ -554,7 +551,6 @@ export default function Models({
             filterByTags={filterByMTags}
             tags={mtags}
             activeTags={activeMTags}
-            tagsMap={tagsMMap}
             onAddTag={addMTag}
             onFilterByTag={onFilterByMTag}
             onSetActiveTags={onSetActiveMTags}
@@ -846,7 +842,7 @@ export default function Models({
             <button type="button">Tags</button>
             <ul>
               <li className="max-h-56 overflow-y-auto">
-                {mtags.map((tag) => (
+                {Object.values(mtags).map((tag) => (
                   <button
                     type="button"
                     className=""
@@ -869,7 +865,7 @@ export default function Models({
           <VirtualScroll
             id={VIRTUAL_SCROLL_ID}
             saveState
-            data={resultCards}
+            data={models}
             settings={{
               buffer,
               rowHeight: height,
@@ -881,7 +877,7 @@ export default function Models({
                 enabled: true,
                 itemHeight: height,
                 itemWidth: width,
-                total: resultCards.length,
+                total: models.length,
               },
             }}
             render={rowRenderer}
@@ -890,7 +886,7 @@ export default function Models({
         </div>
         <StatusBar
           totalCards={Object.values(modelsState.models).length}
-          filteredCards={resultCards.length}
+          filteredCards={models.length}
           checkpointsImportProgress={checkpointImportProgress}
           lorasImportProgress={lorasImportProgress}
           imagesImportProgress={imagesImportProgress}

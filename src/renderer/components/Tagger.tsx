@@ -17,8 +17,7 @@ type TaggerProps = {
     value: SelectValue,
   ) => void;
   activeTags: string | null;
-  tags: Tag[];
-  tagsMap: Record<string, Tag>;
+  tags: Record<string, Tag>;
   autoTagImportImages?: string | null;
   autoImportTags?: string | null;
   filterByTags: Set<string>;
@@ -31,7 +30,6 @@ export default function Tagger({
   onSetAutoImportTags,
   activeTags,
   tags,
-  tagsMap,
   autoTagImportImages,
   autoImportTags,
   filterByTags,
@@ -116,7 +114,7 @@ export default function Tagger({
                     <span className="label-text">Active tag</span>
                   </label>
                   <MultiSelect
-                    options={tags.map((tag) => ({
+                    options={Object.values(tags).map((tag) => ({
                       label: tag.label,
                       value: tag.id,
                     }))}
@@ -124,8 +122,8 @@ export default function Tagger({
                     value={
                       activeTags && activeTags !== ''
                         ? activeTags.split(',').map((t) => ({
-                            label: tagsMap[t]?.label,
-                            value: tagsMap[t]?.id,
+                            label: tags[t]?.label,
+                            value: tags[t]?.id,
                           }))
                         : []
                     }
@@ -146,7 +144,7 @@ export default function Tagger({
                         <span className="label-text">Auto import tag</span>
                       </label>
                       <MultiSelect
-                        options={tags.map((tag) => ({
+                        options={Object.values(tags).map((tag) => ({
                           label: tag.label,
                           value: tag.id,
                         }))}
@@ -156,8 +154,8 @@ export default function Tagger({
                         value={
                           autoImportTags && autoImportTags !== ''
                             ? autoImportTags.split(',').map((t) => ({
-                                label: tagsMap[t]?.label,
-                                value: tagsMap[t]?.id,
+                                label: tags[t]?.label,
+                                value: tags[t]?.id,
                               }))
                             : []
                         }
@@ -170,7 +168,7 @@ export default function Tagger({
               <div className="mt-2">
                 <p className="">Click to filter: </p>
                 <div className="flex flex-wrap flex-row">
-                  {tags.map((tag) => {
+                  {Object.values(tags).map((tag) => {
                     return (
                       <div
                         key={tag.id}

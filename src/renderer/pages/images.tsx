@@ -1,9 +1,14 @@
-import { createSelector } from '@reduxjs/toolkit';
 import classNames from 'classnames';
 import Fuse from 'fuse.js';
 import { ImageRow } from 'main/ipc/image';
 import { Tag } from 'main/ipc/tag';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
@@ -27,6 +32,7 @@ import {
 } from 'renderer/redux/reducers/global';
 import LightBox from 'renderer/components/LightBox';
 import ContextMenu from 'renderer/components/ContextMenu';
+import { ImageWithTags, imagesWithTags } from '../redux/reducers/selectors';
 
 export default function Images() {
   const navigate = useNavigate();
@@ -91,14 +97,6 @@ export default function Images() {
     (state: RootState) => state.global.filterCheckpoint,
   );
   const tags = useSelector((state: RootState) => state.global.tags);
-  const tagsMap = createSelector(
-    (state: Tag[]) => state,
-    (t) =>
-      t.reduce((acc: Record<string, Tag>, tag) => {
-        acc[tag.id] = tag;
-        return acc;
-      }, {}),
-  )(tags);
   const activeTags = useSelector(
     (state: RootState) => state.global.settings.activeTags,
   );
@@ -121,7 +119,11 @@ export default function Images() {
     (state: RootState) => state.global.image.lightbox,
   );
 
-  const [imagesList, setImagesList] = useState<ImageRow[]>([...images]);
+  const imagesWTags = imagesWithTags(images, tags);
+
+  const [imagesList, setImagesList] = useState<ImageWithTags[]>([
+    ...imagesWTags,
+  ]);
   const [selectedImages, setSelectedImages] = useState<boolean[]>([]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -135,22 +137,50 @@ export default function Images() {
   const maxZoom = 8;
   const rowMargin = 10;
 
+  const fuseByTags = useMemo(() => {
+    return new Fuse(imagesWTags, {
+      keys: ['tags.label'],
+    });
+  }, [imagesWTags]);
+
+  const fuseByModel = useMemo(() => {
+    return new Fuse(imagesWTags, {
+      keys: ['model'],
+    });
+  }, [imagesWTags]);
+
+  const imagesResult = useMemo(() => {
+    let result: (Omit<ImageRow, 'tags'> & { tags: Tag[] })[] = [];
+
+    if (navbarSearchInput.startsWith('t:')) {
+      result = fuseByTags
+        .search(navbarSearchInput.substring(2))
+        .map((r) => r.item);
+    } else if (navbarSearchInput !== '') {
+      result = fuseByModel.search(navbarSearchInput).map((r) => r.item);
+    } else {
+      result = imagesWTags;
+    }
+
+    return result;
+  }, [fuseByModel, fuseByTags, imagesWTags, navbarSearchInput]);
+
   const filterByRatingFunc = useCallback(
-    (img: ImageRow) => img.rating === filterByRating,
+    (img: ImageWithTags) => img.rating === filterByRating,
     [filterByRating],
   );
 
   const filterByModelFunc = useCallback(
-    (img: ImageRow) => img.model === filterCheckpoint,
+    (img: ImageWithTags) => img.model === filterCheckpoint,
     [filterCheckpoint],
   );
 
   const filterByTagFunc = useCallback(
-    (img: ImageRow) => {
+    (img: ImageWithTags) => {
       const imgtags = Object.values(img.tags);
       if (imgtags.length > 0) {
         return imgtags.every((t) => {
-          return filterByTags.size === imgtags.length && filterByTags.has(t);
+          return filterByTags.size === imgtags.length && filterByTags.has(t.id);
         });
       }
       return false;
@@ -164,8 +194,8 @@ export default function Images() {
 
       let filteredImages =
         filterCheckpoint === ''
-          ? [...images]
-          : [...images].filter(filterByModelFunc);
+          ? [...imagesResult]
+          : [...imagesResult].filter(filterByModelFunc);
 
       filteredImages =
         filterByRating > 0
@@ -234,7 +264,7 @@ export default function Images() {
     },
     [
       filterByModelFunc,
-      images,
+      imagesResult,
       filterCheckpoint,
       filterByRating,
       filterByRatingFunc,
@@ -321,18 +351,9 @@ export default function Images() {
     return () => window.removeEventListener('resize', onResize);
   }, [containerRef, width, calcImagesValues, onResize]);
 
-  const fuse = new Fuse(imagesList, {
-    keys: ['model'],
-  });
-
-  const imagesResult =
-    navbarSearchInput === ''
-      ? imagesList
-      : fuse.search(navbarSearchInput).map((result) => result.item);
-
   const onImageClick = async (
     e: React.MouseEvent<HTMLElement>,
-    image: ImageRow,
+    image: ImageWithTags,
   ) => {
     if (isContextMenuOpen) {
       return;
@@ -369,11 +390,10 @@ export default function Images() {
     tagId: string,
   ) => {
     e.stopPropagation();
-    console.log(selectedImages);
     const imagesHashes = selectedImages.reduce(
       (acc: string[], isSelected, i) => {
         if (isSelected) {
-          acc.push(imagesResult[i].hash);
+          acc.push(imagesList[i].hash);
         }
         return acc;
       },
@@ -388,9 +408,7 @@ export default function Images() {
   const removeTagsFromSelected = async () => {
     for (let i = 0; i < selectedImages.length; i++) {
       if (selectedImages[i]) {
-        await dispatch(
-          removeAllImagesTags({ imageHash: imagesResult[i].hash }),
-        );
+        await dispatch(removeAllImagesTags({ imageHash: imagesList[i].hash }));
       }
     }
   };
@@ -444,7 +462,10 @@ export default function Images() {
     };
   }, [deleteActive, dispatch]);
 
-  const rowRenderer = (visibleData: ImageRow[], selectedItems: boolean[]) => {
+  const rowRenderer = (
+    visibleData: ImageWithTags[],
+    selectedItems: boolean[],
+  ) => {
     const rows = visibleData.map((item, i) => {
       const imageSrc =
         zoomLevel <= 2
@@ -480,16 +501,16 @@ export default function Images() {
           >
             {showTag && (
               <div className="absolute top-2 left-2 z-20">
-                {Object.keys(item.tags).map((tag: string) => (
+                {item.tags.map((tag: Tag) => (
                   <div
-                    key={`image-tag-${item.hash}-${tag}`}
+                    key={`image-tag-${item.hash}-${tag.id}`}
                     className="badge border-none mt-2 block"
                     style={{
-                      background: tagsMap[tag]?.bgColor,
-                      color: tagsMap[tag]?.color,
+                      background: tag.bgColor,
+                      color: tag.color,
                     }}
                   >
-                    {tagsMap[tag]?.label}
+                    {tag.label}
                   </div>
                 ))}
               </div>
@@ -538,7 +559,7 @@ export default function Images() {
     <>
       <LightBox
         images={imagesList}
-        onClickImage={(e, i) => onImageClick(e, imagesList[i])}
+        onClickImage={(e, i) => onImageClick(e, imagesWTags[i])}
         isOpen={lightboxState.isOpen}
         currentHash={lightboxState.currentHash}
         onClose={() =>
@@ -611,7 +632,6 @@ export default function Images() {
               onSetActiveTags={onSetActiveTags}
               activeTags={activeTags}
               tags={tags}
-              tagsMap={tagsMap}
               filterByTags={filterByTags}
               onAddTag={addTag}
               onFilterByTag={onFilterByTag}
@@ -982,7 +1002,7 @@ export default function Images() {
               <button type="button">Tags</button>
               <ul>
                 <li className="max-h-56 overflow-y-auto">
-                  {tags.map((tag) => (
+                  {Object.values(tags).map((tag) => (
                     <button
                       type="button"
                       className=""
@@ -1005,7 +1025,7 @@ export default function Images() {
             <VirtualScroll
               id={VIRTUAL_SCROLL_ID}
               saveState
-              data={imagesResult}
+              data={imagesList}
               settings={{
                 buffer,
                 rowHeight: height,
@@ -1017,7 +1037,7 @@ export default function Images() {
                   enabled: true,
                   itemHeight: height,
                   itemWidth: width,
-                  total: imagesResult.length,
+                  total: imagesList.length,
                 },
               }}
               render={rowRenderer}
@@ -1026,7 +1046,7 @@ export default function Images() {
           </div>
           <StatusBar
             totalCards={images.length}
-            filteredCards={imagesResult.length}
+            filteredCards={imagesList.length}
             checkpointsImportProgress={checkpointImportProgress}
             lorasImportProgress={lorasImportProgress}
             imagesImportProgress={imagesImportProgress}

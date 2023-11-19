@@ -2,10 +2,10 @@ import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { throttle } from 'renderer/utils';
-import { ImageRow } from 'main/ipc/image';
+import { ImageWithTags } from 'renderer/redux/reducers/selectors';
 
 type LightBoxProps = {
-  images: ImageRow[];
+  images: ImageWithTags[];
   onClickImage?: (e: React.MouseEvent<HTMLElement>, index: number) => void;
   isOpen: boolean;
   currentHash: string;
@@ -23,7 +23,7 @@ export default function LightBox({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [maxImagesVisible, setMaxImagesVisible] = useState<number>(0);
   const [halfIndex, setHalfIndex] = useState<number>(0);
-  const [slicedImages, setSlicedImages] = useState<ImageRow[]>([]);
+  const [slicedImages, setSlicedImages] = useState<ImageWithTags[]>([]);
   const [blurry, setBlurry] = useState<boolean>(
     localStorage.getItem('lightbox-blurry') === null
       ? false
@@ -115,7 +115,7 @@ export default function LightBox({
     }
   };
 
-  const onDragImage = (image: ImageRow) => {
+  const onDragImage = (image: ImageWithTags) => {
     window.ipcOn.startDrag(image.sourcePath);
   };
 

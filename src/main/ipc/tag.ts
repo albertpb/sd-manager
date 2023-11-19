@@ -19,7 +19,12 @@ export const tagIpc = async (
 
     switch (action) {
       case 'read': {
-        return db.all(`SELECT * FROM tags`);
+        const tags = await db.all(`SELECT * FROM tags`);
+
+        return tags.reduce((acc, tag) => {
+          acc[tag.id] = tag;
+          return acc;
+        }, {});
       }
 
       case 'add': {

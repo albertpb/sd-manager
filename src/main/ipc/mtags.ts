@@ -12,7 +12,11 @@ export const mtagIpc = async (
 
     switch (action) {
       case 'read': {
-        return db.all(`SELECT * FROM mtags`);
+        const mtags = await db.all(`SELECT * FROM mtags`);
+        return mtags.reduce((acc, tag) => {
+          acc[tag.id] = tag;
+          return acc;
+        }, {});
       }
 
       case 'add': {
