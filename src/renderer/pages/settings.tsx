@@ -1,64 +1,47 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { AppDispatch, RootState } from 'renderer/redux';
-import {
-  setCheckpointsPath,
-  setLorasPath,
-  setScanModelsOnStart,
-  setTheme,
-  readImages,
-  scanImages,
-  setNavbarDisabled,
-  readLoras,
-  readCheckpoints,
-  loadWatchFolders,
-  deleteTag,
-  editTag,
-  createTag,
-  setScanImagesOnStart,
-  setAutoImportImages,
-  regenerateThumbnails,
-  setAutoTagImportImages,
-  createMTag,
-  editMTag,
-  deleteMTag,
-} from 'renderer/redux/reducers/global';
 import ConfirmDialog, {
   ConfirmDialogResponse,
 } from 'renderer/components/ConfirmDialog';
+import {
+  createImageTag,
+  deleteImageTag,
+  editImageTag,
+  imagesAtom,
+  imagesTagsAtom,
+  loadImages,
+  loadWatchFolders,
+  regenerateThumbnails,
+  scanImages,
+  watchFoldersAtom,
+} from 'renderer/state/images.store';
 import TagsTable from 'renderer/components/TagsTable';
 import StatusBar from 'renderer/components/StatusBar';
 import { FullLoader } from 'renderer/components/FullLoader';
 import { Tag } from 'main/ipc/tag';
+import {
+  checkpointsAtom,
+  createModelTag,
+  deleteModelTag,
+  editModelTag,
+  loadModels,
+  lorasAtom,
+  modelTagsAtom,
+} from 'renderer/state/models.store';
+import { navbarAtom } from 'renderer/state/navbar.store';
+import { settingsAtom } from 'renderer/state/settings.store';
+import { useAtom } from 'jotai';
 import themes from '../../../themes';
 
 export default function Settings() {
-  const dispatch = useDispatch<AppDispatch>();
-
-  const settings = useSelector((state: RootState) => state.global.settings);
-  const watchFolders = useSelector(
-    (state: RootState) => state.global.watchFolders,
-  );
-  const tags = useSelector((state: RootState) => state.global.tags);
-  const mtags = useSelector((state: RootState) => state.global.mtags);
-
-  const checkpointsLoading = useSelector(
-    (state: RootState) => state.global.checkpoint.loading,
-  );
-  const lorasLoading = useSelector(
-    (state: RootState) => state.global.lora.loading,
-  );
-
-  const imagesImportProgress = useSelector(
-    (state: RootState) => state.global.image.importProgress,
-  );
-  const lorasImportProgress = useSelector(
-    (state: RootState) => state.global.lora.importProgress,
-  );
-  const checkpointImportProgress = useSelector(
-    (state: RootState) => state.global.checkpoint.importProgress,
-  );
+  const [settingsState, setSettingsState] = useAtom(settingsAtom);
+  const [checkpointsState] = useAtom(checkpointsAtom);
+  const [lorasState] = useAtom(lorasAtom);
+  const [watchFolders] = useAtom(watchFoldersAtom);
+  const [, setNavbarState] = useAtom(navbarAtom);
+  const [tags] = useAtom(imagesTagsAtom);
+  const [mtags] = useAtom(modelTagsAtom);
+  const [imagesState] = useAtom(imagesAtom);
 
   const [confirmIsOpen, setConfirmIsOpen] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
@@ -71,14 +54,14 @@ export default function Settings() {
 
   const onSelectCheckpointsDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    dispatch(setCheckpointsPath(path as string));
-    await dispatch(readCheckpoints({ shouldImport: true }));
+    settingsState.checkpointsPath = path;
+    await loadModels(true, 'checkpoint');
   };
 
   const onSelectLorasDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    dispatch(setLorasPath(path as string));
-    await dispatch(readLoras({ shouldImport: true }));
+    settingsState.checkpointsPath = path;
+    await loadModels(true, 'lora');
   };
 
   const onSelectImagesDir = async () => {
@@ -86,15 +69,15 @@ export default function Settings() {
     if (path) {
       await window.ipcHandler.watchFolder('add', path);
       await window.ipcHandler.watchImagesFolder();
-      await dispatch(loadWatchFolders());
-      await dispatch(scanImages([path]));
-      await dispatch(readImages());
+      await loadWatchFolders();
+      await scanImages([path]);
+      await loadImages();
     }
   };
 
   const updateImagesDb = async () => {
-    await dispatch(scanImages(watchFolders.map((wf) => wf.path)));
-    await dispatch(readImages());
+    await scanImages(watchFolders.map((wf) => wf.path));
+    await loadImages();
   };
 
   const onRegenerateThumbnails = async () => {
@@ -102,7 +85,7 @@ export default function Settings() {
       loading: true,
       title: 'Regenerating thumbnails...',
     });
-    await dispatch(regenerateThumbnails());
+    await regenerateThumbnails();
     setLoading({
       loading: false,
       title: '',
@@ -110,24 +93,55 @@ export default function Settings() {
   };
 
   const onScanModelsOnStart = async (value: boolean) => {
-    dispatch(setScanModelsOnStart(value ? '1' : '0'));
+    setSettingsState((draft) => {
+      draft.scanModelsOnStart = value ? '1' : '0';
+    });
+    await window.ipcHandler.settings(
+      'save',
+      'scanModelsOnStart',
+      value ? '1' : '0',
+    );
   };
 
   const onScanImagesOnStart = async (value: boolean) => {
-    dispatch(setScanImagesOnStart(value ? '1' : '0'));
+    setSettingsState((draft) => {
+      draft.scanImagesOnStart = value ? '1' : '0';
+    });
+    await window.ipcHandler.settings(
+      'save',
+      'scanImagesOnStart',
+      value ? '1' : '0',
+    );
   };
 
   const onAutoImportImages = async (value: boolean) => {
-    dispatch(setAutoImportImages(value ? '1' : '0'));
+    setSettingsState((draft) => {
+      draft.autoImportImages = value ? '1' : '0';
+    });
+    await window.ipcHandler.settings(
+      'save',
+      'autoImportImages',
+      value ? '1' : '0',
+    );
   };
 
   const onAutoTagImportImages = async (value: boolean) => {
-    dispatch(setAutoTagImportImages(value ? '1' : '0'));
+    setSettingsState((draft) => {
+      draft.autoTagImportImages = value ? '1' : '0';
+    });
+    await window.ipcHandler.settings(
+      'save',
+      'autoTagImportImages',
+      value ? '1' : '0',
+    );
   };
 
   const changeTheme = async (theme: string) => {
     window.document.documentElement.setAttribute('data-theme', theme);
-    await dispatch(setTheme(theme));
+    setSettingsState((draft) => {
+      draft.theme = theme;
+    });
+    await window.ipcHandler.settings('save', 'theme', theme);
   };
 
   const confirmRemoveWatchFolder = (watchFolder: string) => {
@@ -143,16 +157,20 @@ export default function Settings() {
     removeImages: boolean,
   ) => {
     setLoading({ loading: true, title: 'Removing records from database...' });
-    dispatch(setNavbarDisabled(true));
+    setNavbarState((draft) => {
+      draft.disabled = true;
+    });
     await window.ipcHandler.watchFolder('delete', {
       path: watchFolder,
       removeImages,
     });
-    await dispatch(loadWatchFolders());
+    await loadWatchFolders();
     window.ipcHandler.watchImagesFolder();
-    await dispatch(readImages());
+    await loadImages();
     setLoading({ loading: false, title: '' });
-    dispatch(setNavbarDisabled(false));
+    setNavbarState((draft) => {
+      draft.disabled = false;
+    });
   };
 
   const onConfirmClose = () => {
@@ -167,14 +185,14 @@ export default function Settings() {
     }
 
     if (response.type === 'deleteTag') {
-      await dispatch(deleteTag(response.value));
-      await dispatch(readImages());
+      await deleteImageTag(response.value);
+      await loadImages();
     }
 
     if (response.type === 'deleteMTag') {
-      await dispatch(deleteMTag(response.value));
-      await dispatch(readLoras({ shouldImport: false }));
-      await dispatch(readCheckpoints({ shouldImport: false }));
+      await deleteModelTag(response.value);
+      await loadModels(false, 'lora');
+      await loadModels(false, 'checkpoint');
     }
 
     setConfirmIsOpen(false);
@@ -185,26 +203,25 @@ export default function Settings() {
     const path = await window.ipcHandler.selectDir();
 
     if (path) {
-      dispatch(setNavbarDisabled(true));
+      setNavbarState((draft) => {
+        draft.disabled = true;
+      });
       setLoading({ loading: true, title: 'Updating records in database...' });
       await window.ipcHandler.watchFolder('edit', {
         currentPath: watchFolder,
         newPath: path,
       });
       window.ipcHandler.watchImagesFolder();
-      dispatch(readImages());
+      await loadImages();
       setLoading({ loading: false, title: '' });
-      dispatch(setNavbarDisabled(false));
+      setNavbarState((draft) => {
+        draft.disabled = false;
+      });
     }
   };
 
   const scanModels = async (type: 'checkpoint' | 'lora') => {
-    if (type === 'checkpoint') {
-      await dispatch(readCheckpoints({ shouldImport: true }));
-    }
-    if (type === 'lora') {
-      await dispatch(readLoras({ shouldImport: true }));
-    }
+    await loadModels(true, type);
   };
 
   const confirmDeleteTag = async (tag: Tag) => {
@@ -232,7 +249,7 @@ export default function Settings() {
     label: string;
     bgColor: string;
   }) => {
-    await dispatch(editTag({ id, label, bgColor }));
+    await editImageTag(id, label, bgColor);
   };
 
   const addTag = async ({
@@ -242,7 +259,7 @@ export default function Settings() {
     label: string;
     bgColor: string;
   }) => {
-    await dispatch(createTag({ label, bgColor }));
+    await createImageTag(label, bgColor);
   };
 
   const updateMTag = async ({
@@ -254,7 +271,7 @@ export default function Settings() {
     label: string;
     bgColor: string;
   }) => {
-    await dispatch(editMTag({ id, label, bgColor }));
+    await editModelTag(id, label, bgColor);
   };
 
   const addMTag = async ({
@@ -264,7 +281,7 @@ export default function Settings() {
     label: string;
     bgColor: string;
   }) => {
-    await dispatch(createMTag({ label, bgColor }));
+    await createModelTag(label, bgColor);
   };
 
   if (loading.loading) {
@@ -293,7 +310,7 @@ export default function Settings() {
         <div className="mt-3 flex flex-row items-center">
           <div className="w-2/3">
             <p>
-              <span>Checkpoints folder:</span> {settings.checkpointsPath}{' '}
+              <span>Checkpoints folder:</span> {settingsState.checkpointsPath}{' '}
             </p>
           </div>
           <div className="flex items-center">
@@ -307,20 +324,20 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm ml-2"
-              disabled={checkpointsLoading}
+              disabled={checkpointsState.loading}
               onClick={() => scanModels('checkpoint')}
             >
-              {checkpointsLoading && (
+              {checkpointsState.loading && (
                 <span className="loading loading-spinner" />
               )}
-              {checkpointsLoading ? 'Importing...' : 'Import'}
+              {checkpointsState.loading ? 'Importing...' : 'Import'}
             </button>
           </div>
         </div>
         <div className="mt-3 flex flex-row items-center">
           <div className="w-2/3">
             <p>
-              <span>Loras folder:</span> {settings.lorasPath}{' '}
+              <span>Loras folder:</span> {settingsState.lorasPath}{' '}
             </p>
           </div>
           <div className="flex items-center">
@@ -334,11 +351,13 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm ml-2"
-              disabled={lorasLoading}
+              disabled={lorasState.loading}
               onClick={() => scanModels('lora')}
             >
-              {lorasLoading && <span className="loading loading-spinner" />}
-              {lorasLoading ? 'Importing...' : 'Import'}
+              {lorasState.loading && (
+                <span className="loading loading-spinner" />
+              )}
+              {lorasState.loading ? 'Importing...' : 'Import'}
             </button>
           </div>
         </div>
@@ -353,7 +372,7 @@ export default function Settings() {
             <input
               id="scanModelsOnStart"
               type="checkbox"
-              checked={settings.scanModelsOnStart === '1'}
+              checked={settingsState.scanModelsOnStart === '1'}
               onChange={(e) => onScanModelsOnStart(e.target.checked)}
               className="checkbox checkbox-primary"
             />
@@ -370,7 +389,7 @@ export default function Settings() {
             <input
               id="scanImagesOnStart"
               type="checkbox"
-              checked={settings.scanImagesOnStart === '1'}
+              checked={settingsState.scanImagesOnStart === '1'}
               onChange={(e) => onScanImagesOnStart(e.target.checked)}
               className="checkbox checkbox-primary"
             />
@@ -387,7 +406,7 @@ export default function Settings() {
             <input
               id="autoImportImages"
               type="checkbox"
-              checked={settings.autoImportImages === '1'}
+              checked={settingsState.autoImportImages === '1'}
               onChange={(e) => onAutoImportImages(e.target.checked)}
               className="checkbox checkbox-primary"
             />
@@ -404,7 +423,7 @@ export default function Settings() {
             <input
               id="autoTagImportImages"
               type="checkbox"
-              checked={settings.autoTagImportImages === '1'}
+              checked={settingsState.autoTagImportImages === '1'}
               onChange={(e) => onAutoTagImportImages(e.target.checked)}
               className="checkbox checkbox-primary"
             />
@@ -417,7 +436,7 @@ export default function Settings() {
           <select
             className="select select-bordered w-1/3"
             onChange={(e) => changeTheme(e.target.value)}
-            value={settings.theme || 'default'}
+            value={settingsState.theme || 'default'}
           >
             <option value="default">Default</option>
             {themes.map((theme) => {
@@ -541,9 +560,9 @@ export default function Settings() {
       </section>
       <div className="absolute bottom-0 left-0 w-full">
         <StatusBar
-          checkpointsImportProgress={checkpointImportProgress}
-          lorasImportProgress={lorasImportProgress}
-          imagesImportProgress={imagesImportProgress}
+          checkpointsImportProgress={checkpointsState.importProgress}
+          lorasImportProgress={lorasState.importProgress}
+          imagesImportProgress={imagesState.importProgress}
         />
       </div>
     </motion.div>

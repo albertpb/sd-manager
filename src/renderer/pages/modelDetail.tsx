@@ -4,39 +4,41 @@ import ReactHtmlParser from 'html-react-parser';
 import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelCivitaiInfo } from 'main/interfaces';
-import { Model } from 'main/ipc/model';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
-import { AppDispatch, RootState } from 'renderer/redux';
 import Carousel from 'react-multi-carousel';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
-import { setImagesToDelete, updateModel } from 'renderer/redux/reducers/global';
+import {
+  checkpointsAtom,
+  lorasAtom,
+  updateModel,
+} from 'renderer/state/models.store';
+import { settingsAtom } from 'renderer/state/settings.store';
+import { imagesAtom } from 'renderer/state/images.store';
+import { useAtom } from 'jotai';
+import { Model } from 'main/ipc/model';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
   const navigatorParams = useParams();
   const selectedModelHash = navigatorParams.hash;
 
-  const settings = useSelector((state: RootState) => state.global.settings);
-  const modelData: Model | null = useSelector((state: RootState) => {
-    if (selectedModelHash) {
-      if (state.global.checkpoint.models[selectedModelHash]) {
-        return state.global.checkpoint.models[selectedModelHash];
-      }
-      if (state.global.lora.models[selectedModelHash]) {
-        return state.global.lora.models[selectedModelHash];
-      }
-    }
-    return null;
-  });
+  const [lorasState] = useAtom(lorasAtom);
+  const [checkpointsState] = useAtom(checkpointsAtom);
+  const [settingsState] = useAtom(settingsAtom);
+  const [imagesState, setImagesState] = useAtom(imagesAtom);
 
-  const imagesToDelete = useSelector(
-    (state: RootState) => state.global.image.toDelete,
-  );
+  let modelData: Model | null = null;
+  if (selectedModelHash) {
+    if (lorasState.models[selectedModelHash]) {
+      modelData = lorasState.models[selectedModelHash];
+    }
+    if (checkpointsState.models[selectedModelHash]) {
+      modelData = checkpointsState.models[selectedModelHash];
+    }
+  }
 
   const [showHead, setShowHead] = useState<boolean>(true);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -66,11 +68,11 @@ export default function ModelDetail() {
   const [deleteActive, setDeleteActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (modelData) {
-      const load = async () => {
+    const load = async () => {
+      if (modelData) {
         const mapPathsModels: Record<string, string | null> = {
-          checkpoint: settings.checkpointsPath,
-          lora: settings.lorasPath,
+          checkpoint: settingsState.checkpointsPath,
+          lora: settingsState.lorasPath,
         };
 
         const modelsPath = mapPathsModels[modelData.type];
@@ -95,10 +97,10 @@ export default function ModelDetail() {
             );
           setModelImagesList(modelImagesListResponse);
         }
-      };
-      load();
-    }
-  }, [settings, modelData]);
+      }
+    };
+    load();
+  }, [settingsState, modelData]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
@@ -154,9 +156,11 @@ export default function ModelDetail() {
 
   useEffect(() => {
     return () => {
-      dispatch(setImagesToDelete({}));
+      setImagesState((draft) => {
+        draft.toDelete = {};
+      });
     };
-  }, [dispatch]);
+  }, [setImagesState]);
 
   const setRef = useCallback(
     (node: HTMLDivElement) => {
@@ -174,17 +178,19 @@ export default function ModelDetail() {
     if (modelData?.type === 'checkpoint') {
       if (item.hash !== null) {
         if (deleteActive) {
-          if (imagesToDelete[item.hash]) {
-            const imgs = { ...imagesToDelete };
-            delete imgs[item.hash];
-            dispatch(setImagesToDelete(imgs));
+          if (imagesState.toDelete[item.hash]) {
+            setImagesState((draft) => {
+              const imgs = { ...imagesState.toDelete };
+              delete imgs[item.hash];
+              draft.toDelete = imgs;
+            });
           } else {
-            dispatch(
-              setImagesToDelete({
-                ...imagesToDelete,
+            setImagesState((draft) => {
+              draft.toDelete = {
+                ...draft.toDelete,
                 [item.hash]: item,
-              }),
-            );
+              };
+            });
           }
         } else {
           navigate(`/image-detail/${item.hash}`);
@@ -203,19 +209,15 @@ export default function ModelDetail() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      dispatch(setImagesToDelete({}));
+      setImagesState((draft) => {
+        draft.toDelete = {};
+      });
     }
   };
 
   const onRatingChange = async (rating: number) => {
     if (modelData) {
-      await dispatch(
-        updateModel({
-          hash: modelData.hash,
-          field: 'rating',
-          value: rating,
-        }),
-      );
+      await updateModel(modelData.hash, modelData.type, 'rating', rating);
     }
   };
 
@@ -262,7 +264,9 @@ export default function ModelDetail() {
                     'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
                     {
                       'opacity-50':
-                        item.hash !== null ? imagesToDelete[item.hash] : false,
+                        item.hash !== null
+                          ? imagesState.toDelete[item.hash]
+                          : false,
                     },
                   ])}
                   onClick={() => onSelectImage(item)}

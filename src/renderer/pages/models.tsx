@@ -1,65 +1,44 @@
 import Fuse from 'fuse.js';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from 'renderer/redux';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import classNames from 'classnames';
-import {
-  ModelState,
-  createMTag,
-  removeAllModelsTags,
-  setActiveMTags,
-  setCheckingModelsUpdate,
-  setModelsCheckingUpdate,
-  setModelsToUpdate,
-  setNavbarDisabled,
-  tagModel,
-  updateModel,
-} from 'renderer/redux/reducers/global';
 import { IpcRendererEvent } from 'electron';
 import { toast } from 'react-toastify';
 import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
 import { Tag } from 'main/ipc/tag';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
-import ContextMenu from 'renderer/components/ContextMenu';
 import {
   ModelWithTags,
+  checkpointsAtom,
+  createModelTag,
+  lorasAtom,
+  modelTagsAtom,
+  modelsAtom,
   modelsWithTags,
-} from 'renderer/redux/reducers/selectors';
+  removeAllModelsTags,
+  setActiveMTags,
+  setModelsCheckingUpdate,
+  setModelsToUpdate,
+  tagModel,
+  updateModel,
+} from 'renderer/state/models.store';
+import ContextMenu from 'renderer/components/ContextMenu';
+import { useAtom } from 'jotai';
+import { settingsAtom } from 'renderer/state/settings.store';
+import { navbarAtom } from 'renderer/state/navbar.store';
+import { imagesAtom } from 'renderer/state/images.store';
 
-export default function Models({
-  modelsState,
-  type,
-}: {
-  modelsState: ModelState;
-  type: 'checkpoint' | 'lora';
-}) {
+export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
 
   const CONTEXT_MENU_ID = `${type}_models_context_menu`;
   const VIRTUAL_SCROLL_ID = `${type}_models_virtualscroll`;
   const VIRTUAL_SCROLL_CONTAINER_ID = `${type}_models_container`;
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
-
-  const settings = useSelector((state: RootState) => state.global.settings);
-  const navbarSearchInput = useSelector(
-    (state: RootState) => state.global.navbarSearchInput,
-  );
-
-  const imagesImportProgress = useSelector(
-    (state: RootState) => state.global.image.importProgress,
-  );
-  const lorasImportProgress = useSelector(
-    (state: RootState) => state.global.lora.importProgress,
-  );
-  const checkpointImportProgress = useSelector(
-    (state: RootState) => state.global.checkpoint.importProgress,
-  );
 
   const [models, setModels] = useState<ModelWithTags[]>([]);
 
@@ -96,15 +75,16 @@ export default function Models({
   );
   const [filterByMTags, setFilterByMTags] = useState<Set<string>>(new Set());
 
-  const mtags = useSelector((state: RootState) => state.global.mtags);
-
-  const activeMTags = useSelector(
-    (state: RootState) => state.global.settings.activeMTags,
-  );
-
-  const modelsWTags = modelsWithTags(Object.values(modelsState.models), mtags);
-
   const [selectedModels, setSelectedModels] = useState<boolean[]>([]);
+
+  const [settingsState] = useAtom(settingsAtom);
+  const [modelsWTags] = useAtom(modelsWithTags[type]);
+  const [navbarState, setNavbarState] = useAtom(navbarAtom);
+  const [modelsState, setModelsState] = useAtom(modelsAtom[type]);
+  const [lorasState] = useAtom(lorasAtom);
+  const [checkpointsState] = useAtom(checkpointsAtom);
+  const [imagesState] = useAtom(imagesAtom);
+  const [mtags] = useAtom(modelTagsAtom);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -130,15 +110,11 @@ export default function Models({
       } else if (e.shiftKey) {
         if (model) {
           const activeMTagsArr =
-            activeMTags !== '' ? activeMTags?.split(',') || [] : [];
+            settingsState.activeMTags !== ''
+              ? settingsState.activeMTags?.split(',') || []
+              : [];
           for (let i = 0; i < activeMTagsArr.length; i++) {
-            await dispatch(
-              tagModel({
-                tagId: activeMTagsArr[i],
-                modelHash: model.hash,
-                type,
-              }),
-            );
+            await tagModel(activeMTagsArr[i], model.hash, type);
           }
         }
       } else if (!modelsState.checkingUpdates) {
@@ -153,8 +129,7 @@ export default function Models({
       modelsState.checkingUpdates,
       navigate,
       modelsState.models,
-      activeMTags,
-      dispatch,
+      settingsState.activeMTags,
       type,
     ],
   );
@@ -164,9 +139,9 @@ export default function Models({
   });
 
   const modelsResult =
-    navbarSearchInput === ''
+    navbarState.searchInput === ''
       ? modelsWTags
-      : fuse.search(navbarSearchInput).map((result) => result.item);
+      : fuse.search(navbarState.searchInput).map((result) => result.item);
 
   const filterByTagFunc = useCallback(
     (model: ModelWithTags) => {
@@ -325,25 +300,19 @@ export default function Models({
   ) => {
     event.stopPropagation();
 
-    await dispatch(
-      updateModel({
-        hash,
-        field: 'rating',
-        value,
-      }),
-    );
+    await updateModel(hash, type, 'rating', value);
   };
 
   const onSetActiveMTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
-    await dispatch(setActiveMTags(selectedTags));
+    await setActiveMTags(selectedTags);
   };
 
   const addMTag = async (label: string, bgColor: string) => {
     if (label !== '') {
-      await dispatch(createMTag({ label, bgColor }));
+      await createModelTag(label, bgColor);
     }
   };
 
@@ -363,16 +332,14 @@ export default function Models({
     );
 
     for (let i = 0; i < modelsHashes.length; i++) {
-      await dispatch(tagModel({ tagId, modelHash: modelsHashes[i], type }));
+      await tagModel(tagId, modelsHashes[i], type);
     }
   };
 
   const removeTagsFromSelected = async () => {
     for (let i = 0; i < selectedModels.length; i++) {
       if (selectedModels[i]) {
-        await dispatch(
-          removeAllModelsTags({ modelHash: models[i].hash, type }),
-        );
+        await removeAllModelsTags(models[i].hash, type);
       }
     }
   };
@@ -412,11 +379,19 @@ export default function Models({
   const checkUpdates = async () => {
     setModels([]);
     sortFilterModels('update', 'modelIdAsc');
-    dispatch(setNavbarDisabled(true));
-    dispatch(setCheckingModelsUpdate({ type, updating: true }));
+    setNavbarState((draft) => {
+      draft.disabled = true;
+    });
+    setModelsState((draft) => {
+      draft.checkingUpdates = true;
+    });
     await window.ipcHandler.checkModelsToUpdate(type);
-    dispatch(setNavbarDisabled(false));
-    dispatch(setCheckingModelsUpdate({ type, updating: false }));
+    setModelsState((draft) => {
+      draft.checkingUpdates = false;
+    });
+    setNavbarState((draft) => {
+      draft.disabled = false;
+    });
   };
 
   const checkingModelUpdateCb = useCallback(
@@ -428,9 +403,9 @@ export default function Models({
         setModels([...updatingModels, ...models]);
       }
 
-      dispatch(setModelsCheckingUpdate({ type, modelId, loading }));
+      setModelsCheckingUpdate(type, modelId, loading);
     },
-    [dispatch, type, models, modelsWTags],
+    [type, models, modelsWTags],
   );
 
   useEffect(() => {
@@ -442,12 +417,12 @@ export default function Models({
   useEffect(() => {
     const remove = window.ipcOn.modelToUpdate(
       (event: IpcRendererEvent, modelId: number) => {
-        dispatch(setModelsToUpdate({ type, modelId }));
+        setModelsToUpdate(type, modelId);
       },
     );
 
     return () => remove();
-  }, [dispatch, type]);
+  }, [type]);
 
   const rowRenderer = (
     visibleData: ModelWithTags[],
@@ -456,8 +431,8 @@ export default function Models({
     const items = visibleData.map((item, i) => {
       const imagePath =
         type === 'checkpoint'
-          ? `${settings.checkpointsPath}\\${item.name}\\${item.name}_0.png`
-          : `${settings.lorasPath}\\${item.name}\\${item.name}_0.png`;
+          ? `${settingsState.checkpointsPath}\\${item.name}\\${item.name}_0.png`
+          : `${settingsState.lorasPath}\\${item.name}\\${item.name}_0.png`;
 
       const loading =
         item.modelId && modelsState.update[item.modelId]
@@ -550,7 +525,7 @@ export default function Models({
           <Tagger
             filterByTags={filterByMTags}
             tags={mtags}
-            activeTags={activeMTags}
+            activeTags={settingsState.activeMTags}
             onAddTag={addMTag}
             onFilterByTag={onFilterByMTag}
             onSetActiveTags={onSetActiveMTags}
@@ -887,9 +862,9 @@ export default function Models({
         <StatusBar
           totalCards={Object.values(modelsState.models).length}
           filteredCards={models.length}
-          checkpointsImportProgress={checkpointImportProgress}
-          lorasImportProgress={lorasImportProgress}
-          imagesImportProgress={imagesImportProgress}
+          checkpointsImportProgress={checkpointsState.importProgress}
+          lorasImportProgress={lorasState.importProgress}
+          imagesImportProgress={imagesState.importProgress}
         />
       </div>
     </div>

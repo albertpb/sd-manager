@@ -2,47 +2,20 @@ import classNames from 'classnames';
 import { useLocation, Link } from 'react-router-dom';
 import useTab, { tabs } from 'renderer/hooks/tabs';
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from 'renderer/redux';
-import { createSelector } from '@reduxjs/toolkit';
-import {
-  deleteImages,
-  readImages,
-  setFilterCheckpoint,
-  setNavbarSearchInputValue,
-} from 'renderer/redux/reducers/global';
+import { useAtom } from 'jotai';
+import { navbarAtom } from 'renderer/state/navbar.store';
+import { checkpointsAtom } from 'renderer/state/models.store';
+import { deleteImages, imagesAtom } from 'renderer/state/images.store';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function Navbar() {
   const location = useLocation();
-  const dispatch = useDispatch<AppDispatch>();
   const currentTab = useTab();
   const searchRef = useRef<HTMLInputElement>(null);
-  const navbarDisabled = useSelector(
-    (state: RootState) => state.global.navbarDisabled,
-  );
-  const searchValue = useSelector(
-    (state: RootState) => state.global.navbarSearchInput,
-  );
-  const models = useSelector(
-    (state: RootState) => state.global.checkpoint.models,
-  );
-  const checkpoints = createSelector(
-    (state: typeof models) => state,
-    (chkps) => Object.values(chkps),
-  )(models);
-  const filterCheckpoint = useSelector(
-    (state: RootState) => state.global.filterCheckpoint,
-  );
 
-  const imagesToDelete = useSelector(
-    (state: RootState) => state.global.image.toDelete,
-  );
-
-  const imagesToDeleteCount = createSelector(
-    (toDelete: Record<string, boolean>) => toDelete,
-    (toDelete) => Object.keys(toDelete).length,
-  )(imagesToDelete);
+  const [navbarState, setNavbarState] = useAtom(navbarAtom);
+  const [imagesState] = useAtom(imagesAtom);
+  const [checkpointsState] = useAtom(checkpointsAtom);
 
   const [cofirmDialogIsOpen, setConfirmDialogIsOpen] = useState<boolean>(false);
 
@@ -65,17 +38,18 @@ export default function Navbar() {
   }, [location.pathname]);
 
   const onDeleteImages = async () => {
-    await dispatch(deleteImages());
-    await dispatch(readImages());
+    await deleteImages();
     setConfirmDialogIsOpen(false);
   };
 
   const changeFilterCheckpoint = (checkpointName: string) => {
-    dispatch(setFilterCheckpoint(checkpointName));
+    setNavbarState((draft) => {
+      draft.filterCheckpoint = checkpointName;
+    });
   };
 
   const imagesToDeleteButton =
-    imagesToDeleteCount > 0 && !navbarDisabled ? (
+    Object.values(imagesState.toDelete).length > 0 && !navbarState.disabled ? (
       <button
         type="button"
         className="mx-1 btn btn-outline btn-info"
@@ -95,7 +69,7 @@ export default function Navbar() {
             d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
           />
         </svg>
-        Delete {imagesToDeleteCount}
+        Delete {Object.values(imagesState.toDelete).length}
       </button>
     ) : null;
 
@@ -105,10 +79,10 @@ export default function Navbar() {
         to={t.path}
         className={classNames([
           { active: t.id === currentTab },
-          { disabled: navbarDisabled },
+          { disabled: navbarState.disabled },
         ])}
         onClick={(e) => {
-          if (navbarDisabled) e.preventDefault();
+          if (navbarState.disabled) e.preventDefault();
         }}
       >
         {t.label}
@@ -166,11 +140,11 @@ export default function Navbar() {
             <div className="mx-2 hidden xl:block">
               <select
                 className="select select-bordered w-full max-w-xs"
-                value={filterCheckpoint}
+                value={navbarState.filterCheckpoint}
                 onChange={(e) => changeFilterCheckpoint(e.target.value)}
               >
                 <option value="">None</option>
-                {checkpoints.map((chkpt) => (
+                {Object.values(checkpointsState.models).map((chkpt) => (
                   <option
                     value={chkpt.name}
                     key={`navbar_checkpoint_select_${chkpt.hash}`}
@@ -189,13 +163,15 @@ export default function Navbar() {
               className={classNames([
                 'input input-bordered w-96',
                 {
-                  'input-primary': searchValue !== '',
+                  'input-primary': navbarState.searchInput !== '',
                 },
               ])}
-              value={searchValue}
-              onChange={(e) =>
-                dispatch(setNavbarSearchInputValue(e.target.value))
-              }
+              value={navbarState.searchInput}
+              onChange={(e) => {
+                setNavbarState((draft) => {
+                  draft.searchInput = e.target.value;
+                });
+              }}
             />
             <div className="absolute h-full right-2 top-0 flex items-center">
               <kbd className="kbd kbd-md mx-1">Ctrl</kbd>+
@@ -205,11 +181,11 @@ export default function Navbar() {
           <Link
             className={classNames([
               'btn btn-square btn-ghost',
-              { disabled: navbarDisabled },
+              { disabled: navbarState.disabled },
             ])}
             to="/settings"
             onClick={(e) => {
-              if (navbarDisabled) e.preventDefault();
+              if (navbarState.disabled) e.preventDefault();
             }}
           >
             <svg

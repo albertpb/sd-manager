@@ -1,17 +1,19 @@
+import { Provider } from 'jotai';
+import { DevTools } from 'jotai-devtools';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { store } from './state/index';
 import './App.scss';
 
-import { ReduxProvider } from './redux/provider';
 import MainLayout from './layouts/Main.layout';
 import Settings from './pages/settings';
-import SettingsLoader from './redux/settings-loader';
-import ModelsLoader from './redux/models-loader';
+import Notificator from './hocs/notification';
+import SettingsLoader from './hocs/settings-loader';
+import ModelsLoader from './hocs/models-loader';
 import ModelDetail from './pages/modelDetail';
-import ImagesLoader from './redux/images-loader';
+import ImagesLoader from './hocs/images-loader';
 import ImageDetail from './pages/imageDetail';
 import AspectRatioHelper from './pages/aspectRatioHelper';
-import Notificator from './redux/notification';
 import Images from './pages/images';
 import ImageMetadata from './pages/imageMetadata';
 import Loras from './pages/loras';
@@ -20,7 +22,8 @@ import TestPage from './pages/testing';
 
 export default function App() {
   return (
-    <ReduxProvider>
+    <Provider store={store}>
+      <DevTools store={store} />
       <Router>
         <Notificator>
           <SettingsLoader>
@@ -58,6 +61,6 @@ export default function App() {
           </SettingsLoader>
         </Notificator>
       </Router>
-    </ReduxProvider>
+    </Provider>
   );
 }

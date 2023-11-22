@@ -4,34 +4,28 @@ import classNames from 'classnames';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
 import { useCallback, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from 'renderer/components/ConfirmDialog';
 import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
-import { AppDispatch, RootState } from 'renderer/redux';
-import {
-  deleteImages,
-  setImagesToDelete,
-  setLightboxState,
-  updateImage,
-} from 'renderer/redux/reducers/global';
 import { generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
+import { useAtom } from 'jotai';
+import {
+  deleteImages,
+  imagesAtom,
+  updateImage,
+} from 'renderer/state/images.store';
 
 export default function ImageDetail() {
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
 
-  const images = useSelector((state: RootState) => state.global.image.images);
-  const lightboxState = useSelector(
-    (state: RootState) => state.global.image.lightbox,
-  );
+  const [imagesState, setImagesState] = useAtom(imagesAtom);
 
   const [exifParams, setExifParams] = useState<Record<string, any> | null>(
     null,
@@ -65,9 +59,8 @@ export default function ImageDetail() {
       } = await window.ipcHandler.readImage(`${iData.sourcePath}`);
       setExifParams(exif);
       setImageMetadata(metadata);
-
       const fileMdText = await window.ipcHandler.readFile(
-        `${folderPath}\\markdown.md`,
+        `${folderPath}\\${iData.name}\\markdown.md`,
         'utf-8',
       );
       if (fileMdText) {
@@ -85,42 +78,40 @@ export default function ImageDetail() {
 
   const goToNextOrPrevImage = useCallback(
     (next: boolean) => {
-      const currentIndex = images.findIndex(
+      const currentIndex = imagesState.images.findIndex(
         (image) => image.hash === imageData?.hash,
       );
       if (currentIndex !== -1) {
         let index = next ? currentIndex + 1 : currentIndex - 1;
-        if (index > images.length - 1) {
+        if (index > imagesState.images.length - 1) {
           index = 0;
         } else if (index < 0) {
-          index = images.length - 1;
+          index = imagesState.images.length - 1;
         }
-        const image = images[index];
+        const image = imagesState.images[index];
         if (image.hash) {
           navigate(`/image-detail/${image.hash}`);
         }
       }
     },
-    [imageData, images, navigate],
+    [imageData, imagesState.images, navigate],
   );
 
   const deleteImage = useCallback(() => {
     if (imageData) {
-      dispatch(
-        setImagesToDelete({
-          [imageData.hash]: imageData,
-        }),
-      );
+      setImagesState((draft) => {
+        draft.toDelete[imageData.hash] = imageData;
+      });
       setConfirmDialogIsOpen(true);
     }
-  }, [imageData, dispatch]);
+  }, [setImagesState, imageData]);
 
   const doDelete = useCallback(async () => {
-    await dispatch(deleteImages());
+    await deleteImages();
     setConfirmDialogIsOpen(false);
 
     goToNextOrPrevImage(true);
-  }, [dispatch, goToNextOrPrevImage]);
+  }, [goToNextOrPrevImage]);
 
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
@@ -208,7 +199,7 @@ export default function ImageDetail() {
 
   const onRatingChange = async (value: number) => {
     if (hash) {
-      await dispatch(updateImage({ hash, field: 'rating', value }));
+      await updateImage(hash, 'rating', value);
       setImageData({
         ...imageData,
         rating: value,
@@ -217,30 +208,29 @@ export default function ImageDetail() {
   };
 
   const onCancelDelete = () => {
-    dispatch(setImagesToDelete({}));
+    setImagesState((draft) => {
+      draft.toDelete = {};
+    });
 
     setConfirmDialogIsOpen(false);
   };
 
   const onClickImage = () => {
     if (imageData) {
-      dispatch(
-        setLightboxState({
+      setImagesState((draft) => {
+        draft.lightbox = {
           currentHash: imageData.hash,
           isOpen: true,
-        }),
-      );
+        };
+      });
       navigate('/');
     }
   };
 
   const goToImages = () => {
-    dispatch(
-      setLightboxState({
-        ...lightboxState,
-        isOpen: false,
-      }),
-    );
+    setImagesState((draft) => {
+      draft.lightbox.isOpen = false;
+    });
     navigate('/');
   };
 

@@ -9,7 +9,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import Image from 'renderer/components/Image';
@@ -17,26 +16,31 @@ import Rating from 'renderer/components/Rating';
 import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
 import VirtualScroll from 'renderer/components/VirtualScroll';
-import { AppDispatch, RootState } from 'renderer/redux';
+import LightBox from 'renderer/components/LightBox';
+import ContextMenu from 'renderer/components/ContextMenu';
+import { useAtom } from 'jotai';
 import {
-  createTag,
-  readImages,
+  ImageWithTags,
+  createImageTag,
+  imagesAtom,
+  imagesTagsAtom,
+  imagesWithTags,
+  loadImages,
   removeAllImagesTags,
   scanImages,
   setActiveTags,
   setAutoImportTags,
-  setImagesToDelete,
-  setLightboxState,
   tagImage,
   updateImage,
-} from 'renderer/redux/reducers/global';
-import LightBox from 'renderer/components/LightBox';
-import ContextMenu from 'renderer/components/ContextMenu';
-import { ImageWithTags, imagesWithTags } from '../redux/reducers/selectors';
+  watchFoldersAtom,
+} from 'renderer/state/images.store';
+import { navbarAtom } from 'renderer/state/navbar.store';
+import { settingsAtom } from 'renderer/state/settings.store';
+import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
 
 export default function Images() {
+  console.log('images render');
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
 
   const CONTEXT_MENU_ID = 'images_context_menu';
   const VIRTUAL_SCROLL_ID = 'images_virtualscroll';
@@ -83,43 +87,14 @@ export default function Images() {
       : localStorage.getItem('images-showTag') === 'true',
   );
 
-  const images = useSelector((state: RootState) => state.global.image.images);
-  const imagesToDelete = useSelector(
-    (state: RootState) => state.global.image.toDelete,
-  );
-  const watchFolders = useSelector(
-    (state: RootState) => state.global.watchFolders,
-  );
-  const navbarSearchInput = useSelector(
-    (state: RootState) => state.global.navbarSearchInput,
-  );
-  const filterCheckpoint = useSelector(
-    (state: RootState) => state.global.filterCheckpoint,
-  );
-  const tags = useSelector((state: RootState) => state.global.tags);
-  const activeTags = useSelector(
-    (state: RootState) => state.global.settings.activeTags,
-  );
-  const autoTagImportImages = useSelector(
-    (state: RootState) => state.global.settings.autoTagImportImages,
-  );
-  const autoImportTags = useSelector(
-    (state: RootState) => state.global.settings.autoImportTags,
-  );
-  const imagesImportProgress = useSelector(
-    (state: RootState) => state.global.image.importProgress,
-  );
-  const lorasImportProgress = useSelector(
-    (state: RootState) => state.global.lora.importProgress,
-  );
-  const checkpointImportProgress = useSelector(
-    (state: RootState) => state.global.checkpoint.importProgress,
-  );
-  const lightboxState = useSelector(
-    (state: RootState) => state.global.image.lightbox,
-  );
-
-  const imagesWTags = imagesWithTags(images, tags);
+  const [imagesState, setImagesState] = useAtom(imagesAtom);
+  const [watchFoldersState] = useAtom(watchFoldersAtom);
+  const [navbarState] = useAtom(navbarAtom);
+  const [imagesWTags] = useAtom(imagesWithTags);
+  const [settingsState] = useAtom(settingsAtom);
+  const [tagsState] = useAtom(imagesTagsAtom);
+  const [lorasState] = useAtom(lorasAtom);
+  const [checkpointsState] = useAtom(checkpointsAtom);
 
   const [imagesList, setImagesList] = useState<ImageWithTags[]>([
     ...imagesWTags,
@@ -152,18 +127,18 @@ export default function Images() {
   const imagesResult = useMemo(() => {
     let result: (Omit<ImageRow, 'tags'> & { tags: Tag[] })[] = [];
 
-    if (navbarSearchInput.startsWith('t:')) {
+    if (navbarState.searchInput.startsWith('t:')) {
       result = fuseByTags
-        .search(navbarSearchInput.substring(2))
+        .search(navbarState.searchInput.substring(2))
         .map((r) => r.item);
-    } else if (navbarSearchInput !== '') {
-      result = fuseByModel.search(navbarSearchInput).map((r) => r.item);
+    } else if (navbarState.searchInput !== '') {
+      result = fuseByModel.search(navbarState.searchInput).map((r) => r.item);
     } else {
       result = imagesWTags;
     }
 
     return result;
-  }, [fuseByModel, fuseByTags, imagesWTags, navbarSearchInput]);
+  }, [fuseByModel, fuseByTags, imagesWTags, navbarState.searchInput]);
 
   const filterByRatingFunc = useCallback(
     (img: ImageWithTags) => img.rating === filterByRating,
@@ -171,8 +146,8 @@ export default function Images() {
   );
 
   const filterByModelFunc = useCallback(
-    (img: ImageWithTags) => img.model === filterCheckpoint,
-    [filterCheckpoint],
+    (img: ImageWithTags) => img.model === navbarState.filterCheckpoint,
+    [navbarState.filterCheckpoint],
   );
 
   const filterByTagFunc = useCallback(
@@ -193,7 +168,7 @@ export default function Images() {
       setSortBy(sortByArg);
 
       let filteredImages =
-        filterCheckpoint === ''
+        navbarState.filterCheckpoint === ''
           ? [...imagesResult]
           : [...imagesResult].filter(filterByModelFunc);
 
@@ -265,7 +240,7 @@ export default function Images() {
     [
       filterByModelFunc,
       imagesResult,
-      filterCheckpoint,
+      navbarState.filterCheckpoint,
       filterByRating,
       filterByRatingFunc,
       filterByTagFunc,
@@ -342,7 +317,7 @@ export default function Images() {
 
   useEffect(() => {
     sortFilterImages(sortBy);
-  }, [images, sortFilterImages, sortBy]);
+  }, [imagesState.images, sortFilterImages, sortBy]);
 
   useEffect(() => {
     calcImagesValues();
@@ -365,25 +340,27 @@ export default function Images() {
       }
 
       if (deleteActive) {
-        if (imagesToDelete[image.hash]) {
-          const imgs = { ...imagesToDelete };
+        if (imagesState.toDelete[image.hash]) {
+          const imgs = { ...imagesState.toDelete };
           delete imgs[image.hash];
-          dispatch(setImagesToDelete(imgs));
+          setImagesState((draft) => {
+            draft.toDelete = imgs;
+          });
         } else {
-          dispatch(
-            setImagesToDelete({
-              ...imagesToDelete,
+          setImagesState((draft) => {
+            draft.toDelete = {
+              ...draft.toDelete,
               [image.hash]: image,
-            }),
-          );
+            };
+          });
         }
       } else if (e.shiftKey) {
         const activeTagsArr =
-          activeTags !== '' ? activeTags?.split(',') || [] : [];
+          settingsState.activeTags !== ''
+            ? settingsState.activeTags?.split(',') || []
+            : [];
         for (let i = 0; i < activeTagsArr.length; i++) {
-          await dispatch(
-            tagImage({ tagId: activeTagsArr[i], imageHash: image.hash }),
-          );
+          await tagImage(activeTagsArr[i], image.hash);
         }
       } else {
         navigate(`/image-detail/${image.hash}`);
@@ -407,14 +384,14 @@ export default function Images() {
     );
 
     for (let i = 0; i < imagesHashes.length; i++) {
-      await dispatch(tagImage({ tagId, imageHash: imagesHashes[i] }));
+      await tagImage(tagId, imagesHashes[i]);
     }
   };
 
   const removeTagsFromSelected = async () => {
     for (let i = 0; i < selectedImages.length; i++) {
       if (selectedImages[i]) {
-        await dispatch(removeAllImagesTags({ imageHash: imagesList[i].hash }));
+        await removeAllImagesTags(imagesList[i].hash);
       }
     }
   };
@@ -422,32 +399,34 @@ export default function Images() {
   const toggleImagesDeleteState = () => {
     setDeleteActive(!deleteActive);
     if (deleteActive) {
-      dispatch(setImagesToDelete({}));
+      setImagesState((draft) => {
+        draft.toDelete = {};
+      });
     }
   };
 
   const updateImagesDb = async () => {
-    await dispatch(scanImages(watchFolders.map((f) => f.path)));
-    await dispatch(readImages());
+    await scanImages(watchFoldersState.map((f) => f.path));
+    await loadImages();
   };
 
   const onSetActiveTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
-    await dispatch(setActiveTags(selectedTags));
+    await setActiveTags(selectedTags);
   };
 
   const onSetAutoImportTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     selectedTags: SelectValue,
   ) => {
-    await dispatch(setAutoImportTags(selectedTags));
+    await setAutoImportTags(selectedTags);
   };
 
   const addTag = async (label: string, bgColor: string) => {
     if (label !== '') {
-      await dispatch(createTag({ label, bgColor }));
+      await createImageTag(label, bgColor);
     }
   };
 
@@ -458,15 +437,17 @@ export default function Images() {
   ) => {
     event.stopPropagation();
     if (hash) {
-      await dispatch(updateImage({ hash, field: 'rating', value }));
+      await updateImage(hash, 'rating', value);
     }
   };
 
   useEffect(() => {
     return () => {
-      dispatch(setImagesToDelete({}));
+      setImagesState((draft) => {
+        draft.toDelete = {};
+      });
     };
-  }, [deleteActive, dispatch]);
+  }, [setImagesState]);
 
   const rowRenderer = (
     visibleData: ImageWithTags[],
@@ -485,7 +466,7 @@ export default function Images() {
           className={classNames([
             'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
             {
-              'opacity-50': imagesToDelete[item.hash],
+              'opacity-50': imagesState.toDelete[item.hash],
             },
           ])}
           onMouseUp={(e) => onImageClick(e, item)}
@@ -566,10 +547,12 @@ export default function Images() {
       <LightBox
         images={imagesList}
         onClickImage={(e, i) => onImageClick(e, imagesWTags[i])}
-        isOpen={lightboxState.isOpen}
-        currentHash={lightboxState.currentHash}
+        isOpen={imagesState.lightbox.isOpen}
+        currentHash={imagesState.lightbox.currentHash}
         onClose={() =>
-          dispatch(setLightboxState({ ...lightboxState, isOpen: false }))
+          setImagesState((draft) => {
+            draft.lightbox.isOpen = false;
+          })
         }
       />
       <div ref={setRef} className="w-full h-full flex">
@@ -580,7 +563,9 @@ export default function Images() {
                 type="button"
                 aria-label="lightbox"
                 onClick={() =>
-                  dispatch(setLightboxState({ ...lightboxState, isOpen: true }))
+                  setImagesState((draft) => {
+                    draft.lightbox.isOpen = true;
+                  })
                 }
               >
                 <svg
@@ -636,13 +621,13 @@ export default function Images() {
             </li>
             <Tagger
               onSetActiveTags={onSetActiveTags}
-              activeTags={activeTags}
-              tags={tags}
+              activeTags={settingsState.activeTags}
+              tags={tagsState}
               filterByTags={filterByTags}
               onAddTag={addTag}
               onFilterByTag={onFilterByTag}
-              autoImportTags={autoImportTags}
-              autoTagImportImages={autoTagImportImages}
+              autoImportTags={settingsState.autoImportTags}
+              autoTagImportImages={settingsState.autoTagImportImages}
               onSetAutoImportTags={onSetAutoImportTags}
             />
             <li
@@ -1008,7 +993,7 @@ export default function Images() {
               <button type="button">Tags</button>
               <ul>
                 <li className="max-h-56 overflow-y-auto">
-                  {Object.values(tags).map((tag) => (
+                  {Object.values(tagsState).map((tag) => (
                     <button
                       type="button"
                       className=""
@@ -1051,11 +1036,11 @@ export default function Images() {
             />
           </div>
           <StatusBar
-            totalCards={images.length}
+            totalCards={imagesState.images.length}
             filteredCards={imagesList.length}
-            checkpointsImportProgress={checkpointImportProgress}
-            lorasImportProgress={lorasImportProgress}
-            imagesImportProgress={imagesImportProgress}
+            checkpointsImportProgress={checkpointsState.importProgress}
+            lorasImportProgress={lorasState.importProgress}
+            imagesImportProgress={imagesState.importProgress}
           />
         </div>
       </div>
