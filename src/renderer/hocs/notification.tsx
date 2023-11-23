@@ -18,7 +18,8 @@ export default function Notificator({ children }: { children: ReactNode }) {
     const remove = window.ipcOn.detectedAddImage(cb);
 
     return () => remove();
-  }, [navigate]);
+    // eslint-disable-next-line
+  }, []);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, msg: string, model: string) => {

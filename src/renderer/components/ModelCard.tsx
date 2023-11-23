@@ -59,7 +59,7 @@ export default function ModelCard({
   return (
     <div
       className={classNames([
-        'cursor-pointer overflow-hidden rounded-md py-2 w-fit',
+        'cursor-pointer overflow-hidden rounded-md py-2 w-fit relative',
         className,
       ])}
       onClick={(e) => onClick(e)}

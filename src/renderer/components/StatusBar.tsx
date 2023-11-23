@@ -1,6 +1,7 @@
-import { useSelector } from 'react-redux';
-import { RootState } from 'renderer/redux';
-import { ImportProgress } from 'renderer/redux/reducers/global';
+import { useAtom } from 'jotai';
+import { imagesAtom } from 'renderer/state/images.store';
+import { ImportProgress } from 'renderer/state/interfaces';
+import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
 
 type StatusBarProps = {
   filteredCards?: number;
@@ -17,16 +18,9 @@ export default function StatusBar({
   lorasImportProgress,
   imagesImportProgress,
 }: StatusBarProps) {
-  const checkpointsLoading = useSelector(
-    (state: RootState) => state.global.checkpoint.loading,
-  );
-
-  const lorasLoading = useSelector(
-    (state: RootState) => state.global.lora.loading,
-  );
-  const imagesLoading = useSelector(
-    (state: RootState) => state.global.image.loading,
-  );
+  const [checkpointsState] = useAtom(checkpointsAtom);
+  const [lorasState] = useAtom(lorasAtom);
+  const [imagesState] = useAtom(imagesAtom);
 
   return (
     <ul
@@ -34,7 +28,7 @@ export default function StatusBar({
       style={{ height: '20px' }}
     >
       <div className="self-end mr-4 flex flex-row">
-        {checkpointsLoading && (
+        {checkpointsState.loading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
               Loading checkpoints: {checkpointsImportProgress.message}{' '}
@@ -47,7 +41,7 @@ export default function StatusBar({
             />
           </div>
         )}
-        {lorasLoading && (
+        {lorasState.loading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
               Loading loras: {lorasImportProgress.message}{' '}
@@ -60,7 +54,7 @@ export default function StatusBar({
             />
           </div>
         )}
-        {imagesLoading && (
+        {imagesState.loading && (
           <div className="h-full flex items-center mr-4">
             <span className="mr-2">
               Loading images: {imagesImportProgress.message}{' '}

@@ -1,74 +1,74 @@
 import { IpcRendererEvent } from 'electron';
 import { ImageRow } from 'main/ipc/image';
 import { ReactNode, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { WatchFolder } from 'main/ipc/watchFolders';
 import { useNavigate } from 'react-router-dom';
-import { AppDispatch, RootState } from '.';
 import {
-  loadTags,
+  imagesAtom,
+  loadImages,
+  loadImagesTags,
   loadWatchFolders,
-  readImages,
   scanImages,
-  setImages,
-  setImagesImportProgress,
-} from './reducers/global';
+} from 'renderer/state/images.store';
+import { useAtom } from 'jotai';
+import { settingsAtom } from 'renderer/state/settings.store';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const images = useSelector((state: RootState) => state.global.image.images);
-  const scanImagesOnStart = useSelector(
-    (state: RootState) => state.global.settings.scanImagesOnStart,
-  );
+  const [settingsState] = useAtom(settingsAtom);
+  const [, setImagesState] = useAtom(imagesAtom);
 
   useEffect(() => {
     const load = async () => {
-      await dispatch(loadWatchFolders());
-      await dispatch(loadTags());
+      await loadWatchFolders();
+      await loadImagesTags();
     };
     load();
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
+      console.log('load images hoc');
       const wfs: WatchFolder[] = await window.ipcHandler.watchFolder('read');
-      if (scanImagesOnStart === '1') {
-        await dispatch(scanImages(wfs.map((f) => f.path)));
+      if (settingsState.scanImagesOnStart === '1') {
+        await scanImages(wfs.map((f) => f.path));
       }
       if (wfs.length > 0) {
-        await dispatch(readImages());
+        await loadImages();
       } else {
         navigate('/settings');
       }
     };
     load();
-  }, [dispatch, navigate, scanImagesOnStart]);
+    // eslint-disable-next-line
+  }, [settingsState]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {
-      dispatch(
-        setImagesImportProgress({
+      setImagesState((draft) => {
+        draft.importProgress = {
           progress: p,
           message: m,
-        }),
-      );
+        };
+      });
     };
     const remove = window.ipcOn.imagesProgress(cb);
 
     return () => remove();
-  }, [dispatch]);
+  }, [setImagesState]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
-      dispatch(setImages([imagesData, ...images]));
+      setImagesState((draft) => {
+        draft.images = [imagesData, ...draft.images];
+      });
     };
 
     const remove = window.ipcOn.detectedAddImage(cb);
 
     return () => remove();
-  }, [images, dispatch]);
+  }, [setImagesState]);
 
   return children;
 }
