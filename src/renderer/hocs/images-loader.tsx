@@ -29,6 +29,7 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
+      console.log('load images hoc');
       const wfs: WatchFolder[] = await window.ipcHandler.watchFolder('read');
       if (settingsState.scanImagesOnStart === '1') {
         await scanImages(wfs.map((f) => f.path));
@@ -40,7 +41,8 @@ export default function ImagesLoader({ children }: { children: ReactNode }) {
       }
     };
     load();
-  }, [navigate, settingsState]);
+    // eslint-disable-next-line
+  }, [settingsState]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, m: string, p: number) => {

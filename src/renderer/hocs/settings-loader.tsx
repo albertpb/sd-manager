@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from 'react';
 import { loadSettings, settingsAtom } from 'renderer/state/settings.store';
 import { useAtom } from 'jotai';
 
 export default function SettingsLoader({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const [loaded, setLoaded] = useState<boolean>(false);
   const [settingsState] = useAtom(settingsAtom);
 
@@ -22,7 +20,7 @@ export default function SettingsLoader({ children }: { children: ReactNode }) {
     };
 
     loadConf();
-  }, [settingsState, navigate, loaded]);
+  }, [settingsState, loaded]);
 
   if (!loaded) return null;
 

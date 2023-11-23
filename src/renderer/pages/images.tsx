@@ -39,7 +39,6 @@ import { settingsAtom } from 'renderer/state/settings.store';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
 
 export default function Images() {
-  console.log('images render');
   const navigate = useNavigate();
 
   const CONTEXT_MENU_ID = 'images_context_menu';
