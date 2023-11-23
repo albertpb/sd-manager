@@ -83,9 +83,10 @@ export const scanImages = async (paths: string[]) => {
 export const deleteImages = async () => {
   const imagesToDelete = store.get(imagesAtom).toDelete;
 
-  console.log(imagesToDelete);
-
   await window.ipcHandler.removeImages(imagesToDelete);
+  await store.set(imagesAtom, (draft) => {
+    draft.toDelete = {};
+  });
   await loadImages();
 };
 
