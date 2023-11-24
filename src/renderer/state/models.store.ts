@@ -149,6 +149,10 @@ export const createModelTag = async (label: string, bgColor: string) => {
   };
   await window.ipcHandler.mtag('add', payload);
 
+  store.set(modelTagsAtom, (draft) => {
+    draft[payload.id] = payload;
+  });
+
   store.set(settingsAtom, (draft) => {
     if (
       draft.activeMTags === undefined ||
@@ -165,7 +169,7 @@ export const createModelTag = async (label: string, bgColor: string) => {
 };
 
 export const deleteModelTag = async (tagId: string) => {
-  await window.ipcHandler.tag('delete', { tagId });
+  await window.ipcHandler.mtag('delete', { id: tagId });
 
   store.set(modelTagsAtom, (draft) => {
     const shallowTags = { ...draft };
@@ -175,9 +179,12 @@ export const deleteModelTag = async (tagId: string) => {
 
   store.set(settingsAtom, (draft) => {
     const activeTagsSetting =
-      draft.activeMTags !== '' ? draft.activeMTags?.split(',') || [] : [];
-    const activeTagsSettingIndex =
-      activeTagsSetting.findIndex((t) => t === tagId) || -1;
+      draft.activeMTags !== ''
+        ? draft.activeMTags?.split(',') || [draft.activeMTags]
+        : [];
+    const activeTagsSettingIndex = activeTagsSetting.findIndex(
+      (t) => t === tagId,
+    );
     if (activeTagsSettingIndex !== -1) {
       activeTagsSetting.splice(activeTagsSettingIndex, 1);
       draft.activeMTags = activeTagsSetting.join(',');

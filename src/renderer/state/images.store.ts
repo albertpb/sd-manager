@@ -133,6 +133,10 @@ export const createImageTag = async (label: string, bgColor: string) => {
   };
   await window.ipcHandler.tag('add', payload);
 
+  store.set(imagesTagsAtom, (draft) => {
+    draft[payload.id] = payload;
+  });
+
   store.set(settingsAtom, (draft) => {
     if (
       draft.activeTags === undefined ||
@@ -149,7 +153,7 @@ export const createImageTag = async (label: string, bgColor: string) => {
 };
 
 export const deleteImageTag = async (tagId: string) => {
-  await window.ipcHandler.tag('delete', { tagId });
+  await window.ipcHandler.tag('delete', { id: tagId });
 
   store.set(imagesTagsAtom, (draft) => {
     const shallowTags = { ...draft };
@@ -160,8 +164,9 @@ export const deleteImageTag = async (tagId: string) => {
   store.set(settingsAtom, (draft) => {
     const activeTagsSetting =
       draft.activeTags !== '' ? draft.activeTags?.split(',') || [] : [];
-    const activeTagsSettingIndex =
-      activeTagsSetting.findIndex((t) => t === tagId) || -1;
+    const activeTagsSettingIndex = activeTagsSetting.findIndex(
+      (t) => t === tagId,
+    );
     if (activeTagsSettingIndex !== -1) {
       activeTagsSetting.splice(activeTagsSettingIndex, 1);
       draft.activeTags = activeTagsSetting.join(',');
@@ -231,7 +236,7 @@ export const setActiveTags = async (selectedTags?: SelectValue) => {
   const payload = Array.isArray(selectedTags)
     ? selectedTags.map((t) => t.value).join(',')
     : '';
-  await window.ipcHandler.settings('save', 'selectedTags', payload);
+  await window.ipcHandler.settings('save', 'activeTags', payload);
 
   store.set(settingsAtom, (draft) => {
     draft.activeTags = payload;
