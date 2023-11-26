@@ -54,13 +54,19 @@ export default function Settings() {
 
   const onSelectCheckpointsDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    settingsState.checkpointsPath = path;
+    setSettingsState((draft) => {
+      draft.checkpointsPath = path;
+    });
+    await window.ipcHandler.settings('save', 'checkpointsPath', path);
     await loadModels(true, 'checkpoint');
   };
 
   const onSelectLorasDir = async () => {
     const path = await window.ipcHandler.selectDir();
-    settingsState.checkpointsPath = path;
+    setSettingsState((draft) => {
+      draft.lorasPath = path;
+    });
+    await window.ipcHandler.settings('save', 'lorasPath', path);
     await loadModels(true, 'lora');
   };
 
@@ -70,7 +76,7 @@ export default function Settings() {
       await window.ipcHandler.watchFolder('add', path);
       await window.ipcHandler.watchImagesFolder();
       await loadWatchFolders();
-      await scanImages([path]);
+      await scanImages(watchFolders.map((wf) => wf.path));
       await loadImages();
     }
   };
