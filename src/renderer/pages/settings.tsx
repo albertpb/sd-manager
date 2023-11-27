@@ -76,7 +76,7 @@ export default function Settings() {
       await window.ipcHandler.watchFolder('add', path);
       await window.ipcHandler.watchImagesFolder();
       await loadWatchFolders();
-      await scanImages(watchFolders.map((wf) => wf.path));
+      await scanImages([path]);
       await loadImages();
     }
   };
@@ -323,6 +323,7 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm"
+              disabled={checkpointsState.loading || lorasState.loading}
               onClick={() => onSelectCheckpointsDir()}
             >
               Change
@@ -330,7 +331,7 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm ml-2"
-              disabled={checkpointsState.loading}
+              disabled={checkpointsState.loading || lorasState.loading}
               onClick={() => scanModels('checkpoint')}
             >
               {checkpointsState.loading && (
@@ -350,6 +351,7 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm"
+              disabled={checkpointsState.loading || lorasState.loading}
               onClick={() => onSelectLorasDir()}
             >
               Change
@@ -357,7 +359,7 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-sm ml-2"
-              disabled={lorasState.loading}
+              disabled={checkpointsState.loading || lorasState.loading}
               onClick={() => scanModels('lora')}
             >
               {lorasState.loading && (
