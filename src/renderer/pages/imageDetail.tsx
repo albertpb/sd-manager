@@ -67,11 +67,15 @@ export default function ImageDetail() {
         setMarkdownText(fileMdText);
       }
 
-      const model = await window.ipcHandler.readModelByName(
-        iData.model,
-        'checkpoint',
-      );
-      setModelData(model);
+      try {
+        const model = await window.ipcHandler.readModelByName(
+          iData.model,
+          'checkpoint',
+        );
+        setModelData(model);
+      } catch (error) {
+        console.log(error);
+      }
     };
     load();
   }, [hash]);

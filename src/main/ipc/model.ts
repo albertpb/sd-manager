@@ -423,17 +423,20 @@ export async function readModelByNameIpc(
     },
   );
 
-  model.tags =
-    typeof model.tags === 'string' && model.tags !== ''
-      ? model.tags
-          .split(',')
-          .reduce((acc: Record<string, string>, tag: string) => {
-            acc[tag] = tag;
-            return acc;
-          }, {})
-      : {};
+  if (model) {
+    model.tags =
+      typeof model.tags === 'string' && model.tags !== ''
+        ? model.tags
+            .split(',')
+            .reduce((acc: Record<string, string>, tag: string) => {
+              acc[tag] = tag;
+              return acc;
+            }, {})
+        : {};
 
-  return model;
+    return model;
+  }
+  return null;
 }
 
 export async function checkModelsToUpdateIpc(
