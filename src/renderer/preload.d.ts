@@ -25,6 +25,10 @@ declare global {
       ) => () => void;
       startDrag: (fileName: string) => void;
     };
+
+    api: {
+      clearCache: () => void;
+    };
   }
 }
 

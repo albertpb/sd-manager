@@ -87,6 +87,7 @@ export const deleteImages = async () => {
   await store.set(imagesAtom, (draft) => {
     draft.toDelete = {};
   });
+  window.api.clearCache();
   await loadImages();
 };
 

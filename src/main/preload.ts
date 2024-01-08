@@ -1,6 +1,11 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
-import { IpcRendererEvent, contextBridge, ipcRenderer } from 'electron';
+import {
+  IpcRendererEvent,
+  contextBridge,
+  ipcRenderer,
+  webFrame,
+} from 'electron';
 
 const channels = [
   'getImage',
@@ -80,5 +85,11 @@ contextBridge.exposeInMainWorld('ipcOn', {
   },
   startDrag: (fileName: string) => {
     ipcRenderer.send('ondragstart', fileName);
+  },
+});
+
+contextBridge.exposeInMainWorld('api', {
+  clearCache() {
+    webFrame.clearCache();
   },
 });
