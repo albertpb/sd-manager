@@ -3,7 +3,7 @@ import { IpcRendererEvent } from 'electron';
 import ReactHtmlParser from 'html-react-parser';
 import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ModelCivitaiInfo } from 'main/interfaces';
+import { ModelCivitaiInfo, ModelInfoImage } from 'main/interfaces';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
 import Carousel from 'react-multi-carousel';
@@ -47,9 +47,10 @@ export default function ModelDetail() {
   const [modelCivitaiInfo, setModelCivitaiInfo] =
     useState<ModelCivitaiInfo | null>(null);
   const [userImagesList, setUserImagesList] = useState<ImageRow[]>([]);
-  const [modelImagesList, setModelImagesList] = useState<string[]>([]);
+  const [modelImagesList, setModelImagesList] = useState<
+    [string, ModelInfoImage | null][]
+  >([]);
 
-  const descriptionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [carouselCards, setCarouselCards] = useState<number>(1);
@@ -90,11 +91,12 @@ export default function ModelDetail() {
             await window.ipcHandler.getImages(modelData.name);
           setUserImagesList(userImagesListsResponse);
 
-          const modelImagesListResponse: string[] =
+          const modelImagesListResponse: [string, ModelInfoImage | null][] =
             await window.ipcHandler.readdirModelImages(
               modelData.name,
               modelsPath,
             );
+          console.log(modelImagesListResponse);
           setModelImagesList(modelImagesListResponse);
         }
       }
@@ -223,34 +225,36 @@ export default function ModelDetail() {
 
   if (modelData && modelCivitaiInfo) {
     // carousel
-    const modelImages = modelImagesList.map((imgSrc, i) => {
-      return (
-        <div
-          key={`md_${imgSrc}_i`}
-          onClick={() => revealInFolder(imgSrc)}
-          aria-hidden="true"
-          className="cursor-pointer"
-        >
-          <figure
-            key={`model_detail_model_image_${i}`}
-            className="card__figure animated rounded-md overflow-hidden"
-            style={{
-              width: '220px',
-              height: '330px',
-            }}
+    const modelImages = modelImagesList.map(
+      (imgItem: [string, ModelInfoImage | null], i) => {
+        return (
+          <div
+            key={`md_${imgItem[0]}_i`}
+            onClick={() => revealInFolder(imgItem[0])}
+            aria-hidden="true"
+            className="cursor-pointer"
           >
-            <Image
-              src={imgSrc}
-              alt={`model_detail_model_image_${i}`}
-              height="100%"
-              width="100%"
-              className="object-cover"
-              onDragPath={imgSrc}
-            />
-          </figure>
-        </div>
-      );
-    });
+            <figure
+              key={`model_detail_model_image_${i}`}
+              className="card__figure animated rounded-md overflow-hidden"
+              style={{
+                width: '220px',
+                height: '330px',
+              }}
+            >
+              <Image
+                src={imgItem[0]}
+                alt={`model_detail_model_image_${i}`}
+                height="100%"
+                width="100%"
+                className="object-cover"
+                onDragPath={imgItem[0]}
+              />
+            </figure>
+          </div>
+        );
+      },
+    );
 
     const rowRenderer =
       userImagesList.length > 0
@@ -350,8 +354,22 @@ export default function ModelDetail() {
             );
           };
 
+    const descriptionElement = (data: Model) => {
+      console.log(data);
+      if (data.modelDescription) {
+        return (
+          <div className="pt-2">
+            <div>{ReactHtmlParser(data.modelDescription || '')}</div>
+            <div className="divider" />
+            <div>{ReactHtmlParser(data.description || '')}</div>
+          </div>
+        );
+      }
+      return <div>{ReactHtmlParser(data.description || '')}</div>;
+    };
+
     return (
-      <main className="pb-4 pt-10 flex justify-center relative h-full">
+      <main className="pb-10 pt-10 flex justify-center relative">
         <div className="absolute top-10 right-10">
           <button
             className="btn btn-circle"
@@ -436,9 +454,7 @@ export default function ModelDetail() {
               </div>
             </div>
           </div>
-          <div ref={descriptionRef} className="pt-2">
-            {ReactHtmlParser(modelData.description || '')}
-          </div>
+          {descriptionElement(modelData)}
 
           <div className="pt-4">
             <div className="flex items-center">
@@ -497,7 +513,7 @@ export default function ModelDetail() {
               ) : (
                 <VirtualScroll
                   id="model_detail_model_images_virtualscroll"
-                  data={modelImagesList}
+                  data={modelImagesList.map((f) => f[0])}
                   render={rowRenderer}
                   settings={{
                     containerHeight,

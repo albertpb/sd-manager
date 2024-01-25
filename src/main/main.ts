@@ -196,7 +196,7 @@ ipcMain.handle('watchImagesFolder', async () => {
       );
 
       const activeTags =
-        autoTagImportImages.value === '1'
+        autoTagImportImages?.value === '1'
           ? await db.get(`SELECT value from settings WHERE key = $key`, {
               $key: 'activeTags',
             })

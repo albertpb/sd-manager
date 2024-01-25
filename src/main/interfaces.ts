@@ -25,7 +25,7 @@ type ModelInfoFile = {
   downloadUrl: string;
 };
 
-type ModelInfoImage = {
+export type ModelInfoImage = {
   url: string;
   nsfw: string;
   width: number;
@@ -37,7 +37,18 @@ type ModelInfoImage = {
     width: number;
     height: number;
   };
-  meta: Record<string, any>;
+  meta: {
+    VAE: string;
+    seed: number;
+    steps: number;
+    parser: string;
+    prompt: string;
+    sampler: string;
+    cfgScale: number;
+    clipSkip: number;
+    negativePrompt: string;
+    nsfw: boolean;
+  };
 };
 
 export type ModelCivitaiInfo = {

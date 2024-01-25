@@ -5,7 +5,12 @@ import path from 'path';
 import log from 'electron-log/main';
 import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
-import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
+import {
+  ImageMetaData,
+  ModelCivitaiInfo,
+  ModelInfo,
+  ModelInfoImage,
+} from './interfaces';
 import HashWorkerManager from './WorkerManagers/HashWorkerManager';
 import ImageMetadataWorkerManager from './WorkerManagers/ImageMetadataWorkerManager';
 import ThumbnailWorkerManager from './WorkerManagers/ThumbnailWorkerManager';
@@ -124,16 +129,19 @@ export async function downloadModelInfoByHash(
 
 export async function downloadImage(
   fileName: string,
-  url: string,
+  modelInfoImage: ModelInfoImage,
   savePath: string,
   resolution = 1024,
 ) {
-  const fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
+  let fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
 
   if (!fileExists) {
     const writer = fs.createWriteStream(`${savePath}\\${fileName}.png`);
 
-    const imageUrl = url.replace('/width=d+/', `width=${resolution}`);
+    const imageUrl = modelInfoImage.url.replace(
+      '/width=d+/',
+      `width=${resolution}`,
+    );
 
     const response = await axios.get(imageUrl, {
       responseType: 'stream',
@@ -146,6 +154,16 @@ export async function downloadImage(
       writer.on('error', reject);
     });
     await p;
+  }
+
+  fileExists = await checkFileExists(`${savePath}\\${fileName}.json`);
+
+  if (!fileExists) {
+    fs.writeFileSync(
+      `${savePath}\\${fileName}.json`,
+      JSON.stringify(modelInfoImage, null, 4),
+      { encoding: 'utf-8' },
+    );
   }
 }
 
