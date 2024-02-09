@@ -23,6 +23,7 @@ export type Model = {
   rowNum?: number;
   hash: string;
   name: string;
+  fileName: string;
   path: string;
   type: ModelType;
   rating: number;
@@ -79,7 +80,7 @@ export const readdirModelsIpc = async (
 
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(
-    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
   );
   models.forEach((model: Model & { tags: string | Record<string, string> }) => {
     model.tags =
@@ -172,10 +173,11 @@ export const readdirModelsIpc = async (
 
       try {
         await db.run(
-          `INSERT INTO models(hash, name, path, type, rating, baseModel, modelId, modelDescription, modelVersionId) VALUES ($hash, $name, $path, $type, $rating, $baseModel, $modelId, $modelDescription, $modelVersionId)`,
+          `INSERT INTO models(hash, name, fileName, path, type, rating, baseModel, modelId, modelDescription, modelVersionId) VALUES ($hash, $name, $fileName, $path, $type, $rating, $baseModel, $modelId, $modelDescription, $modelVersionId)`,
           {
             $hash: hash,
-            $name: fileNameNoExt,
+            $name: modelVersionInfo?.name || modelInfo?.name || fileNameNoExt,
+            $fileName: fileNameNoExt,
             $path: files[i],
             $type: modelType,
             $rating: 1,
@@ -201,13 +203,13 @@ export const readdirModelsIpc = async (
             );
 
             log.info(
-              `Detected duplicated model, ${fileNameNoExt} collided with ${model.name}`,
+              `Detected duplicated model, ${fileNameNoExt} collided with ${model.fileName}`,
             );
 
             browserWindow.webContents.send(
               'duplicates-detected',
               'Detected duplicated model',
-              `${fileNameNoExt} collided with ${model.name}`,
+              `${fileNameNoExt} collided with ${model.fileName}`,
             );
           }
         }
@@ -215,7 +217,8 @@ export const readdirModelsIpc = async (
 
       modelsPathMap[files[i]] = {
         hash,
-        name: fileNameNoExt,
+        name: modelVersionInfo?.name || modelInfo?.name || fileNameNoExt,
+        fileName: fileNameNoExt,
         path: fileFolderPath,
         type: modelType,
         rating: 1,
@@ -364,7 +367,7 @@ export const readdirModelImagesIpc = async (
 export async function readModelsIpc(event: IpcMainInvokeEvent, type: string) {
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(
-    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $type: type,
     },
@@ -427,7 +430,7 @@ export const readModelInfoIpc = async (
 export async function readModelIpc(event: IpcMainInvokeEvent, hash: string) {
   const db = await SqliteDB.getInstance().getdb();
   const models = await db.get(
-    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE hash = $hash GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE hash = $hash GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $hash: hash,
     },
@@ -453,7 +456,7 @@ export async function readModelByNameIpc(
 ) {
   const db = await SqliteDB.getInstance().getdb();
   const model = await db.get(
-    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE name = $name AND type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE name = $name AND type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $name: name,
       $type: type,
@@ -483,7 +486,7 @@ export async function checkModelsToUpdateIpc(
 ) {
   const db = await SqliteDB.getInstance().getdb();
   const models: Model[] = await db.all(
-    `SELECT models.rowid as rowNum, models.hash, models.name, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
+    `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId WHERE type = $type GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
     {
       $type: type,
     },

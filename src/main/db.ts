@@ -276,5 +276,19 @@ export default class SqliteDB {
 
       version.user_version = 13;
     }
+
+    if (version.user_version === 13) {
+      try {
+        await db.run(`ALTER TABLE models RENAME COLUMN name TO fileName`);
+        await db.run(`ALTER TABLE models ADD COLUMN name TEXT`);
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 14`);
+
+      version.user_version = 14;
+    }
   }
 }

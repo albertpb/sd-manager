@@ -431,8 +431,8 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     const items = visibleData.map((item, i) => {
       const imagePath =
         type === 'checkpoint'
-          ? `${settingsState.checkpointsPath}\\${item.name}\\${item.name}_0.png`
-          : `${settingsState.lorasPath}\\${item.name}\\${item.name}_0.png`;
+          ? `${settingsState.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`
+          : `${settingsState.lorasPath}\\${item.fileName}\\${item.fileName}_0.png`;
 
       const loading =
         item.modelId && modelsState.update[item.modelId]
@@ -446,7 +446,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
       return (
         <ModelCard
           id={`model-card-models-${item.hash}`}
-          key={`${item.hash}_${item.name}`}
+          key={`${item.hash}_${item.fileName}`}
           onClick={(e) => onModelCardClick(e, item.hash)}
           loading={loading}
           needUpdate={needUpdate}
