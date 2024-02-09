@@ -10,10 +10,10 @@ export const saveMDIpc = async (
 ) => {
   const destPathExists = await checkFolderExists(pathDir);
   if (!destPathExists) {
-    fs.mkdirSync(pathDir);
+    await fs.promises.mkdir(pathDir);
   }
 
-  fs.writeFileSync(`${pathDir}\\markdown.md`, textMD, {
+  await fs.promises.writeFile(`${pathDir}\\markdown.md`, textMD, {
     encoding: 'utf-8',
   });
 };
@@ -27,10 +27,10 @@ export const saveImageMDIpc = async (
   const dirExists = await checkFolderExists(dir);
 
   if (!dirExists) {
-    fs.mkdirSync(dir, { recursive: true });
+    await fs.promises.mkdir(dir, { recursive: true });
   }
 
-  fs.copyFileSync(source, dest);
+  await fs.promises.copyFile(source, dest);
 };
 
 export const saveImageFromClipboardIpc = async (
@@ -41,10 +41,10 @@ export const saveImageFromClipboardIpc = async (
   const dirExists = await checkFolderExists(dir);
 
   if (!dirExists) {
-    fs.mkdirSync(dir, { recursive: true });
+    await fs.promises.mkdir(dir, { recursive: true });
   }
 
   const data = clipboard.readImage('clipboard').toPNG();
 
-  fs.writeFileSync(filePath, data);
+  await fs.promises.writeFile(filePath, data);
 };

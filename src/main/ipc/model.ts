@@ -134,7 +134,7 @@ export const readdirModelsIpc = async (
     let modelVersionInfo: ModelCivitaiInfo | undefined;
 
     if (modelVersionInfoExists) {
-      const modelVersionInfoFile = fs.readFileSync(
+      const modelVersionInfoFile = await fs.promises.readFile(
         `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
         { encoding: 'utf-8' },
       );
@@ -270,7 +270,7 @@ export const readdirModelsIpc = async (
         const imagesModelFolderExists =
           await checkFolderExists(imagesModelFolder);
         if (!imagesModelFolderExists) {
-          fs.mkdirSync(imagesModelFolder);
+          await fs.promises.mkdir(imagesModelFolder);
         }
 
         for (let c = 0; c < modelVersionInfo.images.length; c++) {
@@ -345,7 +345,7 @@ export const readdirModelImagesIpc = async (
   const folderExists = await checkFolderExists(folderPath);
 
   if (folderExists) {
-    const images = fs.readdirSync(folderPath);
+    const images = await fs.promises.readdir(folderPath);
     return images.reduce((acc: [string, ModelInfoImage | null][], f, i) => {
       if (f.endsWith('.png') || f.endsWith('jpg') || f.endsWith('jpeg')) {
         if (images[i + 1]?.endsWith('.json')) {

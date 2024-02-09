@@ -113,13 +113,13 @@ export async function removeImagesIpc(
 
     const pathParsed = path.parse(imagesToDelete[i].sourcePath);
     try {
-      fs.unlinkSync(imagesToDelete[i].sourcePath);
+      await fs.promises.unlink(imagesToDelete[i].sourcePath);
     } catch (error) {
       console.log(error);
       log.info(error);
     }
     try {
-      fs.unlinkSync(
+      await fs.promises.unlink(
         `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
       );
     } catch (error) {
@@ -127,7 +127,7 @@ export async function removeImagesIpc(
       log.info(error);
     }
     try {
-      fs.rmSync(`${pathParsed.dir}\\${pathParsed.name}`, {
+      await fs.promises.rm(`${pathParsed.dir}\\${pathParsed.name}`, {
         recursive: true,
       });
     } catch (error) {

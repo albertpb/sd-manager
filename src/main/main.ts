@@ -161,7 +161,7 @@ ipcMain.handle('watchImagesFolder', async () => {
       const ext = filePathParse.ext;
       if (ext !== '.png') return;
 
-      const file = fs.readFileSync(detectedFile);
+      const file = await fs.promises.readFile(detectedFile);
       const fileNameNoExt = filePathParse.name;
       const exif = extractMetadata(file);
       const metadata = parseImageSdMeta(exif);
@@ -170,13 +170,13 @@ ipcMain.handle('watchImagesFolder', async () => {
       const imagesFolderExists = await checkFolderExists(imagesFolder);
 
       if (!imagesFolderExists) {
-        fs.mkdirSync(imagesFolder);
+        await fs.promises.mkdir(imagesFolder);
       }
 
       const thumbnailsFolder = `${imagesFolder}\\thumbnails`;
       const thumbnailFolderExists = await checkFolderExists(thumbnailsFolder);
       if (!thumbnailFolderExists) {
-        fs.mkdirSync(thumbnailsFolder);
+        await fs.promises.mkdir(thumbnailsFolder);
       }
 
       const thumbnailDestPath = `${thumbnailsFolder}\\${fileNameNoExt}.thumbnail.webp`;

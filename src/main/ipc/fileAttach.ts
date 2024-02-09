@@ -8,7 +8,7 @@ export const fileAttach = async (
   imageFolder: string,
 ) => {
   const fileBaseName = path.basename(filePath);
-  fs.copyFileSync(filePath, `${imageFolder}\\${fileBaseName}`);
+  await fs.promises.copyFile(filePath, `${imageFolder}\\${fileBaseName}`);
 
   return `${imageFolder}\\${fileBaseName}`;
 };

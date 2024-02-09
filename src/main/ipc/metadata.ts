@@ -11,7 +11,7 @@ export const readImageMetadata = async (
   const fileExists = await checkFileExists(path);
 
   if (fileExists) {
-    const file = fs.readFileSync(path);
+    const file = await fs.promises.readFile(path);
 
     const metadata = extractMetadata(file);
     const keys = Object.keys(metadata);
