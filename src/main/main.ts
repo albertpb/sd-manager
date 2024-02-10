@@ -54,6 +54,8 @@ import {
   getImage,
   regenerateThumbnailsIpc,
   removeAllImageTagsIpc,
+  getHashesByPositivePromptIpc,
+  getHashesByNegativePromptIpc,
 } from './ipc/image';
 import { extractMetadata, parseImageSdMeta } from './exif';
 import { getPathsIpc } from './ipc/getPaths';
@@ -123,6 +125,8 @@ ipcMain.handle('mtag', mtagIpc);
 ipcMain.handle('tagModel', tagModelIpc);
 ipcMain.handle('readFuseIndex', readFuseIndexIpc);
 ipcMain.handle('saveFuseIndex', saveFuseIndexIpc);
+ipcMain.handle('getImagesHashByPositivePrompt', getHashesByPositivePromptIpc);
+ipcMain.handle('getImagesHashByNegativePrompt', getHashesByNegativePromptIpc);
 
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
@@ -226,7 +230,7 @@ ipcMain.handle('watchImagesFolder', async () => {
       };
 
       await db.run(
-        `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+        `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName, positivePrompt, negativePrompt) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName, $positivePrompt, $negativePrompt)`,
         {
           $hash: imagesData.hash,
           $path: imagesData.path,
@@ -236,6 +240,8 @@ ipcMain.handle('watchImagesFolder', async () => {
           $sourcePath: imagesData.sourcePath,
           $name: imagesData.name,
           $fileName: imagesData.fileName,
+          $positivePrompt: metadata.positivePrompt,
+          $negativePrompt: metadata.negativePrompt,
         },
       );
 

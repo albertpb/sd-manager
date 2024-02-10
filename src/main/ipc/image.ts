@@ -262,7 +262,7 @@ export const scanImagesIpc = async (
         if (!imagesRowsPathMap[files[i]]) {
           try {
             await db.run(
-              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName, positivePrompt, negativePrompt) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName, $positivePrompt, $negativePrompt)`,
               {
                 $hash: imageHash,
                 $path: parsedFilePath.dir,
@@ -272,6 +272,8 @@ export const scanImagesIpc = async (
                 $sourcePath: files[i],
                 $name: parsedFilePath.name,
                 $fileName: parsedFilePath.base,
+                $positivePrompt: metadata.positivePrompt,
+                $negativePrompt: metadata.negativePrompt,
               },
             );
 
@@ -406,5 +408,57 @@ export const removeAllImageTagsIpc = async (
   } catch (error) {
     console.error(error);
     log.error(error);
+  }
+};
+
+export const getHashesByPositivePromptIpc = async (
+  event: IpcMainInvokeEvent,
+  prompt: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const rows: { hash: string }[] = await db.all(
+      `SELECT hash FROM images WHERE positivePrompt LIKE $prompt`,
+      {
+        $prompt: `%${prompt}%`,
+      },
+    );
+
+    return rows.reduce((acc: Record<string, boolean>, row) => {
+      acc[row.hash] = true;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+
+    return {};
+  }
+};
+
+export const getHashesByNegativePromptIpc = async (
+  event: IpcMainInvokeEvent,
+  prompt: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const rows: { hash: string }[] = await db.all(
+      `SELECT hash FROM images WHERE negativePrompt LIKE $prompt`,
+      {
+        $prompt: `%${prompt}%`,
+      },
+    );
+
+    return rows.reduce((acc: Record<string, boolean>, row) => {
+      acc[row.hash] = true;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+
+    return {};
   }
 };

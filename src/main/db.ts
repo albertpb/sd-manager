@@ -290,5 +290,25 @@ export default class SqliteDB {
 
       version.user_version = 14;
     }
+
+    if (version.user_version === 14) {
+      try {
+        await db.run(`ALTER TABLE images ADD COLUMN positivePrompt TEXT`);
+        await db.run(`ALTER TABLE images ADD COLUMN negativePrompt TEXT`);
+        await db.run(
+          `CREATE INDEX idx_positivePrompt ON images(positivePrompt)`,
+        );
+        await db.run(
+          `CREATE INDEX idx_negativePrompt ON images(negativePrompt)`,
+        );
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 15`);
+
+      version.user_version = 15;
+    }
   }
 }

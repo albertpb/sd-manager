@@ -91,7 +91,6 @@ export default function Images() {
   const [tagsState] = useAtom(imagesTagsAtom);
   const [lorasState] = useAtom(lorasAtom);
   const [checkpointsState] = useAtom(checkpointsAtom);
-
   const [imagesList, setImagesList] = useState<ImageWithTags[]>([
     ...imagesWTags,
   ]);
@@ -137,19 +136,35 @@ export default function Images() {
     const fuseByTags = ImagesFuseSingleton.getInstance().getFuseByTags();
     const fuseByModel = ImagesFuseSingleton.getInstance().getFuseByModel();
 
-    if (fuseByTags && navbarState.searchInput.startsWith('t:')) {
-      setImagesResult(
-        fuseByTags
-          .search(navbarState.searchInput.substring(2))
-          .map((r) => r.item),
-      );
-    } else if (fuseByModel && navbarState.searchInput !== '') {
-      setImagesResult(
-        fuseByModel.search(navbarState.searchInput).map((r) => r.item),
-      );
-    } else {
-      setImagesResult(imagesWTags);
-    }
+    const load = async () => {
+      if (fuseByTags && navbarState.searchInput.startsWith('t:')) {
+        setImagesResult(
+          fuseByTags
+            .search(navbarState.searchInput.substring(2))
+            .map((r) => r.item),
+        );
+      } else if (navbarState.searchInput.startsWith('p:')) {
+        const prompt = navbarState.searchInput.substring(2);
+        const hashes: Record<string, boolean> =
+          await window.ipcHandler.getImagesHashByPositivePrompt(prompt);
+
+        setImagesResult(imagesWTags.filter((img) => hashes[img.hash]));
+      } else if (navbarState.searchInput.startsWith('n:')) {
+        const prompt = navbarState.searchInput.substring(2);
+        const hashes: Record<string, boolean> =
+          await window.ipcHandler.getImagesHashByNegativePrompt(prompt);
+
+        setImagesResult(imagesWTags.filter((img) => hashes[img.hash]));
+      } else if (fuseByModel && navbarState.searchInput !== '') {
+        setImagesResult(
+          fuseByModel.search(navbarState.searchInput).map((r) => r.item),
+        );
+      } else {
+        setImagesResult(imagesWTags);
+      }
+    };
+
+    load();
   }, [imagesWTags, navbarState.searchInput]);
 
   const filterByRatingFunc = useCallback(

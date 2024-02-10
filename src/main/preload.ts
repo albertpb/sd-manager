@@ -45,6 +45,8 @@ const channels = [
   'removeAllModelsTags',
   'readFuseIndex',
   'saveFuseIndex',
+  'getImagesHashByPositivePrompt',
+  'getImagesHashByNegativePrompt',
 ] as const;
 export type Channels = (typeof channels)[number];
 
