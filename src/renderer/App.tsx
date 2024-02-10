@@ -1,5 +1,4 @@
 import { Provider } from 'jotai';
-import { DevTools } from 'jotai-devtools';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { store } from './state/index';
@@ -23,7 +22,6 @@ import TestPage from './pages/testing';
 export default function App() {
   return (
     <Provider store={store}>
-      <DevTools store={store} />
       <Router>
         <Notificator>
           <SettingsLoader>

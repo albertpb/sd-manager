@@ -44,7 +44,6 @@
     "html-react-parser": "^4.2.10",
     "immer": "^10.0.3",
     "jotai": "^2.6.4",
-    "jotai-devtools": "^0.7.1",
     "jotai-immer": "^0.2.0",
     "postcss": "^8.4.35",
     "react": "^18.2.0",

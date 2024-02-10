@@ -19,6 +19,10 @@ import {
   net,
   IpcMainInvokeEvent,
 } from 'electron';
+import installExtension, {
+  REDUX_DEVTOOLS,
+  REACT_DEVELOPER_TOOLS,
+} from 'electron-devtools-installer';
 import fs from 'fs';
 import url, { pathToFileURL } from 'url';
 import sharp from 'sharp';
@@ -284,27 +288,7 @@ if (isDebug) {
   require('electron-debug')();
 }
 
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
-
-  return installer
-    .default(
-      extensions.map((name) => installer[name]),
-      forceDownload,
-    )
-    .catch((error: any) => {
-      console.error(error);
-      log.error(error);
-    });
-};
-
 const createWindow = async () => {
-  if (isDebug) {
-    await installExtensions();
-  }
-
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
     : path.join(__dirname, '../../assets');
@@ -391,6 +375,22 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(async () => {
+    if (isDebug) {
+      try {
+        await installExtension(REACT_DEVELOPER_TOOLS);
+        console.log('Added Extension: react developer tools');
+      } catch (error) {
+        console.log(error);
+      }
+
+      try {
+        await installExtension(REDUX_DEVTOOLS);
+        console.log('Added Extension: redux devtools');
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
     protocol.handle('sd', (request) => {
       return net.fetch(
         `file:///${
