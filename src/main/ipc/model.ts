@@ -172,11 +172,13 @@ export const readdirModelsIpc = async (
       }
 
       try {
+        const modelName = `${modelInfo?.name} ${modelVersionInfo?.name}`;
+
         await db.run(
           `INSERT INTO models(hash, name, fileName, path, type, rating, baseModel, modelId, modelDescription, modelVersionId) VALUES ($hash, $name, $fileName, $path, $type, $rating, $baseModel, $modelId, $modelDescription, $modelVersionId)`,
           {
             $hash: hash,
-            $name: modelVersionInfo?.name || modelInfo?.name || fileNameNoExt,
+            $name: modelName.trim() === '' ? fileNameNoExt : modelName,
             $fileName: fileNameNoExt,
             $path: files[i],
             $type: modelType,
@@ -215,9 +217,11 @@ export const readdirModelsIpc = async (
         }
       }
 
+      const modelName = `${modelInfo?.name} ${modelVersionInfo?.name}`;
+
       modelsPathMap[files[i]] = {
         hash,
-        name: modelVersionInfo?.name || modelInfo?.name || fileNameNoExt,
+        name: modelName.trim() === '' ? fileNameNoExt : modelName,
         fileName: fileNameNoExt,
         path: fileFolderPath,
         type: modelType,

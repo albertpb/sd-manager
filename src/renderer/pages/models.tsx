@@ -1,4 +1,3 @@
-import Fuse from 'fuse.js';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -11,7 +10,6 @@ import Tagger from 'renderer/components/Tagger';
 import { Tag } from 'main/ipc/tag';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import {
-  ModelWithTags,
   checkpointsAtom,
   createModelTag,
   lorasAtom,
@@ -30,6 +28,8 @@ import { useAtom } from 'jotai';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { imagesAtom } from 'renderer/state/images.store';
+import ModelsFuseSingleton from 'renderer/fuzzy/models.fuse';
+import { ModelWithTags } from 'renderer/state/interfaces';
 
 export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
 
   const [models, setModels] = useState<ModelWithTags[]>([]);
+  const [modelsResult, setModelsResult] = useState<ModelWithTags[]>([]);
 
   const [filterBy, setFilterBy] = useState<string>(
     localStorage.getItem(`models-${type}-filterBy`) || 'none',
@@ -134,14 +135,58 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     ],
   );
 
-  const fuse = new Fuse(modelsWTags, {
-    keys: ['name'],
+  useEffect(() => {
+    const load = async () => {
+      if (type === 'checkpoint') {
+        await ModelsFuseSingleton.getInstance().initFuseCheckpoint(modelsWTags);
+      }
+      if (type === 'lora') {
+        await ModelsFuseSingleton.getInstance().initFuseLora(modelsWTags);
+      }
+    };
+
+    load();
+
+    return () => {
+      ModelsFuseSingleton.getInstance().saveFuseIndexes();
+    };
   });
 
-  const modelsResult =
-    navbarState.searchInput === ''
-      ? modelsWTags
-      : fuse.search(navbarState.searchInput).map((result) => result.item);
+  useEffect(() => {
+    const fuseCheckpoint =
+      ModelsFuseSingleton.getInstance().getFuseCheckpoint();
+    const fuseLora = ModelsFuseSingleton.getInstance().getFuseLora();
+
+    if (type === 'checkpoint' && fuseCheckpoint) {
+      fuseCheckpoint.setCollection(modelsWTags);
+    }
+
+    if (type === 'lora' && fuseLora) {
+      fuseLora.setCollection(modelsWTags);
+    }
+  }, [modelsWTags, type]);
+
+  useEffect(() => {
+    const fuseCheckpoint =
+      ModelsFuseSingleton.getInstance().getFuseCheckpoint();
+    const fuseLora = ModelsFuseSingleton.getInstance().getFuseLora();
+
+    if (
+      type === 'checkpoint' &&
+      fuseCheckpoint &&
+      navbarState.searchInput !== ''
+    ) {
+      setModelsResult(
+        fuseCheckpoint.search(navbarState.searchInput).map((r) => r.item),
+      );
+    } else if (type === 'lora' && fuseLora && navbarState.searchInput !== '') {
+      setModelsResult(
+        fuseLora.search(navbarState.searchInput).map((r) => r.item),
+      );
+    } else {
+      setModelsResult(modelsWTags);
+    }
+  }, [modelsWTags, navbarState.searchInput, type]);
 
   const filterByTagFunc = useCallback(
     (model: ModelWithTags) => {

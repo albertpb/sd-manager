@@ -1,14 +1,7 @@
 import classNames from 'classnames';
-import Fuse from 'fuse.js';
 import { ImageRow } from 'main/ipc/image';
 import { Tag } from 'main/ipc/tag';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import Image from 'renderer/components/Image';
@@ -20,7 +13,6 @@ import LightBox from 'renderer/components/LightBox';
 import ContextMenu from 'renderer/components/ContextMenu';
 import { useAtom } from 'jotai';
 import {
-  ImageWithTags,
   createImageTag,
   imagesAtom,
   imagesTagsAtom,
@@ -37,6 +29,8 @@ import {
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
+import ImagesFuseSingleton from 'renderer/fuzzy/images.fuse';
+import { ImageWithTags } from 'renderer/state/interfaces';
 
 export default function Images() {
   const navigate = useNavigate();
@@ -85,6 +79,9 @@ export default function Images() {
       ? true
       : localStorage.getItem('images-showTag') === 'true',
   );
+  const [imagesResult, setImagesResult] = useState<
+    (Omit<ImageRow, 'tags'> & { tags: Tag[] })[]
+  >([]);
 
   const [imagesState, setImagesState] = useAtom(imagesAtom);
   const [watchFoldersState] = useAtom(watchFoldersAtom);
@@ -111,33 +108,49 @@ export default function Images() {
   const maxZoom = 8;
   const rowMargin = 10;
 
-  const fuseByTags = useMemo(() => {
-    return new Fuse(imagesWTags, {
-      keys: ['tags.label'],
-    });
-  }, [imagesWTags]);
+  useEffect(() => {
+    const load = async () => {
+      await ImagesFuseSingleton.getInstance().initFuseByTags(imagesWTags);
+      await ImagesFuseSingleton.getInstance().initFuseByModel(imagesWTags);
+    };
 
-  const fuseByModel = useMemo(() => {
-    return new Fuse(imagesWTags, {
-      keys: ['model'],
-    });
-  }, [imagesWTags]);
+    load();
 
-  const imagesResult = useMemo(() => {
-    let result: (Omit<ImageRow, 'tags'> & { tags: Tag[] })[] = [];
+    return () => {
+      ImagesFuseSingleton.getInstance().saveFuseIndexes();
+    };
+  });
 
-    if (navbarState.searchInput.startsWith('t:')) {
-      result = fuseByTags
-        .search(navbarState.searchInput.substring(2))
-        .map((r) => r.item);
-    } else if (navbarState.searchInput !== '') {
-      result = fuseByModel.search(navbarState.searchInput).map((r) => r.item);
-    } else {
-      result = imagesWTags;
+  useEffect(() => {
+    const fuseByTags = ImagesFuseSingleton.getInstance().getFuseByTags();
+    const fuseByModel = ImagesFuseSingleton.getInstance().getFuseByModel();
+
+    if (fuseByTags) {
+      fuseByTags.setCollection(imagesWTags);
     }
+    if (fuseByModel) {
+      fuseByModel.setCollection(imagesWTags);
+    }
+  }, [imagesWTags]);
 
-    return result;
-  }, [fuseByModel, fuseByTags, imagesWTags, navbarState.searchInput]);
+  useEffect(() => {
+    const fuseByTags = ImagesFuseSingleton.getInstance().getFuseByTags();
+    const fuseByModel = ImagesFuseSingleton.getInstance().getFuseByModel();
+
+    if (fuseByTags && navbarState.searchInput.startsWith('t:')) {
+      setImagesResult(
+        fuseByTags
+          .search(navbarState.searchInput.substring(2))
+          .map((r) => r.item),
+      );
+    } else if (fuseByModel && navbarState.searchInput !== '') {
+      setImagesResult(
+        fuseByModel.search(navbarState.searchInput).map((r) => r.item),
+      );
+    } else {
+      setImagesResult(imagesWTags);
+    }
+  }, [imagesWTags, navbarState.searchInput]);
 
   const filterByRatingFunc = useCallback(
     (img: ImageWithTags) => img.rating === filterByRating,

@@ -6,11 +6,9 @@ import { WatchFolder } from 'main/ipc/watchFolders';
 import { createId } from '@paralleldrive/cuid2';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
-import { ImportProgress } from './interfaces';
+import { ImageWithTags, ImportProgress } from './interfaces';
 import { settingsAtom } from './settings.store';
 import { store } from './index';
-
-export type ImageWithTags = Omit<ImageRow, 'tags'> & { tags: Tag[] };
 
 export type ImagesState = {
   images: ImageRow[];

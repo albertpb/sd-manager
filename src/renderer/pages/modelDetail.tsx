@@ -80,7 +80,7 @@ export default function ModelDetail() {
 
         if (modelsPath) {
           const modelCiviInfo = await window.ipcHandler.readFile(
-            `${modelsPath}\\${modelData.name}.civitai.info`,
+            `${modelsPath}\\${modelData.fileName}.civitai.info`,
             'utf-8',
           );
           if (modelCiviInfo) {
@@ -88,15 +88,14 @@ export default function ModelDetail() {
           }
 
           const userImagesListsResponse: ImageRow[] =
-            await window.ipcHandler.getImages(modelData.name);
+            await window.ipcHandler.getImages(modelData.fileName);
           setUserImagesList(userImagesListsResponse);
 
           const modelImagesListResponse: [string, ModelInfoImage | null][] =
             await window.ipcHandler.readdirModelImages(
-              modelData.name,
+              modelData.fileName,
               modelsPath,
             );
-          console.log(modelImagesListResponse);
           setModelImagesList(modelImagesListResponse);
         }
       }

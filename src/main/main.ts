@@ -67,6 +67,7 @@ import { readImageMetadata } from './ipc/metadata';
 import { watchFolderIpc } from './ipc/watchFolders';
 import { tagIpc } from './ipc/tag';
 import { mtagIpc } from './ipc/mtags';
+import { readFuseIndexIpc, saveFuseIndexIpc } from './ipc/fuse';
 
 class AppUpdater {
   constructor() {
@@ -120,6 +121,8 @@ ipcMain.handle('regenerateThumbnails', () =>
 );
 ipcMain.handle('mtag', mtagIpc);
 ipcMain.handle('tagModel', tagModelIpc);
+ipcMain.handle('readFuseIndex', readFuseIndexIpc);
+ipcMain.handle('saveFuseIndex', saveFuseIndexIpc);
 
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),

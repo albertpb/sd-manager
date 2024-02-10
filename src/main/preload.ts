@@ -43,6 +43,8 @@ const channels = [
   'tagModel',
   'removeAllImageTags',
   'removeAllModelsTags',
+  'readFuseIndex',
+  'saveFuseIndex',
 ] as const;
 export type Channels = (typeof channels)[number];
 

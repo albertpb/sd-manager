@@ -5,7 +5,7 @@ import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import { Model, ModelType } from 'main/ipc/model';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import { Tag } from 'main/ipc/tag';
-import { ImportProgress } from './interfaces';
+import { ImportProgress, ModelWithTags } from './interfaces';
 import { settingsAtom } from './settings.store';
 import { store } from './index';
 
@@ -21,8 +21,6 @@ export type ModelState = {
   checkingUpdates: boolean;
   importProgress: ImportProgress;
 };
-
-export type ModelWithTags = Omit<Model, 'tags'> & { tags: Tag[] };
 
 export const checkpointsAtom = atomWithImmer<ModelState>({
   models: {},
