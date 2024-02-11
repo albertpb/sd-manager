@@ -171,8 +171,8 @@ export default function ModelDetail() {
     [calcImagesValues],
   );
 
-  const revealInFolder = (imgPath: string) => {
-    window.ipcHandler.openFolderLink(`${imgPath}`);
+  const goToModelImageDetail = (index: number) => {
+    navigate(`image-detail/${index}`);
   };
 
   const onSelectImage = (item: ImageRow) => {
@@ -198,7 +198,11 @@ export default function ModelDetail() {
         }
       }
     } else {
-      revealInFolder(item.path);
+      console.log(item.path);
+      const index = modelImagesList.findIndex((i) => i[0] === item.path);
+      if (index) {
+        goToModelImageDetail(index);
+      }
     }
   };
 
@@ -229,7 +233,7 @@ export default function ModelDetail() {
         return (
           <div
             key={`md_${imgItem[0]}_i`}
-            onClick={() => revealInFolder(imgItem[0])}
+            onClick={() => goToModelImageDetail(i)}
             aria-hidden="true"
             className="cursor-pointer"
           >
@@ -354,7 +358,6 @@ export default function ModelDetail() {
           };
 
     const descriptionElement = (data: Model) => {
-      console.log(data);
       if (data.modelDescription) {
         return (
           <div className="pt-2">

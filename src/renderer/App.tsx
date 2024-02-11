@@ -18,6 +18,7 @@ import ImageMetadata from './pages/imageMetadata';
 import Loras from './pages/loras';
 import Checkpoints from './pages/checkpoints';
 import TestPage from './pages/testing';
+import ModelImageDetail from './pages/modelImageDetail';
 
 export default function App() {
   return (
@@ -32,25 +33,25 @@ export default function App() {
                     <Route path="/" element={<MainLayout />}>
                       <Route index element={<Images />} />
                       <Route path="checkpoints" element={<Checkpoints />} />
+                      <Route path="model-detail/:hash">
+                        <Route index element={<ModelDetail />} />
+                        <Route
+                          path="image-detail/:index"
+                          element={<ModelImageDetail />}
+                        />
+                      </Route>
                       <Route
-                        path="/model-detail/:hash"
-                        element={<ModelDetail />}
-                      />
-                      <Route
-                        path="/image-detail/:hash"
+                        path="image-detail/:hash"
                         element={<ImageDetail />}
                       />
-                      <Route path="/loras" element={<Loras />} />
-                      <Route path="/settings" element={<Settings />} />
+                      <Route path="loras" element={<Loras />} />
+                      <Route path="settings" element={<Settings />} />
+                      <Route path="ar-helper" element={<AspectRatioHelper />} />
                       <Route
-                        path="/ar-helper"
-                        element={<AspectRatioHelper />}
-                      />
-                      <Route
-                        path="/image-metadata"
+                        path="image-metadata"
                         element={<ImageMetadata />}
                       />
-                      <Route path="/test" element={<TestPage />} />
+                      <Route path="test" element={<TestPage />} />
                     </Route>
                   </Routes>
                 </AnimatePresence>
