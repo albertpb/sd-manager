@@ -198,7 +198,7 @@ export const readdirModelsIpc = async (
             // await deleteModelFiles(fileFolderPath, fileNameNoExt);
 
             const model = await db.get(
-              `SELECT name FROM models WHERE hash = $hash`,
+              `SELECT fileName FROM models WHERE hash = $hash`,
               {
                 $hash: hash,
               },
