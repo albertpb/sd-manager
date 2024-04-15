@@ -20,45 +20,50 @@ export function splitOutsideQuotes(input: string): string[] {
 }
 
 export function extractMetadata(pngData: Buffer) {
-  const metadata: Record<string, any> = {};
+  try {
+    const metadata: Record<string, any> = {};
 
-  // Find the position of the first chunk
-  let offset = 8;
+    // Find the position of the first chunk
+    let offset = 8;
 
-  while (offset < pngData.length) {
-    // Read the chunk length and type
-    const length = pngData.readUInt32BE(offset);
-    const type = pngData.toString('ascii', offset + 4, offset + 8);
+    while (offset < pngData.length) {
+      // Read the chunk length and type
+      const length = pngData.readUInt32BE(offset);
+      const type = pngData.toString('ascii', offset + 4, offset + 8);
 
-    // Check if the chunk is a tEXt or iTXt chunk
-    if (type === 'tEXt' || type === 'iTXt') {
-      // Read the keyword (up to null terminator)
-      let keyword = '';
-      let keywordOffset = offset + 8;
-      while (
-        pngData[keywordOffset] !== 0 &&
-        keywordOffset < offset + length + 8
-      ) {
-        keyword += String.fromCharCode(pngData[keywordOffset]);
-        keywordOffset++;
+      // Check if the chunk is a tEXt or iTXt chunk
+      if (type === 'tEXt' || type === 'iTXt') {
+        // Read the keyword (up to null terminator)
+        let keyword = '';
+        let keywordOffset = offset + 8;
+        while (
+          pngData[keywordOffset] !== 0 &&
+          keywordOffset < offset + length + 8
+        ) {
+          keyword += String.fromCharCode(pngData[keywordOffset]);
+          keywordOffset++;
+        }
+
+        // Read the text data
+        const textData = pngData.toString(
+          'utf8',
+          keywordOffset + 1,
+          offset + length + 8,
+        );
+
+        // Store the metadata in the object
+        metadata[keyword] = textData;
       }
 
-      // Read the text data
-      const textData = pngData.toString(
-        'utf8',
-        keywordOffset + 1,
-        offset + length + 8,
-      );
-
-      // Store the metadata in the object
-      metadata[keyword] = textData;
+      // Move to the next chunk
+      offset += length + 12;
     }
 
-    // Move to the next chunk
-    offset += length + 12;
+    return metadata;
+  } catch (error) {
+    console.log(error);
+    return {};
   }
-
-  return metadata;
 }
 
 export function parseAutomatic1111Meta(parameters: string): ImageMetaData {

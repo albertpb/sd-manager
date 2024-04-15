@@ -127,6 +127,51 @@ export async function downloadModelInfoByHash(
   }
 }
 
+export const getModelInfo = async (
+  modelId: number,
+  modelName?: string,
+  downloadDir?: string,
+): Promise<ModelInfo> => {
+  const filePath = `${downloadDir}\\${modelName}.civitai.model.info`;
+  try {
+    if (modelName && downloadDir) {
+      const fileExists = await checkFileExists(filePath);
+      if (fileExists) {
+        const data = await fs.promises.readFile(filePath, {
+          encoding: 'utf-8',
+        });
+        return JSON.parse(data);
+      }
+    }
+
+    const response = await axios.get(
+      `https://civitai.com/api/v1/models/${modelId}`,
+    );
+
+    if (modelName && downloadDir) {
+      await fs.promises.writeFile(
+        `${downloadDir}\\${modelName}.civitai.model.info`,
+        JSON.stringify(response.data, null, 2),
+        { encoding: 'utf-8' },
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    console.log(`failed to download civitai info modelInfo ${modelName}`);
+    log.info(`failed to download civitai info modelInfo ${modelName}`);
+    if (modelName && downloadDir) {
+      await fs.promises.writeFile(
+        `${downloadDir}\\${modelName}.civitai.model.info`,
+        '{}',
+        { encoding: 'utf-8' },
+      );
+    }
+
+    throw error;
+  }
+};
+
 export async function downloadImage(
   fileName: string,
   modelInfoImage: ModelInfoImage,
@@ -201,13 +246,6 @@ export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
     log.info(error);
     console.log(error);
   }
-};
-
-export const getModelInfo = async (modelId: number): Promise<ModelInfo> => {
-  const response = await axios.get(
-    `https://civitai.com/api/v1/models/${modelId}`,
-  );
-  return response.data;
 };
 
 export function sleep(ms: number) {

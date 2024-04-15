@@ -79,52 +79,85 @@ export const readdirModelsIpc = async (
   if (!folderExists) return {};
 
   const db = await SqliteDB.getInstance().getdb();
-  const models: Model[] = await db.all(
+
+  const models = await db.all(
     `SELECT models.rowid as rowNum, models.hash, models.name, models.fileName, models.path, models.type, models.rating, models.baseModel, models.modelId, models.modelVersionId, models.description, models.modelDescription, GROUP_CONCAT(mtags.id) AS tags FROM models LEFT JOIN models_mtags ON models_mtags.modelHash = models.hash LEFT JOIN mtags ON mtags.id = models_mtags.tagId GROUP BY models.hash ORDER BY models.rating DESC, rowNum DESC`,
   );
-  models.forEach((model: Model & { tags: string | Record<string, string> }) => {
-    model.tags =
-      typeof model.tags === 'string' && model.tags !== ''
-        ? model.tags.split(',').reduce((acc: Record<string, string>, tag) => {
-            acc[tag] = tag;
-            return acc;
-          }, {})
+
+  for (let i = 0; i < models.length; i++) {
+    models[i].tags =
+      typeof models[i].tags === 'string' && models[i].tags !== ''
+        ? models[i].tags
+            .split(',')
+            .reduce((acc: Record<string, string>, tag: string) => {
+              acc[tag] = tag;
+              return acc;
+            }, {})
         : {};
+  }
+
+  const modelsPathMap: Record<string, Model> = {};
+  const modelsHashMap: Record<string, Model> = {};
+  models.forEach((row) => {
+    if (row.type === modelType) {
+      modelsPathMap[row.path] = row;
+      modelsHashMap[row.hash] = row;
+    }
   });
 
-  const modelsPathMap = models.reduce((acc: Record<string, Model>, row) => {
-    if (row.type === modelType) {
-      acc[row.path] = row;
-    }
-    return acc;
-  }, {});
+  const allFiles = getAllFiles(folderPath);
 
-  const files = getAllFiles(folderPath).filter(
+  const modelsFiles = allFiles.filter(
     (f) => f.endsWith('.safetensors') || f.endsWith('.ckpt'),
   );
 
-  console.log('files count', files.length);
+  console.log('files count', modelsFiles.length);
 
-  await removeModelsNotFound(files, modelType);
-
-  const filesHashes = await hashFilesInBackground(
-    files.filter((f) => !modelsPathMap[f]),
-    (progress) =>
-      notifyProgressModel(
-        browserWindow,
-        `Hashing models...`,
-        progress,
-        modelType,
-      ),
+  const filesHashes = await hashFilesInBackground(modelsFiles, (progress) =>
+    notifyProgressModel(
+      browserWindow,
+      `Hashing models...`,
+      progress,
+      modelType,
+    ),
   );
 
-  for (let i = 0; i < files.length; i++) {
-    const parsedFile = path.parse(files[i]);
+  // detect duplicate hashes
+  const duplicatedFiles = new Set();
+
+  Object.entries(filesHashes).reduce(
+    (acc: Record<string, boolean>, [filePath, hash]) => {
+      if (!acc[hash]) {
+        acc[hash] = true;
+      } else if (
+        browserWindow &&
+        modelsHashMap[hash] &&
+        modelsHashMap[hash].fileName !== path.parse(filePath).name
+      ) {
+        browserWindow.webContents.send(
+          'duplicates-detected',
+          'Detected duplicated model',
+          `${modelsHashMap[hash].fileName} collided with ${filePath}`,
+        );
+        duplicatedFiles.add(filePath);
+      }
+
+      return acc;
+    },
+    {},
+  );
+
+  for (let i = 0; i < modelsFiles.length; i++) {
+    if (duplicatedFiles.has(modelsFiles[i])) {
+      continue;
+    }
+
+    const parsedFile = path.parse(modelsFiles[i]);
     const baseName = parsedFile.base;
     const fileNameNoExt = parsedFile.name;
     const fileFolderPath = parsedFile.dir;
 
-    const progress = ((i + 1) / files.length) * 100;
+    const progress = ((i + 1) / modelsFiles.length) * 100;
     notifyProgressModel(browserWindow, `${baseName}`, progress, modelType);
 
     const modelVersionInfoExists = await checkFileExists(
@@ -141,17 +174,30 @@ export const readdirModelsIpc = async (
       modelVersionInfo = JSON.parse(modelVersionInfoFile);
     }
 
-    if (!modelsPathMap[files[i]]) {
-      console.log('hashing', files[i]);
-      log.info('hashing', files[i]);
-      const hash = filesHashes[files[i]];
+    const hash = filesHashes[modelsFiles[i]];
 
-      if (!modelVersionInfo) {
-        // verify if is a valid hash by downloading info from civitai
+    if (!modelVersionInfo) {
+      // verify if is a valid hash by downloading info from civitai
+      try {
+        modelVersionInfo = await downloadModelInfoByHash(
+          fileNameNoExt,
+          hash,
+          fileFolderPath,
+        );
+      } catch (error) {
+        console.log(error);
+        log.error(error);
+      }
+    }
+
+    try {
+      let modelInfo: ModelInfo | undefined;
+
+      if (modelVersionInfo && modelVersionInfo.modelId) {
         try {
-          modelVersionInfo = await downloadModelInfoByHash(
+          modelInfo = await getModelInfo(
+            modelVersionInfo.modelId,
             fileNameNoExt,
-            hash,
             fileFolderPath,
           );
         } catch (error) {
@@ -160,86 +206,44 @@ export const readdirModelsIpc = async (
         }
       }
 
-      let modelInfo: ModelInfo | undefined;
+      const modelName = `${modelInfo?.name || ''} ${modelVersionInfo?.name || ''}`;
 
-      if (modelVersionInfo && modelVersionInfo.modelId) {
-        try {
-          modelInfo = await getModelInfo(modelVersionInfo.modelId);
-        } catch (error) {
-          console.log(error);
-          log.error(error);
-        }
-      }
-
-      try {
-        const modelName = `${modelInfo?.name} ${modelVersionInfo?.name}`;
-
-        await db.run(
-          `INSERT INTO models(hash, name, fileName, path, type, rating, baseModel, modelId, modelDescription, modelVersionId) VALUES ($hash, $name, $fileName, $path, $type, $rating, $baseModel, $modelId, $modelDescription, $modelVersionId)`,
-          {
-            $hash: hash,
-            $name: modelName.trim() === '' ? fileNameNoExt : modelName,
-            $fileName: fileNameNoExt,
-            $path: files[i],
-            $type: modelType,
-            $rating: 1,
-            $baseModel: modelVersionInfo?.baseModel || '',
-            $modelId: modelVersionInfo?.modelId || null,
-            $modelDescription: modelInfo?.description,
-            $modelVersionId: modelVersionInfo?.id || null,
-          },
-        );
-      } catch (error: any) {
-        console.log(files[i], modelType, hash);
-        console.log(error);
-
-        if (error.errno === 19) {
-          if (browserWindow !== null) {
-            // await deleteModelFiles(fileFolderPath, fileNameNoExt);
-
-            const model = await db.get(
-              `SELECT fileName FROM models WHERE hash = $hash`,
-              {
-                $hash: hash,
-              },
-            );
-
-            log.info(
-              `Detected duplicated model, ${fileNameNoExt} collided with ${model.fileName}`,
-            );
-
-            browserWindow.webContents.send(
-              'duplicates-detected',
-              'Detected duplicated model',
-              `${fileNameNoExt} collided with ${model.fileName}`,
-            );
-          }
-        }
-      }
-
-      const modelName = `${modelInfo?.name} ${modelVersionInfo?.name}`;
-
-      modelsPathMap[files[i]] = {
-        hash,
-        name: modelName.trim() === '' ? fileNameNoExt : modelName,
-        fileName: fileNameNoExt,
-        path: fileFolderPath,
-        type: modelType,
-        rating: 1,
-        baseModel: modelVersionInfo?.baseModel || '',
-        modelId: modelVersionInfo?.id || null,
-        modelVersionId: modelVersionInfo?.modelId || null,
-        description: '',
-        modelDescription: '',
-        tags: {},
-      };
+      await db.run(
+        `INSERT INTO models(hash, name, fileName, path, type, rating, baseModel, modelId, modelDescription, modelVersionId) VALUES (
+          $hash,
+          $name,
+          $fileName,
+          $path,
+          $type,
+          $rating,
+          $baseModel,
+          $modelId,
+          $modelDescription,
+          $modelVersionId) ON CONFLICT DO UPDATE
+          SET path = $path`,
+        {
+          $hash: hash,
+          $name: modelName.trim() === '' ? fileNameNoExt : modelName,
+          $fileName: fileNameNoExt,
+          $path: modelsFiles[i],
+          $type: modelType,
+          $rating: 1,
+          $baseModel: modelVersionInfo?.baseModel || '',
+          $modelId: modelVersionInfo?.modelId || null,
+          $modelDescription: modelInfo?.description,
+          $modelVersionId: modelVersionInfo?.id || null,
+        },
+      );
+    } catch (error: any) {
+      console.log(modelsFiles[i], modelType, hash);
+      console.log(error);
     }
 
     if (!modelVersionInfoExists) {
       try {
         modelVersionInfo = await downloadModelInfoByHash(
           fileNameNoExt,
-          modelsPathMap[files[i]].hash,
+          modelsPathMap[modelsFiles[i]].hash,
           fileFolderPath,
         );
       } catch (error) {
@@ -292,49 +296,53 @@ export const readdirModelsIpc = async (
       }
     }
 
-    if (
-      modelsPathMap[files[i]].baseModel === '' ||
-      modelsPathMap[files[i]].baseModel === null
-    ) {
-      if (modelVersionInfo) {
-        await db.run(
-          `UPDATE models SET baseModel = $baseModel WHERE hash = $hash`,
-          {
-            $baseModel: modelVersionInfo.baseModel,
-            $hash: modelsPathMap[files[i]].hash,
-          },
-        );
+    if (modelsPathMap[modelsFiles[i]]) {
+      if (
+        modelsPathMap[modelsFiles[i]].baseModel === '' ||
+        modelsPathMap[modelsFiles[i]].baseModel === null
+      ) {
+        if (modelVersionInfo) {
+          await db.run(
+            `UPDATE models SET baseModel = $baseModel WHERE hash = $hash`,
+            {
+              $baseModel: modelVersionInfo.baseModel,
+              $hash: modelsPathMap[modelsFiles[i]].hash,
+            },
+          );
+        }
       }
-    }
 
-    if (
-      !modelsPathMap[files[i]].modelId ||
-      !modelsPathMap[files[i]].modelVersionId
-    ) {
-      if (modelVersionInfo) {
-        await db.run(
-          `UPDATE models SET modelId = $modelId, modelVersionId = $modelVersionId WHERE hash = $hash`,
-          {
-            $modelId: modelVersionInfo.modelId,
-            $modelVersionId: modelVersionInfo.id,
-            $hash: modelsPathMap[files[i]].hash,
-          },
-        );
+      if (
+        !modelsPathMap[modelsFiles[i]].modelId ||
+        !modelsPathMap[modelsFiles[i]].modelVersionId
+      ) {
+        if (modelVersionInfo) {
+          await db.run(
+            `UPDATE models SET modelId = $modelId, modelVersionId = $modelVersionId WHERE hash = $hash`,
+            {
+              $modelId: modelVersionInfo.modelId,
+              $modelVersionId: modelVersionInfo.id,
+              $hash: modelsPathMap[modelsFiles[i]].hash,
+            },
+          );
+        }
       }
-    }
 
-    if (!modelsPathMap[files[i]].description) {
-      if (modelVersionInfo) {
-        await db.run(
-          `UPDATE models SET description = $description WHERE hash = $hash`,
-          {
-            $description: modelVersionInfo.description,
-            $hash: modelsPathMap[files[i]].hash,
-          },
-        );
+      if (!modelsPathMap[modelsFiles[i]].description) {
+        if (modelVersionInfo) {
+          await db.run(
+            `UPDATE models SET description = $description WHERE hash = $hash`,
+            {
+              $description: modelVersionInfo.description,
+              $hash: modelsPathMap[modelsFiles[i]].hash,
+            },
+          );
+        }
       }
     }
   }
+
+  await removeModelsNotFound(modelsFiles, modelType);
 
   return modelsPathMap;
 };
@@ -506,15 +514,14 @@ export async function checkModelsToUpdateIpc(
     {},
   );
 
-  const modelsIdsSet = new Set<number>();
+  const modelsIds: number[] = [];
   for (let i = 0; i < models.length; i++) {
     const modelId = models[i].modelId;
     if (modelId !== null) {
-      modelsIdsSet.add(modelId);
+      modelsIds.push(modelId);
     }
   }
-  let modelsIds = Array.from(modelsIdsSet) as number[];
-  modelsIds = modelsIds.sort((a, b) => a - b);
+  modelsIds.sort((a, b) => a - b);
 
   for (let i = 0; i < modelsIds.length; i++) {
     try {

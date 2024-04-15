@@ -4,8 +4,20 @@ const { parentPort } = require('worker_threads');
 const hashWasm = require('hash-wasm');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 
 async function hashFileBlake3(filePath) {
+  const parsedPath = path.parse(filePath);
+  const fileHashOnDiskPath = `${parsedPath.dir}\\${parsedPath.name}.blake3`;
+
+  if (fs.existsSync(fileHashOnDiskPath)) {
+    parentPort.postMessage({
+      type: 'result',
+      message: fs.readFileSync(fileHashOnDiskPath, { encoding: 'utf-8' }),
+    });
+    return;
+  }
+
   const hash = await hashWasm.createBLAKE3();
   const readStream = fs.createReadStream(filePath, {
     highWaterMark: 256 * 1024,
@@ -17,6 +29,7 @@ async function hashFileBlake3(filePath) {
 
   readStream.on('end', () => {
     const fileHash = hash.digest('hex');
+    fs.writeFileSync(fileHashOnDiskPath, fileHash, { encoding: 'utf-8' });
     parentPort.postMessage({ type: 'result', message: fileHash });
   });
 
@@ -26,6 +39,17 @@ async function hashFileBlake3(filePath) {
 }
 
 async function hashSha256(filePath) {
+  const parsedPath = path.parse(filePath);
+  const fileHashOnDiskPath = `${parsedPath.dir}\\${parsedPath.name}.sha256`;
+
+  if (fs.existsSync(fileHashOnDiskPath)) {
+    parentPort.postMessage({
+      type: 'result',
+      message: fs.readFileSync(fileHashOnDiskPath, { encoding: 'utf-8' }),
+    });
+    return;
+  }
+
   const hash = crypto.createHash('sha256');
   const readStream = fs.createReadStream(filePath);
 
@@ -35,6 +59,7 @@ async function hashSha256(filePath) {
 
   readStream.on('end', () => {
     const fileHash = hash.digest('hex');
+    fs.writeFileSync(fileHashOnDiskPath, fileHash, { encoding: 'utf-8' });
     parentPort.postMessage({ type: 'result', message: fileHash });
   });
 
