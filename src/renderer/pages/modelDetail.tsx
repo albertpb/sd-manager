@@ -226,6 +226,12 @@ export default function ModelDetail() {
     }
   };
 
+  const revealInFolder = () => {
+    if (modelData) {
+      window.ipcHandler.openFolderLink(`${modelData.path}`);
+    }
+  };
+
   if (modelData && modelCivitaiInfo) {
     // carousel
     const modelImages = modelImagesList.map(
@@ -413,7 +419,13 @@ export default function ModelDetail() {
         </div>
         <section className="w-11/12">
           <div className="flex flex-row items-center">
-            <p className="text-2xl font-bold text-gray-300">{modelData.name}</p>
+            <button
+              type="button"
+              className="text-2xl font-bold text-gray-300"
+              onClick={() => revealInFolder()}
+            >
+              {modelData.name}
+            </button>
             <div className="ml-4 flex">
               <Rating
                 id={`model-detail-rating-2-${modelData.hash}`}
