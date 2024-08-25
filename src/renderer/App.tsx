@@ -19,46 +19,52 @@ import Loras from './pages/loras';
 import Checkpoints from './pages/checkpoints';
 import TestPage from './pages/testing';
 import ModelImageDetail from './pages/modelImageDetail';
+import { DetectOs } from './hocs/detect-os';
 
 export default function App() {
   return (
     <Provider store={store}>
       <Router>
-        <Notificator>
-          <SettingsLoader>
-            <ModelsLoader>
-              <ImagesLoader>
-                <AnimatePresence mode="wait">
-                  <Routes>
-                    <Route path="/" element={<MainLayout />}>
-                      <Route index element={<Images />} />
-                      <Route path="checkpoints" element={<Checkpoints />} />
-                      <Route path="model-detail/:hash">
-                        <Route index element={<ModelDetail />} />
+        <DetectOs>
+          <Notificator>
+            <SettingsLoader>
+              <ModelsLoader>
+                <ImagesLoader>
+                  <AnimatePresence mode="wait">
+                    <Routes>
+                      <Route path="/" element={<MainLayout />}>
+                        <Route index element={<Images />} />
+                        <Route path="checkpoints" element={<Checkpoints />} />
+                        <Route path="model-detail/:hash">
+                          <Route index element={<ModelDetail />} />
+                          <Route
+                            path="image-detail/:index"
+                            element={<ModelImageDetail />}
+                          />
+                        </Route>
                         <Route
-                          path="image-detail/:index"
-                          element={<ModelImageDetail />}
+                          path="image-detail/:hash"
+                          element={<ImageDetail />}
                         />
+                        <Route path="loras" element={<Loras />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route
+                          path="ar-helper"
+                          element={<AspectRatioHelper />}
+                        />
+                        <Route
+                          path="image-metadata"
+                          element={<ImageMetadata />}
+                        />
+                        <Route path="test" element={<TestPage />} />
                       </Route>
-                      <Route
-                        path="image-detail/:hash"
-                        element={<ImageDetail />}
-                      />
-                      <Route path="loras" element={<Loras />} />
-                      <Route path="settings" element={<Settings />} />
-                      <Route path="ar-helper" element={<AspectRatioHelper />} />
-                      <Route
-                        path="image-metadata"
-                        element={<ImageMetadata />}
-                      />
-                      <Route path="test" element={<TestPage />} />
-                    </Route>
-                  </Routes>
-                </AnimatePresence>
-              </ImagesLoader>
-            </ModelsLoader>
-          </SettingsLoader>
-        </Notificator>
+                    </Routes>
+                  </AnimatePresence>
+                </ImagesLoader>
+              </ModelsLoader>
+            </SettingsLoader>
+          </Notificator>
+        </DetectOs>
       </Router>
     </Provider>
   );

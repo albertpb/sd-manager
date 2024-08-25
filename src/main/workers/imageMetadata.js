@@ -262,5 +262,9 @@ function parseImage(filePath) {
 
 // Listen for messages from the main thread
 parentPort.on('message', async (filePath) => {
-  parseImage(filePath);
+  try {
+    parseImage(filePath);
+  } catch (error) {
+    parentPort.postMessage({ type: 'error', message: error.message });
+  }
 });

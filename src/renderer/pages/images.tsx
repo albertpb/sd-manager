@@ -1,7 +1,13 @@
 import classNames from 'classnames';
 import { ImageRow } from 'main/ipc/image';
 import { Tag } from 'main/ipc/tag';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import Image from 'renderer/components/Image';
@@ -31,9 +37,13 @@ import { settingsAtom } from 'renderer/state/settings.store';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
 import ImagesFuseSingleton from 'renderer/fuzzy/images.fuse';
 import { ImageWithTags } from 'renderer/state/interfaces';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath } from 'renderer/utils';
 
 export default function Images() {
   const navigate = useNavigate();
+
+  const os = useContext(OsContext);
 
   const CONTEXT_MENU_ID = 'images_context_menu';
   const VIRTUAL_SCROLL_ID = 'images_virtualscroll';
@@ -483,8 +493,11 @@ export default function Images() {
     const rows = visibleData.map((item, i) => {
       const imageSrc =
         zoomLevel <= 2
-          ? `${item.path}\\${item.name}.png`
-          : `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`;
+          ? convertPath(`${item.path}\\${item.name}.png`, os)
+          : convertPath(
+              `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`,
+              os,
+            );
 
       return (
         <div

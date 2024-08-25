@@ -1,5 +1,7 @@
 import { IpcMainInvokeEvent, app } from 'electron';
+import os from 'os';
 import fs from 'fs';
+import { convertPath } from '../../renderer/utils';
 
 export async function saveFuseIndexIpc(
   event: IpcMainInvokeEvent,
@@ -9,7 +11,7 @@ export async function saveFuseIndexIpc(
   const folderPath = app.getPath('userData');
 
   await fs.promises.writeFile(
-    `${folderPath}\\${fileName}`,
+    convertPath(`${folderPath}\\${fileName}`, os.platform()),
     JSON.stringify(data),
     {
       encoding: 'utf-8',
@@ -24,9 +26,12 @@ export async function readFuseIndexIpc(
   try {
     const folderPath = app.getPath('userData');
 
-    const data = await fs.promises.readFile(`${folderPath}\\${fileName}`, {
-      encoding: 'utf-8',
-    });
+    const data = await fs.promises.readFile(
+      convertPath(`${folderPath}\\${fileName}`, os.platform()),
+      {
+        encoding: 'utf-8',
+      },
+    );
 
     return JSON.parse(data);
   } catch (error) {

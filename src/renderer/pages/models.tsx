@@ -1,6 +1,12 @@
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import classNames from 'classnames';
 import { IpcRendererEvent } from 'electron';
@@ -30,9 +36,13 @@ import { navbarAtom } from 'renderer/state/navbar.store';
 import { imagesAtom } from 'renderer/state/images.store';
 import ModelsFuseSingleton from 'renderer/fuzzy/models.fuse';
 import { ModelWithTags } from 'renderer/state/interfaces';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath } from 'renderer/utils';
 
 export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
+
+  const os = useContext(OsContext);
 
   const CONTEXT_MENU_ID = `${type}_models_context_menu`;
   const VIRTUAL_SCROLL_ID = `${type}_models_virtualscroll`;
@@ -476,8 +486,14 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     const items = visibleData.map((item, i) => {
       const imagePath =
         type === 'checkpoint'
-          ? `${settingsState.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`
-          : `${settingsState.lorasPath}\\${item.fileName}\\${item.fileName}_0.png`;
+          ? convertPath(
+              `${settingsState.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`,
+              os,
+            )
+          : convertPath(
+              `${settingsState.lorasPath}\\${item.fileName}\\${item.fileName}_0.png`,
+              os,
+            );
 
       const loading =
         item.modelId && modelsState.update[item.modelId]

@@ -1,7 +1,9 @@
 import { app } from 'electron';
+import os from 'os';
 import log from 'electron-log/main';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
+import { convertPath } from '../renderer/utils';
 import { hashFilesInBackground } from './util';
 
 export default class SqliteDB {
@@ -23,7 +25,10 @@ export default class SqliteDB {
   async getdb() {
     if (!this.db) {
       this.db = await open({
-        filename: `${app.getPath('userData')}\\database.db`,
+        filename: convertPath(
+          `${app.getPath('userData')}\\database.db`,
+          os.platform(),
+        ),
         driver: sqlite3.Database,
       });
 

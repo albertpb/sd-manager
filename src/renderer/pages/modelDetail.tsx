@@ -4,7 +4,7 @@ import ReactHtmlParser from 'html-react-parser';
 import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelCivitaiInfo, ModelInfoImage } from 'main/interfaces';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import ModelTableDetail from 'renderer/components/ModelTableDetail';
 import Carousel from 'react-multi-carousel';
 import VirtualScroll from 'renderer/components/VirtualScroll';
@@ -18,12 +18,16 @@ import { settingsAtom } from 'renderer/state/settings.store';
 import { imagesAtom } from 'renderer/state/images.store';
 import { useAtom } from 'jotai';
 import { Model } from 'main/ipc/model';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath } from 'renderer/utils';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
   const navigate = useNavigate();
   const navigatorParams = useParams();
   const selectedModelHash = navigatorParams.hash;
+
+  const os = useContext(OsContext);
 
   const [lorasState] = useAtom(lorasAtom);
   const [checkpointsState] = useAtom(checkpointsAtom);
@@ -80,7 +84,10 @@ export default function ModelDetail() {
 
         if (modelsPath) {
           const modelCiviInfo = await window.ipcHandler.readFile(
-            `${modelsPath}\\${modelData.fileName}.civitai.info`,
+            convertPath(
+              `${modelsPath}\\${modelData.fileName}.civitai.info`,
+              os,
+            ),
             'utf-8',
           );
           if (modelCiviInfo) {
@@ -101,7 +108,7 @@ export default function ModelDetail() {
       }
     };
     load();
-  }, [settingsState, modelData]);
+  }, [settingsState, modelData, os]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
@@ -228,7 +235,7 @@ export default function ModelDetail() {
 
   const revealInFolder = () => {
     if (modelData) {
-      window.ipcHandler.openFolderLink(`${modelData.path}`);
+      window.ipcHandler.openFolderLink(modelData.path);
     }
   };
 

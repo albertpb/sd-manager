@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import log from 'electron-log/main';
 import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
+import { convertPath } from '../../renderer/utils';
 import SqliteDB from '../db';
 import {
   getAllFiles,
@@ -120,16 +122,22 @@ export async function removeImagesIpc(
     }
     try {
       await fs.promises.unlink(
-        `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
+        convertPath(
+          `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
+          os.platform(),
+        ),
       );
     } catch (error) {
       console.log(error);
       log.info(error);
     }
     try {
-      await fs.promises.rm(`${pathParsed.dir}\\${pathParsed.name}`, {
-        recursive: true,
-      });
+      await fs.promises.rm(
+        convertPath(`${pathParsed.dir}\\${pathParsed.name}`, os.platform()),
+        {
+          recursive: true,
+        },
+      );
     } catch (error) {
       console.log(error);
       log.info(error);
@@ -169,7 +177,10 @@ export const regenerateThumbnailsIpc = async (
 
   for (let i = 0; i < files.length; i++) {
     const parsedFilePath = path.parse(files[i]);
-    const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
+    const thumbnailDestPath = convertPath(
+      `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`,
+      os.platform(),
+    );
 
     filesToThumbnail.push([files[i], thumbnailDestPath]);
   }
@@ -233,7 +244,10 @@ export const scanImagesIpc = async (
       const progress = ((i + 1) / files.length) * 100;
       notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
-      const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
+      const thumbnailDestPath = convertPath(
+        `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`,
+        os.platform(),
+      );
       if (!thumbnailsFilesMap[thumbnailDestPath]) {
         filesToThumbnail.push([files[i], thumbnailDestPath]);
       }

@@ -1,10 +1,12 @@
 /* eslint import/prefer-default-export: off */
 import fs from 'fs';
+import os from 'os';
 import axios from 'axios';
 import path from 'path';
 import log from 'electron-log/main';
 import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
+import { convertPath } from '../renderer/utils';
 import {
   ImageMetaData,
   ModelCivitaiInfo,
@@ -108,7 +110,7 @@ export async function downloadModelInfoByHash(
     );
 
     await fs.promises.writeFile(
-      `${downloadDir}\\${modelName}.civitai.info`,
+      convertPath(`${downloadDir}\\${modelName}.civitai.info`, os.platform()),
       JSON.stringify(response.data, null, 2),
       { encoding: 'utf-8', flag: 'w' },
     );
@@ -118,7 +120,7 @@ export async function downloadModelInfoByHash(
     console.log(`failed to download civitai info model ${modelName}`);
     log.info(`failed to download civitai info model ${modelName}`);
     await fs.promises.writeFile(
-      `${downloadDir}\\${modelName}.civitai.info`,
+      convertPath(`${downloadDir}\\${modelName}.civitai.info`, os.platform()),
       '{}',
       { encoding: 'utf-8' },
     );
@@ -132,7 +134,10 @@ export const getModelInfo = async (
   modelName?: string,
   downloadDir?: string,
 ): Promise<ModelInfo> => {
-  const filePath = `${downloadDir}\\${modelName}.civitai.model.info`;
+  const filePath = convertPath(
+    `${downloadDir}\\${modelName}.civitai.model.info`,
+    os.platform(),
+  );
   try {
     if (modelName && downloadDir) {
       const fileExists = await checkFileExists(filePath);
@@ -150,7 +155,10 @@ export const getModelInfo = async (
 
     if (modelName && downloadDir) {
       await fs.promises.writeFile(
-        `${downloadDir}\\${modelName}.civitai.model.info`,
+        convertPath(
+          `${downloadDir}\\${modelName}.civitai.model.info`,
+          os.platform(),
+        ),
         JSON.stringify(response.data, null, 2),
         { encoding: 'utf-8' },
       );
@@ -162,7 +170,10 @@ export const getModelInfo = async (
     log.info(`failed to download civitai info modelInfo ${modelName}`);
     if (modelName && downloadDir) {
       await fs.promises.writeFile(
-        `${downloadDir}\\${modelName}.civitai.model.info`,
+        convertPath(
+          `${downloadDir}\\${modelName}.civitai.model.info`,
+          os.platform(),
+        ),
         '{}',
         { encoding: 'utf-8' },
       );
@@ -178,10 +189,14 @@ export async function downloadImage(
   savePath: string,
   resolution = 1024,
 ) {
-  let fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
+  let fileExists = await checkFileExists(
+    convertPath(`${savePath}\\${fileName}.png`, os.platform()),
+  );
 
   if (!fileExists) {
-    const writer = fs.createWriteStream(`${savePath}\\${fileName}.png`);
+    const writer = fs.createWriteStream(
+      convertPath(`${savePath}\\${fileName}.png`, os.platform()),
+    );
 
     const imageUrl = modelInfoImage.url.replace(
       '/width=d+/',
@@ -201,11 +216,13 @@ export async function downloadImage(
     await p;
   }
 
-  fileExists = await checkFileExists(`${savePath}\\${fileName}.json`);
+  fileExists = await checkFileExists(
+    convertPath(`${savePath}\\${fileName}.json`, os.platform()),
+  );
 
   if (!fileExists) {
     fs.writeFileSync(
-      `${savePath}\\${fileName}.json`,
+      convertPath(`${savePath}\\${fileName}.json`, os.platform()),
       JSON.stringify(modelInfoImage, null, 4),
       { encoding: 'utf-8' },
     );
@@ -227,21 +244,28 @@ export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
   }
 
   try {
-    fs.rmdirSync(`${folderPath}\\${fileNameNoExt}`);
+    fs.rmdirSync(convertPath(`${folderPath}\\${fileNameNoExt}`, os.platform()));
   } catch (error) {
     log.info(error);
     console.log(error);
   }
 
   try {
-    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.civitai.info`);
+    fs.unlinkSync(
+      convertPath(
+        `${folderPath}\\${fileNameNoExt}.civitai.info`,
+        os.platform(),
+      ),
+    );
   } catch (error) {
     log.info(error);
     console.log(error);
   }
 
   try {
-    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.preview.png`);
+    fs.unlinkSync(
+      convertPath(`${folderPath}\\${fileNameNoExt}.preview.png`, os.platform()),
+    );
   } catch (error) {
     log.info(error);
     console.log(error);
@@ -291,9 +315,14 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
 
     files.forEach((file) => {
       if (file.isDirectory()) {
-        arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
+        arrayOfFiles = getAllFiles(
+          convertPath(`${file.path}\\${file.name}`, os.platform()),
+          arrayOfFiles,
+        );
       } else if (file.isFile()) {
-        arrayOfFiles.push(`${file.path}\\${file.name}`);
+        arrayOfFiles.push(
+          convertPath(`${file.path}\\${file.name}`, os.platform()),
+        );
       }
     });
 

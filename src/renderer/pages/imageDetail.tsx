@@ -3,14 +3,14 @@ import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
 import { Model } from 'main/ipc/model';
 import { ImageRow } from 'main/ipc/image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from 'renderer/components/ConfirmDialog';
 import ExifJson from 'renderer/components/Exif';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import Rating from 'renderer/components/Rating';
 import UpDownButton from 'renderer/components/UpDownButton';
-import { generateRandomId, saveMdDebounced } from 'renderer/utils';
+import { convertPath, generateRandomId, saveMdDebounced } from 'renderer/utils';
 import ImageZoom from 'renderer/components/ImageZoom';
 import { ImageMetaData } from 'main/interfaces';
 import { useAtom } from 'jotai';
@@ -19,8 +19,11 @@ import {
   imagesAtom,
   updateImage,
 } from 'renderer/state/images.store';
+import { OsContext } from 'renderer/hocs/detect-os';
 
 export default function ImageDetail() {
+  const os = useContext(OsContext);
+
   const navigate = useNavigate();
   const navigatorParams = useParams();
   const hash = navigatorParams.hash;
@@ -60,7 +63,7 @@ export default function ImageDetail() {
       setExifParams(exif);
       setImageMetadata(metadata);
       const fileMdText = await window.ipcHandler.readFile(
-        `${folderPath}\\${iData.name}\\markdown.md`,
+        convertPath(`${folderPath}\\${iData.name}\\markdown.md`, os),
         'utf-8',
       );
       if (fileMdText) {
@@ -78,7 +81,7 @@ export default function ImageDetail() {
       }
     };
     load();
-  }, [hash]);
+  }, [hash, os]);
 
   const goToNextOrPrevImage = useCallback(
     (next: boolean) => {

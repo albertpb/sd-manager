@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { IpcMainInvokeEvent, clipboard } from 'electron';
+import { convertPath } from '../../renderer/utils';
 import { checkFolderExists } from '../util';
 
 export const saveMDIpc = async (
@@ -13,9 +15,13 @@ export const saveMDIpc = async (
     await fs.promises.mkdir(pathDir);
   }
 
-  await fs.promises.writeFile(`${pathDir}\\markdown.md`, textMD, {
-    encoding: 'utf-8',
-  });
+  await fs.promises.writeFile(
+    convertPath(`${pathDir}\\markdown.md`, os.platform()),
+    textMD,
+    {
+      encoding: 'utf-8',
+    },
+  );
 };
 
 export const saveImageMDIpc = async (

@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import log from 'electron-log/main';
+import { convertPath } from '../../renderer/utils';
 import {
   checkFileExists,
   downloadImage,
@@ -161,14 +163,20 @@ export const readdirModelsIpc = async (
     notifyProgressModel(browserWindow, `${baseName}`, progress, modelType);
 
     const modelVersionInfoExists = await checkFileExists(
-      `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+      convertPath(
+        `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+        os.platform(),
+      ),
     );
 
     let modelVersionInfo: ModelCivitaiInfo | undefined;
 
     if (modelVersionInfoExists) {
       const modelVersionInfoFile = await fs.promises.readFile(
-        `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+        convertPath(
+          `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+          os.platform(),
+        ),
         { encoding: 'utf-8' },
       );
       modelVersionInfo = JSON.parse(modelVersionInfoFile);
@@ -243,7 +251,7 @@ export const readdirModelsIpc = async (
       try {
         modelVersionInfo = await downloadModelInfoByHash(
           fileNameNoExt,
-          modelsPathMap[modelsFiles[i]].hash,
+          hash,
           fileFolderPath,
         );
       } catch (error) {
@@ -254,18 +262,21 @@ export const readdirModelsIpc = async (
 
     if (modelVersionInfoExists && !modelVersionInfo) {
       const modelInfoStr = await fs.promises.readFile(
-        `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+        convertPath(
+          `${fileFolderPath}\\${fileNameNoExt}.civitai.info`,
+          os.platform(),
+        ),
         { encoding: 'utf-8' },
       );
       modelVersionInfo = JSON.parse(modelInfoStr);
     }
 
     const imageExists = await checkFileExists(
-      `${fileFolderPath}\\${fileNameNoExt}.png`,
+      convertPath(`${fileFolderPath}\\${fileNameNoExt}.png`, os.platform()),
     );
 
     const imageJsonExists = await checkFileExists(
-      `${fileFolderPath}\\${fileNameNoExt}.json`,
+      convertPath(`${fileFolderPath}\\${fileNameNoExt}.json`, os.platform()),
     );
 
     if (!imageExists || !imageJsonExists) {
@@ -274,7 +285,10 @@ export const readdirModelsIpc = async (
         modelVersionInfo.images &&
         modelVersionInfo.images.length > 0
       ) {
-        const imagesModelFolder = `${fileFolderPath}\\${fileNameNoExt}`;
+        const imagesModelFolder = convertPath(
+          `${fileFolderPath}\\${fileNameNoExt}`,
+          os.platform(),
+        );
         const imagesModelFolderExists =
           await checkFolderExists(imagesModelFolder);
         if (!imagesModelFolderExists) {
@@ -352,7 +366,7 @@ export const readdirModelImagesIpc = async (
   model: string,
   modelsPath: string,
 ) => {
-  const folderPath = `${modelsPath}\\${model}`;
+  const folderPath = convertPath(`${modelsPath}\\${model}`, os.platform());
 
   const folderExists = await checkFolderExists(folderPath);
 
@@ -361,12 +375,18 @@ export const readdirModelImagesIpc = async (
     return images.reduce((acc: [string, ModelInfoImage | null][], f, i) => {
       if (f.endsWith('.png') || f.endsWith('jpg') || f.endsWith('jpeg')) {
         if (images[i + 1]?.endsWith('.json')) {
-          const jsonFile = fs.readFileSync(`${folderPath}\\${images[i + 1]}`, {
-            encoding: 'utf-8',
-          });
-          acc.push([`${folderPath}\\${f}`, JSON.parse(jsonFile)]);
+          const jsonFile = fs.readFileSync(
+            convertPath(`${folderPath}\\${images[i + 1]}`, os.platform()),
+            {
+              encoding: 'utf-8',
+            },
+          );
+          acc.push([
+            convertPath(`${folderPath}\\${f}`, os.platform()),
+            JSON.parse(jsonFile),
+          ]);
         } else {
-          acc.push([`${folderPath}\\${f}`, null]);
+          acc.push([convertPath(`${folderPath}\\${f}`, os.platform()), null]);
         }
       }
       return acc;
@@ -433,7 +453,7 @@ export const readModelInfoIpc = async (
   folderPath: string,
 ) => {
   const modelInfo = await readModelInfoFile(
-    `${folderPath}\\${model}.civitai.info`,
+    convertPath(`${folderPath}\\${model}.civitai.info`, os.platform()),
   );
 
   return modelInfo;

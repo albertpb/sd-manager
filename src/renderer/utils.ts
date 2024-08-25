@@ -103,3 +103,11 @@ export function delay(ms: number): Promise<void> {
     setTimeout(resolve, ms);
   });
 }
+
+export function convertPath(inputPath: string, os: string): string {
+  if (os === 'win32') return inputPath;
+
+  if (os === 'linux') return inputPath.replace(/\\/g, '/');
+
+  return inputPath;
+}

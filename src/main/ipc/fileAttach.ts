@@ -1,6 +1,8 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { IpcMainInvokeEvent } from 'electron';
+import { convertPath } from '../../renderer/utils';
 
 export const fileAttach = async (
   event: IpcMainInvokeEvent,
@@ -8,7 +10,10 @@ export const fileAttach = async (
   imageFolder: string,
 ) => {
   const fileBaseName = path.basename(filePath);
-  await fs.promises.copyFile(filePath, `${imageFolder}\\${fileBaseName}`);
+  await fs.promises.copyFile(
+    convertPath(filePath, os.platform()),
+    convertPath(`${imageFolder}\\${fileBaseName}`, os.platform()),
+  );
 
-  return `${imageFolder}\\${fileBaseName}`;
+  return convertPath(`${imageFolder}\\${fileBaseName}`, os.platform());
 };

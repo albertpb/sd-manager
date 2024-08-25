@@ -8,6 +8,7 @@ import {
 } from 'electron';
 
 const channels = [
+  'getOS',
   'getImage',
   'getImages',
   'updateImage',

@@ -1,13 +1,17 @@
 import { useAtom } from 'jotai';
 import { ImageMetaData, ModelInfoImage } from 'main/interfaces';
 import { Model } from 'main/ipc/model';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ImageMegadata from 'renderer/components/ImageMetadata';
 import ImageZoom from 'renderer/components/ImageZoom';
+import { OsContext } from 'renderer/hocs/detect-os';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
+import { convertPath } from 'renderer/utils';
 
 export default function ModelImageDetail() {
+  const os = useContext(OsContext);
+
   const navigate = useNavigate();
   const navigatorParams = useParams();
   const { index, hash } = navigatorParams;
@@ -39,7 +43,10 @@ export default function ModelImageDetail() {
         if (lastBackslashIndex !== -1) {
           try {
             const path = tempModel.path.substring(0, lastBackslashIndex);
-            const fullPath = `${path}\\${tempModel.fileName}\\${tempModel.fileName}_${index}`;
+            const fullPath = convertPath(
+              `${path}\\${tempModel.fileName}\\${tempModel.fileName}_${index}`,
+              os,
+            );
             const metaString = await window.ipcHandler.readFile(
               `${fullPath}.json`,
               'utf-8',
@@ -65,7 +72,7 @@ export default function ModelImageDetail() {
     };
 
     load();
-  }, [model, index, checkpoints.models, loras.models, hash, navigate]);
+  }, [model, index, checkpoints.models, loras.models, hash, navigate, os]);
 
   return (
     <div className="flex min-h-full w-full px-4 pb-4 pt-10 justify-center relative">

@@ -8,7 +8,7 @@ export default class HashWorkerManager {
   // eslint-disable-next-line no-use-before-define
   private static instance: HashWorkerManager | null = null;
 
-  private MAX_SIZE = os.cpus().length - 2;
+  private MAX_SIZE = ~~(os.cpus().length / 2);
 
   private workers: Worker[] = [];
 
@@ -16,6 +16,7 @@ export default class HashWorkerManager {
 
   // eslint-disable-next-line
   private constructor() {
+    console.log('total threads: ', this.MAX_SIZE);
     for (let i = 0; i < this.MAX_SIZE; i++) {
       const worker = new Worker(
         app.isPackaged

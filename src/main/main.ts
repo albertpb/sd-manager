@@ -9,6 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
+import os from 'os';
 import {
   app,
   BrowserWindow,
@@ -29,6 +30,7 @@ import sharp from 'sharp';
 import { autoUpdater } from 'electron-updater';
 import { Worker } from 'worker_threads';
 import log from 'electron-log/main';
+import { convertPath } from '../renderer/utils';
 import MenuBuilder from './menu';
 import { calculateHashFile, checkFolderExists, resolveHtmlPath } from './util';
 import SqliteDB from './db';
@@ -87,6 +89,7 @@ let mainWindow: BrowserWindow | null = null;
 
 log.initialize({ preload: true });
 
+ipcMain.handle('getOS', () => os.platform());
 ipcMain.handle('readdirModels', (event, model, folderPath) =>
   readdirModelsIpc(mainWindow, event, model, folderPath),
 );
@@ -184,13 +187,19 @@ ipcMain.handle('watchImagesFolder', async () => {
         await fs.promises.mkdir(imagesFolder);
       }
 
-      const thumbnailsFolder = `${imagesFolder}\\thumbnails`;
+      const thumbnailsFolder = convertPath(
+        `${imagesFolder}\\thumbnails`,
+        os.platform(),
+      );
       const thumbnailFolderExists = await checkFolderExists(thumbnailsFolder);
       if (!thumbnailFolderExists) {
         await fs.promises.mkdir(thumbnailsFolder);
       }
 
-      const thumbnailDestPath = `${thumbnailsFolder}\\${fileNameNoExt}.thumbnail.webp`;
+      const thumbnailDestPath = convertPath(
+        `${thumbnailsFolder}\\${fileNameNoExt}.thumbnail.webp`,
+        os.platform(),
+      );
       await sharp(detectedFile)
         .resize({ height: 400 })
         .withMetadata()
