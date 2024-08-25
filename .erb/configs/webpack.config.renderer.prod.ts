@@ -36,6 +36,12 @@ const configuration: webpack.Configuration = {
     },
   },
 
+  resolve: {
+    fallback: {
+      path: require.resolve('path-browserify'),
+    },
+  },
+
   module: {
     rules: [
       {

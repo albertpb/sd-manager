@@ -5,9 +5,6 @@ import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ModelCivitaiInfo, ModelInfoImage } from 'main/interfaces';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import ModelTableDetail from 'renderer/components/ModelTableDetail';
-import Carousel from 'react-multi-carousel';
-import VirtualScroll from 'renderer/components/VirtualScroll';
 import Rating from 'renderer/components/Rating';
 import {
   checkpointsAtom,
@@ -19,7 +16,10 @@ import { imagesAtom } from 'renderer/state/images.store';
 import { useAtom } from 'jotai';
 import { Model } from 'main/ipc/model';
 import { OsContext } from 'renderer/hocs/detect-os';
-import { convertPath } from 'renderer/utils';
+import { convertPath, getFileDir } from 'renderer/utils';
+import Carousel from 'react-multi-carousel';
+import ModelTableDetail from 'renderer/components/ModelTableDetail';
+import VirtualScroll from 'renderer/components/VirtualScroll';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
@@ -75,12 +75,8 @@ export default function ModelDetail() {
   useEffect(() => {
     const load = async () => {
       if (modelData) {
-        const mapPathsModels: Record<string, string | null> = {
-          checkpoint: settingsState.checkpointsPath,
-          lora: settingsState.lorasPath,
-        };
-
-        const modelsPath = mapPathsModels[modelData.type];
+        const modelsPath = getFileDir(modelData.path, os);
+        console.log(modelData, modelsPath);
 
         if (modelsPath) {
           const modelCiviInfo = await window.ipcHandler.readFile(

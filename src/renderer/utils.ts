@@ -111,3 +111,16 @@ export function convertPath(inputPath: string, os: string): string {
 
   return inputPath;
 }
+
+export function getFileDir(inputPath: string, os: string): string {
+  let delimiter = '\\';
+  if (os === 'win32') {
+    delimiter = '\\';
+  }
+
+  if (os === 'linux') {
+    delimiter = '/';
+  }
+
+  return inputPath.split(delimiter).slice(0, -1).join(delimiter);
+}

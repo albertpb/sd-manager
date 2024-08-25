@@ -484,16 +484,10 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     selectedItems: boolean[],
   ) => {
     const items = visibleData.map((item, i) => {
-      const imagePath =
-        type === 'checkpoint'
-          ? convertPath(
-              `${settingsState.checkpointsPath}\\${item.fileName}\\${item.fileName}_0.png`,
-              os,
-            )
-          : convertPath(
-              `${settingsState.lorasPath}\\${item.fileName}\\${item.fileName}_0.png`,
-              os,
-            );
+      const imagePath = convertPath(
+        `${item.path.split('.').slice(0, -1).join('.')}\\${item.fileName}_0.png`,
+        os,
+      );
 
       const loading =
         item.modelId && modelsState.update[item.modelId]

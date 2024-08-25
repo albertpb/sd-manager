@@ -45,6 +45,7 @@
     "immer": "^10.0.3",
     "jotai": "^2.6.4",
     "jotai-immer": "^0.2.0",
+    "path-browserify": "^1.0.1",
     "postcss": "^8.4.35",
     "react": "^18.2.0",
     "react-click-away-listener": "^2.2.3",
