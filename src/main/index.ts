@@ -344,12 +344,14 @@ app
   .whenReady()
   .then(async () => {
     protocol.handle('sd', (request) => {
-      return net.fetch(
-        `file:///${
-          url.pathToFileURL(decodeURI(request.url.slice('sd:///'.length)))
-            .pathname
-        }`,
-      );
+      // Strip the "sd:///" prefix and decode the URI
+      const rawPath = decodeURIComponent(request.url.slice('sd:///'.length));
+
+      // Construct the proper file URL
+      const fileUrl = url.pathToFileURL(rawPath).href;
+
+      // Use net.fetch to serve it
+      return net.fetch(fileUrl);
     });
 
     await SqliteDB.getInstance().initdb();
