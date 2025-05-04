@@ -1,0 +1,137 @@
+@use "tailwindcss";
+
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "coffee";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-primary: #9ece6a;
+  --color-secondary: #f7768e;
+  --color-accent: #ff9e64;
+  --color-neutral: #414868;
+  --color-base-100: #1a1b26;
+  --color-info: #b4f9f8;
+  --color-success: #2f9e44;
+  --color-warning: #e03131;
+  --color-error: #fa5252;
+
+  --color-primary-content: #ffffff;
+  --color-secondary-content: #ffffff;
+  --color-accent-content: #000000;
+  --color-neutral-content: #ffffff;
+  --color-base-content: #ffffff;
+  --color-info-content: #000000;
+  --color-success-content: #ffffff;
+  --color-warning-content: #ffffff;
+  --color-error-content: #ffffff;
+
+}
+
+@import url('../../assets/fonts/montserrat/fonts.scss');
+@import url('../../node_modules/react-multi-carousel/lib/styles.css');
+@import url('../../node_modules/react-toastify/dist/ReactToastify.css');
+
+* {
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: auto;
+}
+
+.card__figure {
+  overflow: hidden;
+
+  img {
+    transition: transform 0.5s ease;
+  }
+}
+
+.card__figure.animated:hover {
+  img {
+    transform: scale(1.1);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  height: 50px;
+  background-color: #666;
+  border-radius: 3px;
+}
+
+.courtain {
+  transition: max-height 0.5s ease;
+  overflow: hidden;
+  max-height: 1000px;
+
+  &.courtain-hidden {
+    transition: max-height 0.5s ease;
+    max-height: 0;
+  }
+}
+
+.w-md-editor {
+  --md-editor-font-family: 'Montserrat', Helvetica, Arial, sans-serif !important;
+}
+
+.copy-hover:hover {
+  .copy-text {
+    opacity: 1 !important;
+  }
+}
+
+.pulse {
+  animation: pulse 0.7s;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0px 0px 0px 0px rgba(35, 130, 220, 1);
+  }
+  100% {
+    box-shadow: 0px 0px 5px 25px rgba(35, 130, 220, 0);
+  }
+}
+
+.navbar {
+  height: 68px;
+}
+
+.badge {
+  white-space: nowrap;
+}
+
+input[type='color'] {
+  width: 25px;
+  height: 25px;
+  border-color: #fafafa;
+  border-width: 2px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
