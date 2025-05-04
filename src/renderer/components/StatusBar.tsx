@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai';
-import { imagesAtom } from '../../renderer/state/images.store';
-import { ImportProgress } from '../../renderer/state/interfaces';
-import { checkpointsAtom, lorasAtom } from '../../renderer/state/models.store';
+import { imagesAtom } from 'renderer/state/images.store';
+import { ImportProgress } from 'renderer/state/interfaces';
+import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
 
 type StatusBarProps = {
   filteredCards?: number;

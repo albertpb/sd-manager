@@ -1,19 +1,20 @@
 import classNames from 'classnames';
-import { Tag } from '../../main/ipc/tag';
+import { Tag } from 'main/ipc/tag';
 import { KeyboardEvent, MouseEvent, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
 import { useNavigate } from 'react-router-dom';
-import ColorPicker from '../../renderer/components/ColorPicker';
-import MultiSelect from '../../renderer/components/MultiSelect';
+import ColorPicker from 'renderer/components/ColorPicker';
+import MultiSelect from 'renderer/components/MultiSelect';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 type TaggerProps = {
   onSetActiveTags: (
     e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
-    value: any,
+    value: SelectValue,
   ) => void;
   onSetAutoImportTags?: (
     e: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
-    value: any,
+    value: SelectValue,
   ) => void;
   activeTags: string | null;
   tags: Record<string, Tag>;

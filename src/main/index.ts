@@ -121,6 +121,16 @@ ipcMain.handle('regenerateThumbnails', () =>
 ipcMain.handle('mtag', mtagIpc);
 ipcMain.handle('tagModel', tagModelIpc);
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'sd',
+    privileges: {
+      bypassCSP: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
+
 const worker = new Worker(
   new URL('./workers/watcher.js', pathToFileURL(__filename).toString()),
 );
@@ -283,6 +293,7 @@ const createWindow = (): void => {
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      sandbox: true,
     },
     autoHideMenuBar: true,
   });
@@ -343,7 +354,6 @@ app
 
     await SqliteDB.getInstance().initdb();
 
-    createWindow();
     app.on('activate', () => {
       // On OS X it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.

@@ -78,6 +78,7 @@
     "sharp": "^0.34.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "tailwindcss": "^4.1.4"
+    "tailwindcss": "^4.1.4",
+    "react-tailwindcss-select": "https://github.com/albertpb/react-tailwindcss-select"
   }
 }

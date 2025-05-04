@@ -20,7 +20,7 @@ export default class ThumbnailWorkerManager {
       const worker = new Worker(
         app.isPackaged
           ? path.resolve(__dirname, './workers/thumbnails.js')
-          : path.resolve(__dirname, '../workers/thumbnails.js'),
+          : path.resolve(__dirname, './workers/thumbnails.js'),
       );
       this.workers.push(worker);
     }

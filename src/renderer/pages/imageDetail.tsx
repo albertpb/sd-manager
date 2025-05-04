@@ -1,24 +1,24 @@
 import log from 'electron-log/renderer';
 import MDEditor from '@uiw/react-md-editor';
 import classNames from 'classnames';
-import { Model } from '../../main/ipc/model';
-import { ImageRow } from '../../main/ipc/image';
+import { Model } from 'main/ipc/model';
+import { ImageRow } from 'main/ipc/image';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ConfirmDialog from '../../renderer/components/ConfirmDialog';
-import ExifJson from '../../renderer/components/Exif';
-import ImageMegadata from '../../renderer/components/ImageMetadata';
-import Rating from '../../renderer/components/Rating';
-import UpDownButton from '../../renderer/components/UpDownButton';
-import { generateRandomId, saveMdDebounced } from '../../renderer/utils';
-import ImageZoom from '../../renderer/components/ImageZoom';
-import { ImageMetaData } from '../../main/interfaces';
+import ConfirmDialog from 'renderer/components/ConfirmDialog';
+import ExifJson from 'renderer/components/Exif';
+import ImageMegadata from 'renderer/components/ImageMetadata';
+import Rating from 'renderer/components/Rating';
+import UpDownButton from 'renderer/components/UpDownButton';
+import { generateRandomId, saveMdDebounced } from 'renderer/utils';
+import ImageZoom from 'renderer/components/ImageZoom';
+import { ImageMetaData } from 'main/interfaces';
 import { useAtom } from 'jotai';
 import {
   deleteImages,
   imagesAtom,
   updateImage,
-} from '../../renderer/state/images.store';
+} from 'renderer/state/images.store';
 
 export default function ImageDetail() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { loadSettings, settingsAtom } from '../../renderer/state/settings.store';
+import { loadSettings, settingsAtom } from 'renderer/state/settings.store';
 import { useAtom } from 'jotai';
 
 export default function SettingsLoader({ children }: { children: ReactNode }) {

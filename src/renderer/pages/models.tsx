@@ -29,6 +29,7 @@ import { useAtom } from 'jotai';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { imagesAtom } from 'renderer/state/images.store';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
@@ -304,7 +305,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
 
   const onSetActiveMTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
-    selectedTags: any,
+    selectedTags: SelectValue,
   ) => {
     await setActiveMTags(selectedTags);
   };

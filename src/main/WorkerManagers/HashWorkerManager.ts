@@ -20,7 +20,7 @@ export default class HashWorkerManager {
       const worker = new Worker(
         app.isPackaged
           ? path.resolve(__dirname, './workers/calculateHash.js')
-          : path.resolve(__dirname, '../workers/calculateHash.js'),
+          : path.resolve(__dirname, './workers/calculateHash.js'),
       );
       this.workers.push(worker);
     }

@@ -6,8 +6,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import useOnUnmount from '../../renderer/hooks/useOnUnmount';
-import { areBoxesIntersecting } from '../../renderer/utils';
+import useOnUnmount from 'renderer/hooks/useOnUnmount';
+import { areBoxesIntersecting } from 'renderer/utils';
 
 interface Settings {
   rowHeight: number;

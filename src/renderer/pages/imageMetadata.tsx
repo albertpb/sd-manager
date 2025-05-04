@@ -2,7 +2,7 @@ import { ChangeEvent, DragEvent, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import CodeMirror from '@uiw/react-codemirror';
 import { json as jsonLang } from '@codemirror/lang-json';
-import Image from '../../renderer/components/Image';
+import Image from 'renderer/components/Image';
 
 export default function ImageMetadata() {
   const IMAGE_TYPES = ['image/png', 'image/jpeg'];

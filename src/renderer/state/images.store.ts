@@ -8,6 +8,7 @@ import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import { ImportProgress } from './interfaces';
 import { settingsAtom } from './settings.store';
 import { store } from './index';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 export type ImageWithTags = Omit<ImageRow, 'tags'> & { tags: Tag[] };
 
@@ -231,7 +232,7 @@ export const regenerateThumbnails = async () => {
   });
 };
 
-export const setActiveTags = async (selectedTags?: any) => {
+export const setActiveTags = async (selectedTags?: SelectValue) => {
   const payload = Array.isArray(selectedTags)
     ? selectedTags.map((t) => t.value).join(',')
     : '';
@@ -242,7 +243,7 @@ export const setActiveTags = async (selectedTags?: any) => {
   });
 };
 
-export const setAutoImportTags = async (selectedTags?: any) => {
+export const setAutoImportTags = async (selectedTags?: SelectValue) => {
   const payload = Array.isArray(selectedTags)
     ? selectedTags.map((t) => t.value).join(',')
     : '';

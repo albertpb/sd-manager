@@ -1,6 +1,6 @@
-import { Tag } from '../../main/ipc/tag';
+import { Tag } from 'main/ipc/tag';
 import { KeyboardEvent, useState } from 'react';
-import { getTextColorFromBackgroundColor } from '../../renderer/utils';
+import { getTextColorFromBackgroundColor } from 'renderer/utils';
 import ColorPicker from './ColorPicker';
 
 type TagsTableProps = {

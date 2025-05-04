@@ -9,9 +9,9 @@ import {
   loadImagesTags,
   loadWatchFolders,
   scanImages,
-} from '../../renderer/state/images.store';
+} from 'renderer/state/images.store';
 import { useAtom } from 'jotai';
-import { settingsAtom } from '../../renderer/state/settings.store';
+import { settingsAtom } from 'renderer/state/settings.store';
 
 export default function ImagesLoader({ children }: { children: ReactNode }) {
   const navigate = useNavigate();

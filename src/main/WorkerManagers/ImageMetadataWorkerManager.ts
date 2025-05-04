@@ -21,7 +21,7 @@ export default class ImageMetadataWorkerManager {
       const worker = new Worker(
         app.isPackaged
           ? path.resolve(__dirname, './workers/imageMetadata.js')
-          : path.resolve(__dirname, '../workers/imageMetadata.js'),
+          : path.resolve(__dirname, './workers/imageMetadata.js'),
       );
       this.workers.push(worker);
     }

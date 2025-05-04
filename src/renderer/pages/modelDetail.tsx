@@ -135,7 +135,8 @@ export default function ModelDetail() {
     // carousel cards
     setCarouselCards((windowWidth * 0.6) / 230);
 
-    setContainerHeight(windowHeight - headHeight - 300);
+    const minContainerHeight = windowHeight - headHeight - 300;
+    setContainerHeight(minContainerHeight < 400 ? 600 : minContainerHeight);
     setContainerWidth(windowWidth * 0.9);
 
     const cardWidth = (containerWidth - zoomLevel * 16) / zoomLevel; // (cardHeight * 2) / 3;

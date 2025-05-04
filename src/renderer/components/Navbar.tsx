@@ -1,11 +1,11 @@
 import classNames from 'classnames';
 import { useLocation, Link } from 'react-router-dom';
-import useTab, { tabs } from '../../renderer/hooks/tabs';
+import useTab, { tabs } from 'renderer/hooks/tabs';
 import { useEffect, useRef, useState } from 'react';
 import { useAtom } from 'jotai';
-import { navbarAtom } from '../../renderer/state/navbar.store';
-import { checkpointsAtom } from '../../renderer/state/models.store';
-import { deleteImages, imagesAtom } from '../../renderer/state/images.store';
+import { navbarAtom } from 'renderer/state/navbar.store';
+import { checkpointsAtom } from 'renderer/state/models.store';
+import { deleteImages, imagesAtom } from 'renderer/state/images.store';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function Navbar() {

@@ -36,6 +36,7 @@ import {
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 export default function Images() {
   const navigate = useNavigate();
@@ -410,14 +411,14 @@ export default function Images() {
 
   const onSetActiveTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
-    selectedTags: any,
+    selectedTags: SelectValue,
   ) => {
     await setActiveTags(selectedTags);
   };
 
   const onSetAutoImportTags = async (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
-    selectedTags: any,
+    selectedTags: SelectValue,
   ) => {
     await setAutoImportTags(selectedTags);
   };

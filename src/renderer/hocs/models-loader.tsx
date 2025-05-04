@@ -1,14 +1,14 @@
 import { IpcRendererEvent } from 'electron';
 import { useAtom } from 'jotai';
-import { ModelType } from '../../main/ipc/model';
+import { ModelType } from 'main/ipc/model';
 import { ReactNode, useEffect } from 'react';
 import {
   checkpointsAtom,
   loadModels,
   loadModelsTags,
   lorasAtom,
-} from '../../renderer/state/models.store';
-import { settingsAtom } from '../../renderer/state/settings.store';
+} from 'renderer/state/models.store';
+import { settingsAtom } from 'renderer/state/settings.store';
 
 export default function ModelsLoader({ children }: { children: ReactNode }) {
   const [settingsState] = useAtom(settingsAtom);

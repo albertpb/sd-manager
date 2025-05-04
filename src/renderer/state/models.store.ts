@@ -7,6 +7,7 @@ import { Tag } from 'main/ipc/tag';
 import { ImportProgress } from './interfaces';
 import { settingsAtom } from './settings.store';
 import { store } from './index';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 export type UpdateState = {
   needUpdate: boolean;
@@ -241,7 +242,7 @@ export const removeAllModelsTags = async (
   });
 };
 
-export const setActiveMTags = async (selectedTags?: any) => {
+export const setActiveMTags = async (selectedTags?: SelectValue) => {
   const payload = Array.isArray(selectedTags)
     ? selectedTags.map((t) => t.value).join(',')
     : '';
