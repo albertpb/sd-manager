@@ -1,9 +1,7 @@
-import Test from 'renderer/components/Test';
-
 export default function TestPage() {
   return (
     <div className="p-20">
-      <Test></Test>
+      <h1>Test</h1>
     </div>
   );
 }

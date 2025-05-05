@@ -1,7 +1,12 @@
-import Fuse from 'fuse.js';
 import ModelCard from 'renderer/components/ModelCard';
 import { useNavigate } from 'react-router-dom';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import VirtualScroll from 'renderer/components/VirtualScroll';
 import classNames from 'classnames';
 import { IpcRendererEvent } from 'electron';
@@ -9,8 +14,8 @@ import { toast } from 'react-toastify';
 import StatusBar from 'renderer/components/StatusBar';
 import Tagger from 'renderer/components/Tagger';
 import { Tag } from 'main/ipc/tag';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import {
-  ModelWithTags,
   checkpointsAtom,
   createModelTag,
   lorasAtom,
@@ -29,10 +34,15 @@ import { useAtom } from 'jotai';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { imagesAtom } from 'renderer/state/images.store';
-import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
+import ModelsFuseSingleton from 'renderer/fuzzy/models.fuse';
+import { ModelWithTags } from 'renderer/state/interfaces';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath } from 'renderer/utils';
 
 export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const navigate = useNavigate();
+
+  const os = useContext(OsContext);
 
   const CONTEXT_MENU_ID = `${type}_models_context_menu`;
   const VIRTUAL_SCROLL_ID = `${type}_models_virtualscroll`;
@@ -41,6 +51,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
   const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
 
   const [models, setModels] = useState<ModelWithTags[]>([]);
+  const [modelsResult, setModelsResult] = useState<ModelWithTags[]>([]);
 
   const [filterBy, setFilterBy] = useState<string>(
     localStorage.getItem(`models-${type}-filterBy`) || 'none',
@@ -134,14 +145,58 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     ],
   );
 
-  const fuse = new Fuse(modelsWTags, {
-    keys: ['name'],
+  useEffect(() => {
+    const load = async () => {
+      if (type === 'checkpoint') {
+        await ModelsFuseSingleton.getInstance().initFuseCheckpoint(modelsWTags);
+      }
+      if (type === 'lora') {
+        await ModelsFuseSingleton.getInstance().initFuseLora(modelsWTags);
+      }
+    };
+
+    load();
+
+    return () => {
+      ModelsFuseSingleton.getInstance().saveFuseIndexes();
+    };
   });
 
-  const modelsResult =
-    navbarState.searchInput === ''
-      ? modelsWTags
-      : fuse.search(navbarState.searchInput).map((result) => result.item);
+  useEffect(() => {
+    const fuseCheckpoint =
+      ModelsFuseSingleton.getInstance().getFuseCheckpoint();
+    const fuseLora = ModelsFuseSingleton.getInstance().getFuseLora();
+
+    if (type === 'checkpoint' && fuseCheckpoint) {
+      fuseCheckpoint.setCollection(modelsWTags);
+    }
+
+    if (type === 'lora' && fuseLora) {
+      fuseLora.setCollection(modelsWTags);
+    }
+  }, [modelsWTags, type]);
+
+  useEffect(() => {
+    const fuseCheckpoint =
+      ModelsFuseSingleton.getInstance().getFuseCheckpoint();
+    const fuseLora = ModelsFuseSingleton.getInstance().getFuseLora();
+
+    if (
+      type === 'checkpoint' &&
+      fuseCheckpoint &&
+      navbarState.searchInput !== ''
+    ) {
+      setModelsResult(
+        fuseCheckpoint.search(navbarState.searchInput).map((r) => r.item),
+      );
+    } else if (type === 'lora' && fuseLora && navbarState.searchInput !== '') {
+      setModelsResult(
+        fuseLora.search(navbarState.searchInput).map((r) => r.item),
+      );
+    } else {
+      setModelsResult(modelsWTags);
+    }
+  }, [modelsWTags, navbarState.searchInput, type]);
 
   const filterByTagFunc = useCallback(
     (model: ModelWithTags) => {
@@ -429,10 +484,10 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
     selectedItems: boolean[],
   ) => {
     const items = visibleData.map((item, i) => {
-      const imagePath =
-        type === 'checkpoint'
-          ? `${settingsState.checkpointsPath}\\${item.name}\\${item.name}_0.png`
-          : `${settingsState.lorasPath}\\${item.name}\\${item.name}_0.png`;
+      const imagePath = convertPath(
+        `${item.path.split('.').slice(0, -1).join('.')}\\${item.fileName}_0.png`,
+        os,
+      );
 
       const loading =
         item.modelId && modelsState.update[item.modelId]
@@ -446,7 +501,7 @@ export default function Models({ type }: { type: 'checkpoint' | 'lora' }) {
       return (
         <ModelCard
           id={`model-card-models-${item.hash}`}
-          key={`${item.hash}_${item.name}`}
+          key={`${item.hash}_${item.fileName}`}
           onClick={(e) => onModelCardClick(e, item.hash)}
           loading={loading}
           needUpdate={needUpdate}

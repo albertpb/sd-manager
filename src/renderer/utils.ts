@@ -104,3 +104,24 @@ export function delay(ms: number): Promise<void> {
     setTimeout(resolve, ms);
   });
 }
+
+export function convertPath(inputPath: string, os: string): string {
+  if (os === 'win32') return inputPath;
+
+  if (os === 'linux') return inputPath.replace(/\\/g, '/');
+
+  return inputPath;
+}
+
+export function getFileDir(inputPath: string, os: string): string {
+  let delimiter = '\\';
+  if (os === 'win32') {
+    delimiter = '\\';
+  }
+
+  if (os === 'linux') {
+    delimiter = '/';
+  }
+
+  return inputPath.split(delimiter).slice(0, -1).join(delimiter);
+}

@@ -1,8 +1,10 @@
 import { app } from 'electron';
+import os from 'os';
 import log from 'electron-log/main';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { hashFilesInBackground } from './util';
+import { convertPath } from 'renderer/utils';
 
 export default class SqliteDB {
   // eslint-disable-next-line no-use-before-define
@@ -23,7 +25,10 @@ export default class SqliteDB {
   async getdb() {
     if (!this.db) {
       this.db = await open({
-        filename: `${app.getPath('userData')}\\database.db`,
+        filename: convertPath(
+          `${app.getPath('userData')}\\database.db`,
+          os.platform(),
+        ),
         driver: sqlite3.Database,
       });
 

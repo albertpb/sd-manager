@@ -5,12 +5,10 @@ import { Tag } from 'main/ipc/tag';
 import { WatchFolder } from 'main/ipc/watchFolders';
 import { createId } from '@paralleldrive/cuid2';
 import { getTextColorFromBackgroundColor } from 'renderer/utils';
-import { ImportProgress } from './interfaces';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
+import { ImageWithTags, ImportProgress } from './interfaces';
 import { settingsAtom } from './settings.store';
 import { store } from './index';
-import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
-
-export type ImageWithTags = Omit<ImageRow, 'tags'> & { tags: Tag[] };
 
 export type ImagesState = {
   images: ImageRow[];
@@ -87,6 +85,7 @@ export const deleteImages = async () => {
   await store.set(imagesAtom, (draft) => {
     draft.toDelete = {};
   });
+  window.api.clearCache();
   await loadImages();
 };
 

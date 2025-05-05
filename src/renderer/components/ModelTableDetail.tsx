@@ -1,4 +1,4 @@
-import { ModelCivitaiInfo } from '../../main/interfaces';
+import { ModelCivitaiInfo } from 'main/interfaces';
 import BadgeCopyWords from './BadgeCommaTexts';
 
 export type ModelTableDetailProps = {

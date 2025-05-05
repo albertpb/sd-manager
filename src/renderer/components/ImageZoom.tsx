@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { MouseEvent, createRef, useCallback } from 'react';
+import { MouseEvent, createRef } from 'react';
 import Image from './Image';
 
 type ImageZoomProps = {
@@ -22,18 +22,6 @@ export default function ImageZoom({
   onClick,
 }: ImageZoomProps) {
   const imgRef = createRef<HTMLImageElement>();
-  const onUpdate = useCallback(
-    ({ x, y, scale }: { x: number; y: number; scale: number }) => {
-      const { current: img } = imgRef;
-
-      if (img) {
-        // const value = make3dTransformValue({ x, y, scale });
-
-        img.style.setProperty('transform', '');
-      }
-    },
-    [imgRef],
-  );
 
   const ondragstart = () => {
     window.ipcOn.startDrag(src);

@@ -1,8 +1,8 @@
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { throttle } from '../utils';
-import { ImageWithTags } from '../state/images.store';
+import { ImageWithTags } from 'renderer/state/interfaces';
+import { throttle } from 'renderer/utils';
 
 type LightBoxProps = {
   images: ImageWithTags[];

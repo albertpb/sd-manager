@@ -3,9 +3,9 @@ import { Tag } from 'main/ipc/tag';
 import { KeyboardEvent, MouseEvent, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
 import { useNavigate } from 'react-router-dom';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import ColorPicker from 'renderer/components/ColorPicker';
 import MultiSelect from 'renderer/components/MultiSelect';
-import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 
 type TaggerProps = {
   onSetActiveTags: (

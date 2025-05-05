@@ -9,7 +9,7 @@ export default class ImageMetadataWorkerManager {
   // eslint-disable-next-line no-use-before-define
   private static instance: ImageMetadataWorkerManager | null = null;
 
-  private MAX_SIZE = os.cpus().length;
+  private MAX_SIZE = ~~(os.cpus().length / 2);
 
   private workers: Worker[] = [];
 

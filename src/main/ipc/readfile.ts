@@ -10,7 +10,7 @@ export const readFileIpc = async (
 ) => {
   const fileExists = await checkFileExists(path);
   if (fileExists) {
-    const buffer = fs.readFileSync(path, { encoding });
+    const buffer = await fs.promises.readFile(path, { encoding });
 
     return buffer;
   }
@@ -22,7 +22,7 @@ export const readImageIpc = async (event: IpcMainInvokeEvent, path: string) => {
   const fileExists = await checkFileExists(path);
 
   if (fileExists) {
-    const buffer = fs.readFileSync(path);
+    const buffer = await fs.promises.readFile(path);
     const exif = extractMetadata(buffer);
     const base64 = Buffer.from(buffer).toString('base64');
     const metadata = parseImageSdMeta(exif);

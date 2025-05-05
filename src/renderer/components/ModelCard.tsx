@@ -1,6 +1,6 @@
 import { MouseEvent } from 'react';
 import classNames from 'classnames';
-import { Tag } from '../../main/ipc/tag';
+import { Tag } from 'main/ipc/tag';
 import Image from './Image';
 import Rating from './Rating';
 

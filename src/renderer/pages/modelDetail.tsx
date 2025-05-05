@@ -3,11 +3,8 @@ import { IpcRendererEvent } from 'electron';
 import ReactHtmlParser from 'html-react-parser';
 import { ImageRow } from 'main/ipc/image';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ModelCivitaiInfo } from 'main/interfaces';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import ModelTableDetail from 'renderer/components/ModelTableDetail';
-import Carousel from 'react-multi-carousel';
-import VirtualScroll from 'renderer/components/VirtualScroll';
+import { ModelCivitaiInfo, ModelInfoImage } from 'main/interfaces';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import Rating from 'renderer/components/Rating';
 import {
   checkpointsAtom,
@@ -18,12 +15,19 @@ import { settingsAtom } from 'renderer/state/settings.store';
 import { imagesAtom } from 'renderer/state/images.store';
 import { useAtom } from 'jotai';
 import { Model } from 'main/ipc/model';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath, getFileDir } from 'renderer/utils';
+import Carousel from 'react-multi-carousel';
+import ModelTableDetail from 'renderer/components/ModelTableDetail';
+import VirtualScroll from 'renderer/components/VirtualScroll';
 import Image from '../components/Image';
 
 export default function ModelDetail() {
   const navigate = useNavigate();
   const navigatorParams = useParams();
   const selectedModelHash = navigatorParams.hash;
+
+  const os = useContext(OsContext);
 
   const [lorasState] = useAtom(lorasAtom);
   const [checkpointsState] = useAtom(checkpointsAtom);
@@ -47,9 +51,10 @@ export default function ModelDetail() {
   const [modelCivitaiInfo, setModelCivitaiInfo] =
     useState<ModelCivitaiInfo | null>(null);
   const [userImagesList, setUserImagesList] = useState<ImageRow[]>([]);
-  const [modelImagesList, setModelImagesList] = useState<string[]>([]);
+  const [modelImagesList, setModelImagesList] = useState<
+    [string, ModelInfoImage | null][]
+  >([]);
 
-  const descriptionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [carouselCards, setCarouselCards] = useState<number>(1);
@@ -70,16 +75,14 @@ export default function ModelDetail() {
   useEffect(() => {
     const load = async () => {
       if (modelData) {
-        const mapPathsModels: Record<string, string | null> = {
-          checkpoint: settingsState.checkpointsPath,
-          lora: settingsState.lorasPath,
-        };
-
-        const modelsPath = mapPathsModels[modelData.type];
+        const modelsPath = getFileDir(modelData.path, os);
 
         if (modelsPath) {
           const modelCiviInfo = await window.ipcHandler.readFile(
-            `${modelsPath}\\${modelData.name}.civitai.info`,
+            convertPath(
+              `${modelsPath}\\${modelData.fileName}.civitai.info`,
+              os,
+            ),
             'utf-8',
           );
           if (modelCiviInfo) {
@@ -87,12 +90,12 @@ export default function ModelDetail() {
           }
 
           const userImagesListsResponse: ImageRow[] =
-            await window.ipcHandler.getImages(modelData.name);
+            await window.ipcHandler.getImages(modelData.fileName);
           setUserImagesList(userImagesListsResponse);
 
-          const modelImagesListResponse: string[] =
+          const modelImagesListResponse: [string, ModelInfoImage | null][] =
             await window.ipcHandler.readdirModelImages(
-              modelData.name,
+              modelData.fileName,
               modelsPath,
             );
           setModelImagesList(modelImagesListResponse);
@@ -100,7 +103,7 @@ export default function ModelDetail() {
       }
     };
     load();
-  }, [settingsState, modelData]);
+  }, [settingsState, modelData, os]);
 
   useEffect(() => {
     const cb = (event: IpcRendererEvent, imagesData: ImageRow) => {
@@ -135,8 +138,7 @@ export default function ModelDetail() {
     // carousel cards
     setCarouselCards((windowWidth * 0.6) / 230);
 
-    const minContainerHeight = windowHeight - headHeight - 300;
-    setContainerHeight(minContainerHeight < 400 ? 600 : minContainerHeight);
+    setContainerHeight(windowHeight - headHeight - 300);
     setContainerWidth(windowWidth * 0.9);
 
     const cardWidth = (containerWidth - zoomLevel * 16) / zoomLevel; // (cardHeight * 2) / 3;
@@ -171,8 +173,8 @@ export default function ModelDetail() {
     [calcImagesValues],
   );
 
-  const revealInFolder = (imgPath: string) => {
-    window.ipcHandler.openFolderLink(`${imgPath}`);
+  const goToModelImageDetail = (index: number) => {
+    navigate(`image-detail/${index}`);
   };
 
   const onSelectImage = (item: ImageRow) => {
@@ -198,7 +200,11 @@ export default function ModelDetail() {
         }
       }
     } else {
-      revealInFolder(item.path);
+      console.log(item.path);
+      const index = modelImagesList.findIndex((i) => i[0] === item.path);
+      if (index) {
+        goToModelImageDetail(index);
+      }
     }
   };
 
@@ -222,36 +228,44 @@ export default function ModelDetail() {
     }
   };
 
+  const revealInFolder = () => {
+    if (modelData) {
+      window.ipcHandler.openFolderLink(modelData.path);
+    }
+  };
+
   if (modelData && modelCivitaiInfo) {
     // carousel
-    const modelImages = modelImagesList.map((imgSrc, i) => {
-      return (
-        <div
-          key={`md_${imgSrc}_i`}
-          onClick={() => revealInFolder(imgSrc)}
-          aria-hidden="true"
-          className="cursor-pointer"
-        >
-          <figure
-            key={`model_detail_model_image_${i}`}
-            className="card__figure animated rounded-md overflow-hidden"
-            style={{
-              width: '220px',
-              height: '330px',
-            }}
+    const modelImages = modelImagesList.map(
+      (imgItem: [string, ModelInfoImage | null], i) => {
+        return (
+          <div
+            key={`md_${imgItem[0]}_i`}
+            onClick={() => goToModelImageDetail(i)}
+            aria-hidden="true"
+            className="cursor-pointer"
           >
-            <Image
-              src={imgSrc}
-              alt={`model_detail_model_image_${i}`}
-              height="100%"
-              width="100%"
-              className="object-cover"
-              onDragPath={imgSrc}
-            />
-          </figure>
-        </div>
-      );
-    });
+            <figure
+              key={`model_detail_model_image_${i}`}
+              className="card__figure animated rounded-md overflow-hidden"
+              style={{
+                width: '220px',
+                height: '330px',
+              }}
+            >
+              <Image
+                src={imgItem[0]}
+                alt={`model_detail_model_image_${i}`}
+                height="100%"
+                width="100%"
+                className="object-cover"
+                onDragPath={imgItem[0]}
+              />
+            </figure>
+          </div>
+        );
+      },
+    );
 
     const rowRenderer =
       userImagesList.length > 0
@@ -351,8 +365,21 @@ export default function ModelDetail() {
             );
           };
 
+    const descriptionElement = (data: Model) => {
+      if (data.modelDescription) {
+        return (
+          <div className="pt-2">
+            <div>{ReactHtmlParser(data.modelDescription || '')}</div>
+            <div className="divider" />
+            <div>{ReactHtmlParser(data.description || '')}</div>
+          </div>
+        );
+      }
+      return <div>{ReactHtmlParser(data.description || '')}</div>;
+    };
+
     return (
-      <main className="pb-4 pt-10 flex justify-center relative h-full">
+      <main className="pb-10 pt-10 flex justify-center relative">
         <div className="absolute top-10 right-10">
           <button
             className="btn btn-circle"
@@ -394,7 +421,13 @@ export default function ModelDetail() {
         </div>
         <section className="w-11/12">
           <div className="flex flex-row items-center">
-            <p className="text-2xl font-bold text-gray-300">{modelData.name}</p>
+            <button
+              type="button"
+              className="text-2xl font-bold text-gray-300"
+              onClick={() => revealInFolder()}
+            >
+              {modelData.name}
+            </button>
             <div className="ml-4 flex">
               <Rating
                 id={`model-detail-rating-2-${modelData.hash}`}
@@ -437,9 +470,7 @@ export default function ModelDetail() {
               </div>
             </div>
           </div>
-          <div ref={descriptionRef} className="pt-2">
-            {ReactHtmlParser(modelData.description || '')}
-          </div>
+          {descriptionElement(modelData)}
 
           <div className="pt-4">
             <div className="flex items-center">
@@ -498,7 +529,7 @@ export default function ModelDetail() {
               ) : (
                 <VirtualScroll
                   id="model_detail_model_images_virtualscroll"
-                  data={modelImagesList}
+                  data={modelImagesList.map((f) => f[0])}
                   render={rowRenderer}
                   settings={{
                     containerHeight,

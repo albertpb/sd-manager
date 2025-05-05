@@ -1,14 +1,21 @@
 /* eslint import/prefer-default-export: off */
 import fs from 'fs';
 import axios from 'axios';
+import os from 'os';
 import path from 'path';
 import log from 'electron-log/main';
 import { URL } from 'url';
 import { createBLAKE3 } from 'hash-wasm';
-import { ImageMetaData, ModelCivitaiInfo, ModelInfo } from './interfaces';
+import {
+  ImageMetaData,
+  ModelCivitaiInfo,
+  ModelInfo,
+  ModelInfoImage,
+} from './interfaces';
 import HashWorkerManager from './WorkerManagers/HashWorkerManager';
 import ImageMetadataWorkerManager from './WorkerManagers/ImageMetadataWorkerManager';
 import ThumbnailWorkerManager from './WorkerManagers/ThumbnailWorkerManager';
+import { convertPath } from 'renderer/utils';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -97,13 +104,14 @@ export async function downloadModelInfoByHash(
   hash: string,
   downloadDir: string,
 ) {
+  console.log(`Downloading model info ${modelName}`);
   try {
     const response = await axios.get(
       `https://civitai.com/api/v1/model-versions/by-hash/${hash}`,
     );
 
     await fs.promises.writeFile(
-      `${downloadDir}\\${modelName}.civitai.info`,
+      convertPath(`${downloadDir}\\${modelName}.civitai.info`, os.platform()),
       JSON.stringify(response.data, null, 2),
       { encoding: 'utf-8', flag: 'w' },
     );
@@ -113,7 +121,7 @@ export async function downloadModelInfoByHash(
     console.log(`failed to download civitai info model ${modelName}`);
     log.info(`failed to download civitai info model ${modelName}`);
     await fs.promises.writeFile(
-      `${downloadDir}\\${modelName}.civitai.info`,
+      convertPath(`${downloadDir}\\${modelName}.civitai.info`, os.platform()),
       '{}',
       { encoding: 'utf-8' },
     );
@@ -124,16 +132,23 @@ export async function downloadModelInfoByHash(
 
 export async function downloadImage(
   fileName: string,
-  url: string,
+  modelInfoImage: ModelInfoImage,
   savePath: string,
   resolution = 1024,
 ) {
-  const fileExists = await checkFileExists(`${savePath}\\${fileName}.png`);
+  let fileExists = await checkFileExists(
+    convertPath(`${savePath}\\${fileName}.png`, os.platform()),
+  );
 
   if (!fileExists) {
-    const writer = fs.createWriteStream(`${savePath}\\${fileName}.png`);
+    const writer = fs.createWriteStream(
+      convertPath(`${savePath}\\${fileName}.png`, os.platform()),
+    );
 
-    const imageUrl = url.replace('/width=d+/', `width=${resolution}`);
+    const imageUrl = modelInfoImage.url.replace(
+      '/width=d+/',
+      `width=${resolution}`,
+    );
 
     const response = await axios.get(imageUrl, {
       responseType: 'stream',
@@ -149,6 +164,21 @@ export async function downloadImage(
     });
     await p;
   }
+
+  fileExists = await checkFileExists(
+    convertPath(`${savePath}\\${fileName}.json`, os.platform()),
+  );
+
+  console.log(4.8);
+
+  if (!fileExists) {
+    fs.writeFileSync(
+      convertPath(`${savePath}\\${fileName}.json`, os.platform()),
+      JSON.stringify(modelInfoImage, null, 4),
+      { encoding: 'utf-8' },
+    );
+  }
+  console.log(4.9);
 }
 
 export async function readModelInfoFile(filePath: string) {
@@ -166,32 +196,91 @@ export const deleteModelFiles = (filePath: string, fileNameNoExt: string) => {
   }
 
   try {
-    fs.rmdirSync(`${folderPath}\\${fileNameNoExt}`);
+    fs.rmdirSync(convertPath(`${folderPath}\\${fileNameNoExt}`, os.platform()));
   } catch (error) {
     log.info(error);
     console.log(error);
   }
 
   try {
-    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.civitai.info`);
+    fs.unlinkSync(
+      convertPath(
+        `${folderPath}\\${fileNameNoExt}.civitai.info`,
+        os.platform(),
+      ),
+    );
   } catch (error) {
     log.info(error);
     console.log(error);
   }
 
   try {
-    fs.unlinkSync(`${folderPath}\\${fileNameNoExt}.preview.png`);
+    fs.unlinkSync(
+      convertPath(`${folderPath}\\${fileNameNoExt}.preview.png`, os.platform()),
+    );
   } catch (error) {
     log.info(error);
     console.log(error);
   }
 };
 
-export const getModelInfo = async (modelId: number): Promise<ModelInfo> => {
-  const response = await axios.get(
-    `https://civitai.com/api/v1/models/${modelId}`,
+export const getModelInfo = async (
+  modelId: number,
+  modelName?: string,
+  downloadDir?: string,
+): Promise<ModelInfo> => {
+  console.log(`Getting model info ${modelName} ${modelId}`);
+
+  const filePath = convertPath(
+    `${downloadDir}\\${modelName}.civitai.model.info`,
+    os.platform(),
   );
-  return response.data;
+  try {
+    if (modelName && downloadDir) {
+      const fileExists = await checkFileExists(filePath);
+      if (fileExists) {
+        const data = await fs.promises.readFile(filePath, {
+          encoding: 'utf-8',
+        });
+        return JSON.parse(data);
+      }
+    }
+
+    const response = await axios.get(
+      `https://civitai.com/api/v1/models/${modelId}`,
+      {
+        timeout: 10000,
+      },
+    );
+
+    if (modelName && downloadDir) {
+      await fs.promises.writeFile(
+        convertPath(
+          `${downloadDir}\\${modelName}.civitai.model.info`,
+          os.platform(),
+        ),
+        JSON.stringify(response.data, null, 2),
+        { encoding: 'utf-8' },
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    console.log(`failed to download civitai info modelInfo ${modelName}`);
+    log.info(`failed to download civitai info modelInfo ${modelName}`);
+    if (modelName && downloadDir) {
+      await fs.promises.writeFile(
+        convertPath(
+          `${downloadDir}\\${modelName}.civitai.model.info`,
+          os.platform(),
+        ),
+        '{}',
+        { encoding: 'utf-8' },
+      );
+    }
+
+    throw error;
+  }
 };
 
 export function sleep(ms: number) {
@@ -237,9 +326,14 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
 
     files.forEach((file) => {
       if (file.isDirectory()) {
-        arrayOfFiles = getAllFiles(`${file.path}\\${file.name}`, arrayOfFiles);
+        arrayOfFiles = getAllFiles(
+          convertPath(`${file.path}\\${file.name}`, os.platform()),
+          arrayOfFiles,
+        );
       } else if (file.isFile()) {
-        arrayOfFiles.push(`${file.path}\\${file.name}`);
+        arrayOfFiles.push(
+          convertPath(`${file.path}\\${file.name}`, os.platform()),
+        );
       }
     });
 

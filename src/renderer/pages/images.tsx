@@ -1,15 +1,15 @@
 import classNames from 'classnames';
-import Fuse from 'fuse.js';
-import { ImageRow } from '../../main/ipc/image';
-import { Tag } from '../../main/ipc/tag';
+import { ImageRow } from 'main/ipc/image';
+import { Tag } from 'main/ipc/tag';
 import React, {
   useCallback,
+  useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
 import Image from 'renderer/components/Image';
 import Rating from 'renderer/components/Rating';
 import StatusBar from 'renderer/components/StatusBar';
@@ -19,7 +19,6 @@ import LightBox from 'renderer/components/LightBox';
 import ContextMenu from 'renderer/components/ContextMenu';
 import { useAtom } from 'jotai';
 import {
-  ImageWithTags,
   createImageTag,
   imagesAtom,
   imagesTagsAtom,
@@ -36,10 +35,15 @@ import {
 import { navbarAtom } from 'renderer/state/navbar.store';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { checkpointsAtom, lorasAtom } from 'renderer/state/models.store';
-import { SelectValue } from 'react-tailwindcss-select/dist/components/type';
+import ImagesFuseSingleton from 'renderer/fuzzy/images.fuse';
+import { ImageWithTags } from 'renderer/state/interfaces';
+import { OsContext } from 'renderer/hocs/detect-os';
+import { convertPath } from 'renderer/utils';
 
 export default function Images() {
   const navigate = useNavigate();
+
+  const os = useContext(OsContext);
 
   const CONTEXT_MENU_ID = 'images_context_menu';
   const VIRTUAL_SCROLL_ID = 'images_virtualscroll';
@@ -85,6 +89,9 @@ export default function Images() {
       ? true
       : localStorage.getItem('images-showTag') === 'true',
   );
+  const [imagesResult, setImagesResult] = useState<
+    (Omit<ImageRow, 'tags'> & { tags: Tag[] })[]
+  >([]);
 
   const [imagesState, setImagesState] = useAtom(imagesAtom);
   const [watchFoldersState] = useAtom(watchFoldersAtom);
@@ -94,7 +101,6 @@ export default function Images() {
   const [tagsState] = useAtom(imagesTagsAtom);
   const [lorasState] = useAtom(lorasAtom);
   const [checkpointsState] = useAtom(checkpointsAtom);
-
   const [imagesList, setImagesList] = useState<ImageWithTags[]>([
     ...imagesWTags,
   ]);
@@ -111,33 +117,65 @@ export default function Images() {
   const maxZoom = 8;
   const rowMargin = 10;
 
-  const fuseByTags = useMemo(() => {
-    return new Fuse(imagesWTags, {
-      keys: ['tags.label'],
-    });
-  }, [imagesWTags]);
+  useEffect(() => {
+    const load = async () => {
+      await ImagesFuseSingleton.getInstance().initFuseByTags(imagesWTags);
+      await ImagesFuseSingleton.getInstance().initFuseByModel(imagesWTags);
+    };
 
-  const fuseByModel = useMemo(() => {
-    return new Fuse(imagesWTags, {
-      keys: ['model'],
-    });
-  }, [imagesWTags]);
+    load();
 
-  const imagesResult = useMemo(() => {
-    let result: (Omit<ImageRow, 'tags'> & { tags: Tag[] })[] = [];
+    return () => {
+      ImagesFuseSingleton.getInstance().saveFuseIndexes();
+    };
+  });
 
-    if (navbarState.searchInput.startsWith('t:')) {
-      result = fuseByTags
-        .search(navbarState.searchInput.substring(2))
-        .map((r) => r.item);
-    } else if (navbarState.searchInput !== '') {
-      result = fuseByModel.search(navbarState.searchInput).map((r) => r.item);
-    } else {
-      result = imagesWTags;
+  useEffect(() => {
+    const fuseByTags = ImagesFuseSingleton.getInstance().getFuseByTags();
+    const fuseByModel = ImagesFuseSingleton.getInstance().getFuseByModel();
+
+    if (fuseByTags) {
+      fuseByTags.setCollection(imagesWTags);
     }
+    if (fuseByModel) {
+      fuseByModel.setCollection(imagesWTags);
+    }
+  }, [imagesWTags]);
 
-    return result;
-  }, [fuseByModel, fuseByTags, imagesWTags, navbarState.searchInput]);
+  useEffect(() => {
+    const fuseByTags = ImagesFuseSingleton.getInstance().getFuseByTags();
+    const fuseByModel = ImagesFuseSingleton.getInstance().getFuseByModel();
+
+    const load = async () => {
+      if (fuseByTags && navbarState.searchInput.startsWith('t:')) {
+        setImagesResult(
+          fuseByTags
+            .search(navbarState.searchInput.substring(2))
+            .map((r) => r.item),
+        );
+      } else if (navbarState.searchInput.startsWith('p:')) {
+        const prompt = navbarState.searchInput.substring(2);
+        const hashes: Record<string, boolean> =
+          await window.ipcHandler.getImagesHashByPositivePrompt(prompt);
+
+        setImagesResult(imagesWTags.filter((img) => hashes[img.hash]));
+      } else if (navbarState.searchInput.startsWith('n:')) {
+        const prompt = navbarState.searchInput.substring(2);
+        const hashes: Record<string, boolean> =
+          await window.ipcHandler.getImagesHashByNegativePrompt(prompt);
+
+        setImagesResult(imagesWTags.filter((img) => hashes[img.hash]));
+      } else if (fuseByModel && navbarState.searchInput !== '') {
+        setImagesResult(
+          fuseByModel.search(navbarState.searchInput).map((r) => r.item),
+        );
+      } else {
+        setImagesResult(imagesWTags);
+      }
+    };
+
+    load();
+  }, [imagesWTags, navbarState.searchInput]);
 
   const filterByRatingFunc = useCallback(
     (img: ImageWithTags) => img.rating === filterByRating,
@@ -455,8 +493,11 @@ export default function Images() {
     const rows = visibleData.map((item, i) => {
       const imageSrc =
         zoomLevel <= 2
-          ? `${item.path}\\${item.name}.png`
-          : `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`;
+          ? convertPath(`${item.path}\\${item.name}.png`, os)
+          : convertPath(
+              `${item.path}\\thumbnails\\${item.name}.thumbnail.webp`,
+              os,
+            );
 
       return (
         <div

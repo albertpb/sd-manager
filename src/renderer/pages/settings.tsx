@@ -32,9 +32,9 @@ import { navbarAtom } from 'renderer/state/navbar.store';
 import { settingsAtom } from 'renderer/state/settings.store';
 import { useAtom } from 'jotai';
 
-const themes: string[] = [];
-
 export default function Settings() {
+  const themes: string[] = [];
+
   const [settingsState, setSettingsState] = useAtom(settingsAtom);
   const [checkpointsState] = useAtom(checkpointsAtom);
   const [lorasState] = useAtom(lorasAtom);

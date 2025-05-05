@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import log from 'electron-log/main';
 import { IpcMainInvokeEvent, BrowserWindow } from 'electron';
+import { convertPath } from '../../renderer/utils';
 import SqliteDB from '../db';
 import {
   getAllFiles,
@@ -113,23 +115,29 @@ export async function removeImagesIpc(
 
     const pathParsed = path.parse(imagesToDelete[i].sourcePath);
     try {
-      fs.unlinkSync(imagesToDelete[i].sourcePath);
+      await fs.promises.unlink(imagesToDelete[i].sourcePath);
     } catch (error) {
       console.log(error);
       log.info(error);
     }
     try {
-      fs.unlinkSync(
-        `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
+      await fs.promises.unlink(
+        convertPath(
+          `${pathParsed.dir}\\thumbnails\\${pathParsed.name}.thumbnail.webp`,
+          os.platform(),
+        ),
       );
     } catch (error) {
       console.log(error);
       log.info(error);
     }
     try {
-      fs.rmSync(`${pathParsed.dir}\\${pathParsed.name}`, {
-        recursive: true,
-      });
+      await fs.promises.rm(
+        convertPath(`${pathParsed.dir}\\${pathParsed.name}`, os.platform()),
+        {
+          recursive: true,
+        },
+      );
     } catch (error) {
       console.log(error);
       log.info(error);
@@ -161,7 +169,7 @@ export const regenerateThumbnailsIpc = async (
       return acc;
     }, []);
 
-  const files = allFiles.filter((f: string) => {
+  const files = allFiles.filter((f) => {
     return f.endsWith('.png');
   });
 
@@ -169,7 +177,10 @@ export const regenerateThumbnailsIpc = async (
 
   for (let i = 0; i < files.length; i++) {
     const parsedFilePath = path.parse(files[i]);
-    const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
+    const thumbnailDestPath = convertPath(
+      `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`,
+      os.platform(),
+    );
 
     filesToThumbnail.push([files[i], thumbnailDestPath]);
   }
@@ -233,7 +244,10 @@ export const scanImagesIpc = async (
       const progress = ((i + 1) / files.length) * 100;
       notifyProgressImage(browserWindow, `Saving to database...`, progress);
 
-      const thumbnailDestPath = `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`;
+      const thumbnailDestPath = convertPath(
+        `${parsedFilePath.dir}\\thumbnails\\${parsedFilePath.name}.thumbnail.webp`,
+        os.platform(),
+      );
       if (!thumbnailsFilesMap[thumbnailDestPath]) {
         filesToThumbnail.push([files[i], thumbnailDestPath]);
       }
@@ -262,7 +276,7 @@ export const scanImagesIpc = async (
         if (!imagesRowsPathMap[files[i]]) {
           try {
             await db.run(
-              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName)`,
+              `INSERT INTO images(hash, path, rating, model, generatedBy, sourcePath, name, fileName, positivePrompt, negativePrompt) VALUES($hash, $path, $rating, $model, $generatedBy, $sourcePath, $name, $fileName, $positivePrompt, $negativePrompt)`,
               {
                 $hash: imageHash,
                 $path: parsedFilePath.dir,
@@ -272,6 +286,8 @@ export const scanImagesIpc = async (
                 $sourcePath: files[i],
                 $name: parsedFilePath.name,
                 $fileName: parsedFilePath.base,
+                $positivePrompt: metadata.positivePrompt,
+                $negativePrompt: metadata.negativePrompt,
               },
             );
 
@@ -406,5 +422,57 @@ export const removeAllImageTagsIpc = async (
   } catch (error) {
     console.error(error);
     log.error(error);
+  }
+};
+
+export const getHashesByPositivePromptIpc = async (
+  event: IpcMainInvokeEvent,
+  prompt: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const rows: { hash: string }[] = await db.all(
+      `SELECT hash FROM images WHERE positivePrompt LIKE $prompt`,
+      {
+        $prompt: `%${prompt}%`,
+      },
+    );
+
+    return rows.reduce((acc: Record<string, boolean>, row) => {
+      acc[row.hash] = true;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+
+    return {};
+  }
+};
+
+export const getHashesByNegativePromptIpc = async (
+  event: IpcMainInvokeEvent,
+  prompt: string,
+) => {
+  try {
+    const db = await SqliteDB.getInstance().getdb();
+
+    const rows: { hash: string }[] = await db.all(
+      `SELECT hash FROM images WHERE negativePrompt LIKE $prompt`,
+      {
+        $prompt: `%${prompt}%`,
+      },
+    );
+
+    return rows.reduce((acc: Record<string, boolean>, row) => {
+      acc[row.hash] = true;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(error);
+    log.error(error);
+
+    return {};
   }
 };
