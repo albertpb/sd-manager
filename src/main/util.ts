@@ -169,8 +169,6 @@ export async function downloadImage(
     convertPath(`${savePath}\\${fileName}.json`, os.platform()),
   );
 
-  console.log(4.8);
-
   if (!fileExists) {
     fs.writeFileSync(
       convertPath(`${savePath}\\${fileName}.json`, os.platform()),
@@ -178,7 +176,6 @@ export async function downloadImage(
       { encoding: 'utf-8' },
     );
   }
-  console.log(4.9);
 }
 
 export async function readModelInfoFile(filePath: string) {
@@ -327,12 +324,12 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
     files.forEach((file) => {
       if (file.isDirectory()) {
         arrayOfFiles = getAllFiles(
-          convertPath(`${file.path}\\${file.name}`, os.platform()),
+          convertPath(`${file.parentPath}\\${file.name}`, os.platform()),
           arrayOfFiles,
         );
       } else if (file.isFile()) {
         arrayOfFiles.push(
-          convertPath(`${file.path}\\${file.name}`, os.platform()),
+          convertPath(`${file.parentPath}\\${file.name}`, os.platform()),
         );
       }
     });

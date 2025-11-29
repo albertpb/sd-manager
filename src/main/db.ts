@@ -49,6 +49,8 @@ export default class SqliteDB {
       await db.run(`CREATE TABLE IF NOT EXISTS "models" (
         "hash" TEXT NOT NULL,
         "name" TEXT NOT NULL,
+        "fileName" TEXT NOT NULL,
+        "modelDescription" TEXT NOT NULL, 
         "path" TEXT NOT NULL,
         "type" TEXT NOT NULL,
         PRIMARY KEY ("hash")
@@ -266,6 +268,53 @@ export default class SqliteDB {
       await db.run(`PRAGMA user_version = 12`);
 
       version.user_version = 12;
+    }
+
+    if (version.user_version === 12) {
+      try {
+        await db.run(`ALTER TABLE models ADD COLUMN modelDescription TEXT`);
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 13`);
+
+      version.user_version = 13;
+    }
+
+    if (version.user_version === 13) {
+      try {
+        await db.run(`ALTER TABLE models RENAME COLUMN name TO fileName`);
+        await db.run(`ALTER TABLE models ADD COLUMN name TEXT`);
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 14`);
+
+      version.user_version = 14;
+    }
+
+    if (version.user_version === 14) {
+      try {
+        await db.run(`ALTER TABLE images ADD COLUMN positivePrompt TEXT`);
+        await db.run(`ALTER TABLE images ADD COLUMN negativePrompt TEXT`);
+        await db.run(
+          `CREATE INDEX idx_positivePrompt ON images(positivePrompt)`,
+        );
+        await db.run(
+          `CREATE INDEX idx_negativePrompt ON images(negativePrompt)`,
+        );
+      } catch (error) {
+        console.log(error);
+        log.info(error);
+      }
+
+      await db.run(`PRAGMA user_version = 15`);
+
+      version.user_version = 15;
     }
   }
 }

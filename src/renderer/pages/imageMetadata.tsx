@@ -8,7 +8,7 @@ export default function ImageMetadata() {
   const IMAGE_TYPES = ['image/png', 'image/jpeg'];
 
   const [metadata, setMetadata] = useState({});
-  const [path, setPath] = useState('');
+  const [imageBuffer, setImageBuffer] = useState<Buffer>();
 
   const [height, setHeight] = useState(window.innerHeight - 300);
 
@@ -22,25 +22,30 @@ export default function ImageMetadata() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const readMetadata = async (newPath: string) => {
-    setPath(newPath);
-    const result = await window.ipcHandler.readImageMetadata(newPath);
+  const readMetadata = async (buffer: Buffer) => {
+    setImageBuffer(buffer);
+    const result = await window.ipcHandler.readImageMetadata(buffer);
     setMetadata(result);
   };
 
-  const onFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFilesChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       if (IMAGE_TYPES.includes(e.target.files.item(0)?.type || '')) {
-        readMetadata(e.target.files[0].path);
+        const arrayBuffer = await e.target.files[0].arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        readMetadata(buffer);
       }
     }
   };
 
-  const onFilesDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onFilesDrop = async (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       if (IMAGE_TYPES.includes(e.dataTransfer.files.item(0)?.type || '')) {
-        readMetadata(e.dataTransfer.files[0].path);
+        const arrayBuffer = await e.dataTransfer.files[0].arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        readMetadata(buffer);
       }
     }
   };
@@ -66,7 +71,7 @@ export default function ImageMetadata() {
             htmlFor="imagedrop"
             className="flex justify-center w-full h-96 px-4 transition bg-slate-900 border-2 border-gray-600 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none"
           >
-            {path === '' ? (
+            {imageBuffer === undefined ? (
               <span className="flex items-center space-x-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -88,7 +93,7 @@ export default function ImageMetadata() {
                 </span>
               </span>
             ) : (
-              <Image src={path} alt="metadata" />
+              <Image src={imageBuffer.toString('base64')} alt="metadata" />
             )}
             <input
               type="file"

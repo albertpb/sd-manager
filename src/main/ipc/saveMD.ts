@@ -26,7 +26,7 @@ export const saveMDIpc = async (
 
 export const saveImageMDIpc = async (
   event: IpcMainInvokeEvent,
-  source: string,
+  buffer: Buffer,
   dest: string,
 ) => {
   const dir = path.dirname(dest);
@@ -36,7 +36,7 @@ export const saveImageMDIpc = async (
     await fs.promises.mkdir(dir, { recursive: true });
   }
 
-  await fs.promises.copyFile(source, dest);
+  await fs.promises.writeFile(dest, buffer);
 };
 
 export const saveImageFromClipboardIpc = async (

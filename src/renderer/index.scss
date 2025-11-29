@@ -29,10 +29,14 @@
 
 }
 
+@plugin "@tailwindcss/typography";
+
 @import url('../../assets/fonts/montserrat/fonts.scss');
 @import url('../../node_modules/react-multi-carousel/lib/styles.css');
 @import url('../../node_modules/react-toastify/dist/ReactToastify.css');
 @import url('react-tailwindcss-select/dist/index.css');
+@import url('@uiw/react-markdown-preview/markdown.css');
+@import url('@uiw/react-md-editor/markdown-editor.css');
 
 * {
   font-family: 'Montserrat', sans-serif;

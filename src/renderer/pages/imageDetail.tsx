@@ -179,7 +179,10 @@ export default function ImageDetail() {
           }\\${generateRandomId(10)}.png`;
 
           try {
-            await window.ipcHandler.saveImageMD(file.path, dest);
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            await window.ipcHandler.saveImageMD(buffer, dest);
           } catch (error) {
             console.log(error);
             log.info(error);
