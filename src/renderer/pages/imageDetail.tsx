@@ -425,7 +425,8 @@ export default function ImageDetail() {
             </div>
             <div className="mt-4 pb-10" data-color-mode="dark">
               <MDEditor
-                height={480}
+                height={400}
+                minHeight={400}
                 value={markdownText}
                 onChange={(value) => onMDChangeText(value)}
                 onPaste={(event) => onImagePasted(event.clipboardData)}

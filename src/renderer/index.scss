@@ -1,8 +1,11 @@
-@use "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 @plugin "daisyui";
 @plugin "daisyui/theme" {
-  name: "coffee";
+  name: 'coffee';
   default: true;
   prefersdark: true;
   color-scheme: dark;
@@ -26,17 +29,17 @@
   --color-success-content: #ffffff;
   --color-warning-content: #ffffff;
   --color-error-content: #ffffff;
-
 }
 
 @plugin "@tailwindcss/typography";
 
+@import '@uiw/react-markdown-preview/markdown.css' layer(base);
+@import '@uiw/react-md-editor/markdown-editor.css' layer(base);
 @import url('../../assets/fonts/montserrat/fonts.scss');
 @import url('../../node_modules/react-multi-carousel/lib/styles.css');
 @import url('../../node_modules/react-toastify/dist/ReactToastify.css');
 @import url('react-tailwindcss-select/dist/index.css');
-@import url('@uiw/react-markdown-preview/markdown.css');
-@import url('@uiw/react-md-editor/markdown-editor.css');
+
 
 * {
   font-family: 'Montserrat', sans-serif;
@@ -80,7 +83,8 @@
 }
 
 .w-md-editor {
-  --md-editor-font-family: 'Montserrat', Helvetica, Arial, sans-serif !important;
+  --md-editor-font-family:
+    'Montserrat', Helvetica, Arial, sans-serif !important;
 }
 
 .copy-hover:hover {
